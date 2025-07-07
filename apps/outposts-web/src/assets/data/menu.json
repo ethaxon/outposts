@@ -10,7 +10,7 @@
                 },
                 {
                     "name": "Get Started",
-                    "href": "https://github.com/outposts-project/outposts?tab=readme-ov-file#quick-start"
+                    "href": "https://github.com/aitiome/outposts?tab=readme-ov-file#quick-start"
                 }
             ]
         },
@@ -32,7 +32,7 @@
                     "children": [
                         {
                             "name": "Coming Soon",
-                            "href": "https://github.com/outposts-project/securitydept"
+                            "href": "https://github.com/aitiome/securitydept"
                         }
                     ]
                 }
@@ -58,7 +58,7 @@
             "children": [
                 {
                     "name": "Forum",
-                    "href": "https://github.com/outposts-project/outposts/discussions"
+                    "href": "https://github.com/aitiome/outposts/discussions"
                 },
                 {
                     "name": "Telegram Channel",
@@ -86,11 +86,11 @@
             "children": [
                 {
                     "name": "Source Code",
-                    "href": "https://github.com/outposts-project/outposts"
+                    "href": "https://github.com/aitiome/outposts"
                 },
                 {
                     "name": "Changelog",
-                    "href": "https://github.com/outposts-project/outposts/blob/master/CHANGELOG.md"
+                    "href": "https://github.com/aitiome/outposts/blob/master/CHANGELOG.md"
                 }
             ]
         }

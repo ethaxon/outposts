@@ -8,7 +8,7 @@ import { Component } from '@angular/core';
         <div class="layout-footer">
             <div>
                 <span>OUTPOSTS {{ version }} by </span>
-                <a href="https://github.com/outposts-project">outposts-project</a>
+                <a href="https://github.com/aitiome">aitiome</a>
             </div>
         </div>
     `

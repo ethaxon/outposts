@@ -24,7 +24,7 @@ import { StyleClass } from 'primeng/styleclass';
 
             <ul class="topbar-items">
               <li>
-                <a href="https://github.com/outposts-project/outposts" target="_blank" rel="noopener noreferrer" class="topbar-item">
+                <a href="https://github.com/aitiome/outposts" target="_blank" rel="noopener noreferrer" class="topbar-item">
                   <i class="pi pi-github text-surface-700 dark:text-surface-100"></i>
                 </a>
               </li>
@@ -39,7 +39,7 @@ import { StyleClass } from 'primeng/styleclass';
                 </a>
               </li>
               <li>
-                <a href="https://github.com/outposts-project/outposts/discussions" target="_blank" rel="noopener noreferrer" class="topbar-item">
+                <a href="https://github.com/aitiome/outposts/discussions" target="_blank" rel="noopener noreferrer" class="topbar-item">
                   <i class="pi pi-comments text-surface-700 dark:text-surface-100"></i>
                 </a>
               </li>

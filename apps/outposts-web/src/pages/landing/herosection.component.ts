@@ -43,7 +43,7 @@ import { TooltipModule } from 'primeng/tooltip';
                         <span>Get Started</span>
                         <i class="pi pi-arrow-right ms-4"></i>
                     </a>
-                    <a href="https://github.com/outposts-project/outposts" target="_blank" rel="noopener noreferrer" class="linkbox">
+                    <a href="https://github.com/aitiome/outposts" target="_blank" rel="noopener noreferrer" class="linkbox">
                         <span>Give a Star</span>
                         <i class="pi pi-star-fill ms-4 text-yellow-500"></i>
                     </a>
