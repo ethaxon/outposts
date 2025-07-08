@@ -1,2 +1,2 @@
-^https://outposts.enfw.tech/*** http://127.0.0.1:4200/$1
-^wss://outposts.enfw.tech/*** ws://127.0.0.1:4200/$1
+^https://outposts.aitiotekt.com/*** http://127.0.0.1:4200/$1
+^wss://outposts.aitiotekt.com/*** ws://127.0.0.1:4200/$1
