@@ -1,6 +1,6 @@
 services:
   postgres:
-    container_name: postgres
+    container_name: outposts-postgres
     image: postgres:18
     env_file: ./.env
     environment:
@@ -21,25 +21,6 @@ services:
       timeout: 5s
       retries: 10
 
-  logto:
-    container_name: logto
-    depends_on:
-      postgres:
-        condition: service_healthy
-    image: svhd/logto:latest
-    entrypoint: ['sh', '-c', 'npm run cli db alteration deploy latest && npm run cli db seed -- --swe && npm start']
-    ports:
-      - 9001:3001
-      - 9002:3002
-    env_file: ./.env
-    environment:
-      - TRUST_PROXY_HEADER=1
-      - DB_URL=${LOGTO_DATABASE_URL}
-      - ENDPOINT=${AUTH_ENDPOINT}
-      - ADMIN_ENDPOINT=${AUTH_DASHBOARD_ENDPOINT}
-    networks:
-      - outposts
-
   confluence:
     container_name: confluence
     image: 'ghcr.io/ethaxon/confluence:latest'
@@ -51,7 +32,6 @@ services:
       - outposts
     depends_on:
       - postgres
-      - logto
 
   outposts-web:
     container_name: outposts-web
@@ -64,7 +44,6 @@ services:
       - outposts
     depends_on:
       - confluence
-      - logto
 
 networks:
   outposts:
