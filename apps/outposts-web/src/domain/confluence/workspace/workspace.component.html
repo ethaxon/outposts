@@ -260,7 +260,7 @@
 <p-dialog header="Preview Subscribe Source Content" [visible]="true"
   (visibleChange)="cancelPreviewSubscribeSourceContentDialog()" [modal]="true"
   [style]="{ width: '50vw', minWidth: '300px' }" [draggable]="false" [resizable]="false" [baseZIndex]="100">
-  <ngx-monaco-editor [options]="tmplEditorOptions" [(ngModel)]="subscribeSourceContentPreview.content" [disabled]="true"
+  <ngx-monaco-editor [options]="tmplEditorOptions" [(ngModel)]="subscribeSourceContentPreview.content"
     style="min-height: 200px; height: 50vh;"></ngx-monaco-editor>
   <div class="flex justify-end gap-2 mt-6">
     <p-button size="small" label="Cancel" icon="pi pi-times" [outlined]="true"

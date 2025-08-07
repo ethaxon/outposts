@@ -1,0 +1,44 @@
+services:
+  outposts-web:
+    image: 'ghcr.io/ethaxon/outposts-web:latest'
+    build: !reset null
+    ports: !reset []
+    networks:
+    - traefik
+    labels:
+    # HTTPS router
+    - traefik.http.routers.outposts-web.rule=Host(`${OUTPOSTS_WEB_HOST}`)
+    - traefik.http.routers.outposts-web.entrypoints=websecure
+    - traefik.http.routers.outposts-web.tls=true
+    - traefik.http.routers.outposts-web.service=outposts-web
+    - traefik.http.routers.outposts-web.middlewares=hsts@file
+    - traefik.http.services.outposts-web.loadbalancer.server.port=80
+    # HTTP router (redirect to HTTPS)
+    - traefik.http.routers.outposts-web-http.rule=Host(`${OUTPOSTS_WEB_HOST}`)
+    - traefik.http.routers.outposts-web-http.entrypoints=web
+    - traefik.http.routers.outposts-web-http.middlewares=redirect-to-https@file
+    - traefik.http.routers.outposts-web-http.service=noop@internal
+
+  confluence:
+    image: 'ghcr.io/ethaxon/confluence:latest'
+    build: !reset null
+    ports: !reset []
+    networks:
+    - traefik
+    labels:
+    # HTTPS router
+    - traefik.http.routers.confluence.rule=Host(`${CONFLUENCE_HOST}`)
+    - traefik.http.routers.confluence.entrypoints=websecure
+    - traefik.http.routers.confluence.tls=true
+    - traefik.http.routers.confluence.service=confluence
+    - traefik.http.routers.confluence.middlewares=hsts@file
+    - traefik.http.services.confluence.loadbalancer.server.port=4001
+    # HTTP router (redirect to HTTPS)
+    - traefik.http.routers.confluence-http.rule=Host(`${CONFLUENCE_HOST}`)
+    - traefik.http.routers.confluence-http.entrypoints=web
+    - traefik.http.routers.confluence-http.middlewares=redirect-to-https@file
+    - traefik.http.routers.confluence-http.service=noop@internal
+
+networks:
+  traefik:
+    external: true

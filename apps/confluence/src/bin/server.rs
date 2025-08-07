@@ -17,8 +17,6 @@ use confluence::tasks::init_backend_jobs;
 use sea_orm::{ConnectOptions, Database};
 use sea_orm_migration::MigratorTrait;
 use std::env;
-use std::net::IpAddr;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio_cron_scheduler::JobScheduler;
 use tower_http::cors::{Any, CorsLayer};
@@ -54,8 +52,7 @@ async fn main() -> Result<(), AppError> {
         .expect("Database connection failed");
 
     let auth_type = env::var("AUTH_TYPE").expect("AUTH_TYPE is not set in env");
-    let host = env::var("CONFLUENCE_HOST").unwrap_or_else(|_| String::from("0.0.0.0"));
-    let port = env::var("CONFLUENCE_PORT").map_or(4001u16, |p| p.parse::<u16>().unwrap());
+    let listen = env::var("CONFLUENCE_LISTEN").unwrap_or_else(|_| String::from("0.0.0.0:4001"));
 
     {
         migrations::Migrator::up(&conn, None).await?;
@@ -64,26 +61,21 @@ async fn main() -> Result<(), AppError> {
     let state = Arc::new(AppState::new(
         conn,
         AppConfig {
-            port,
-            host,
+            listen,
             database_url: db_url,
             auth: match &auth_type as &str {
-                "DEV_NO_AUTH" => {
-                    let user_id =
-                        env::var("AUTH_DEV_USER_ID").expect("AUTH_DEV_USER_ID is not set in env");
-                    AuthConfig::DevNoAuth { user_id }
+                "BASIC" => {
+                    let username = env::var("AUTH_BASIC_USERNAME")
+                        .expect("AUTH_BASIC_USERNAME is not set in env");
+                    let password = env::var("AUTH_BASIC_PASSWORD")
+                        .expect("AUTH_BASIC_PASSWORD is not set in env");
+                    AuthConfig::BASIC { username, password }
                 }
-                "JWT" => {
+                "OIDC" => {
                     let issuer = env::var("AUTH_ISSUER").expect("AUTH_ISSUER is not set in env");
-                    let jwks_uri =
-                        env::var("AUTH_JWKS_URI").expect("AUTH_JWKS_URI is not set in env");
                     let audience = env::var("CONFLUENCE_API_ENDPOINT")
                         .expect("CONFLUENCE_API_ENDPOINT is not set in env");
-                    AuthConfig::JWT {
-                        jwks_uri,
-                        issuer,
-                        audience,
-                    }
+                    AuthConfig::OIDC { issuer, audience }
                 }
                 auth_type => {
                     panic!("unsupported auth type {}", auth_type)
@@ -156,11 +148,9 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
 }
 
 async fn serve(app: Router, state: Arc<AppState>) {
-    let addr = SocketAddr::from((
-        state.config.host.parse::<IpAddr>().unwrap(),
-        state.config.port,
-    ));
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&state.config.listen)
+        .await
+        .unwrap_or_else(|_| panic!("failed to bind to address of {}", &state.config.listen));
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     let cors = CorsLayer::new()

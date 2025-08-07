@@ -10,10 +10,9 @@ const envVarPlugin = {
 
         if (
             !process.env.AUTH_TYPE ||
-            !process.env.OUTPOSTS_WEB_ORIGIN ||
+            !process.env.OUTPOSTS_WEB_HOST ||
             !process.env.CONFLUENCE_API_ENDPOINT ||
-            !process.env.AUTH_ENDPOINT ||
-            !process.env.OUTPOSTS_WEB_ORIGIN
+            !process.env.AUTH_ENDPOINT
         ) {
             console.error('missing required envs');
             process.exit(1);
@@ -23,7 +22,7 @@ const envVarPlugin = {
             APP_VERSION: version,
             AUTH_TYPE: process.env.AUTH_TYPE,
             AUTH_ENDPOINT: process.env.AUTH_ENDPOINT,
-            OUTPOSTS_WEB_ORIGIN: process.env.OUTPOSTS_WEB_ORIGIN,
+            OUTPOSTS_WEB_HOST: process.env.OUTPOSTS_WEB_HOST,
             OUTPOSTS_WEB_AUTH_APPID: process.env.OUTPOSTS_WEB_AUTH_APPID,
             CONFLUENCE_API_ENDPOINT: process.env.CONFLUENCE_API_ENDPOINT,
         });

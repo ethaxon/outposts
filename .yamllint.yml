@@ -1,0 +1,13 @@
+extends: default
+
+rules:
+  # 允许 Docker Compose 的自定义标签
+  yaml-tags:
+    allowed-tags:
+      - '!reset sequence'
+      - '!reset scalar'
+      - '!override sequence'
+      - '!override scalar'
+      - '!override'
+      - '!override scalar'
+

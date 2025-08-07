@@ -24,6 +24,8 @@ axum = "0.8"
 axum-extra = "0.12"
 biscuit = "0.7"
 chrono = { version = "0.4", features = ["serde"] }
+openidconnect = { version = "3.0", features = ["reqwest"] }
+base64 = "0.22"
 dotenvy = "0.15"
 futures = "0.3"
 itertools = "0.14"

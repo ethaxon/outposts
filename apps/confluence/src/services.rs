@@ -1,4 +1,4 @@
-use crate::auth::CurrentUser;
+use crate::auth::{CurrentUser, OidcProviderConfig};
 use crate::clash::http::{
     SUB_DOWNLOAD, SUB_EXPIRE, SUB_TOTAL, SUB_UPLOAD, SUBSCRIPTION_USERINFO_HEADER,
 };
@@ -47,6 +47,7 @@ pub struct AppState {
     pub config: AppConfig,
     pub names_generator: Arc<rnglib::RNG>,
     pub jwks: Arc<RwLock<Option<JwksConfig>>>,
+    pub oidc_provider: Arc<RwLock<Option<OidcProviderConfig>>>,
 }
 
 impl AppState {
@@ -56,6 +57,7 @@ impl AppState {
             config,
             names_generator: Arc::new(rnglib::RNG::from(&rnglib::Language::Elven)),
             jwks: Arc::new(RwLock::new(None)),
+            oidc_provider: Arc::new(RwLock::new(None)),
         }
     }
 }

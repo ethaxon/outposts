@@ -1,0 +1,15 @@
+# Cursor Rules
+
+## Code and Comments Language
+- All code, comments, and documentation in this repository must be written in English.
+- Variable names, function names, class names, and all identifiers should use English.
+- All comments and documentation strings must be in English.
+- Error messages and log messages should be in English.
+- When generating or modifying code, always use English for all text content.
+
+## General Guidelines
+- Follow the existing code style and conventions in the repository.
+- Write clear, concise, and meaningful comments.
+- Use descriptive variable and function names.
+- Maintain consistency with the existing codebase.
+

@@ -1,29 +1,12 @@
 #[derive(Clone, Debug)]
 pub enum AuthConfig {
-    JWT {
-        jwks_uri: String,
-        issuer: String,
-        audience: String,
-    },
-    DevNoAuth {
-        user_id: String,
-    },
-}
-
-impl AuthConfig {
-    pub fn get_jwks_uri(&self) -> Option<&str> {
-        if let AuthConfig::JWT { jwks_uri, .. } = &self {
-            Some(jwks_uri as &str)
-        } else {
-            None
-        }
-    }
+    OIDC { issuer: String, audience: String },
+    BASIC { username: String, password: String },
 }
 
 #[derive(Clone, Debug)]
 pub struct AppConfig {
-    pub port: u16,
-    pub host: String,
+    pub listen: String,
     pub auth: AuthConfig,
     pub database_url: String,
 }

@@ -1,10 +1,10 @@
 set windows-shell := ["pwsh.exe", "-c"]
 
 dev-confluence:
-  cargo watch -w apps/confluence -x "run --bin confluence_server"
+  watchexec -r -e rs,toml,yaml,yml,env,json -- cargo run -p confluence --bin confluence_server
 
 dev-webui:
-  npx nx serve outposts-web
+  pnpm exec nx serve outposts-web
 
 dev-proxy:
   npm run start -w dev-proxy
@@ -14,3 +14,6 @@ container-build:
 
 container-deploy:
   docker compose up -d
+
+dev-deps:
+  docker compose -f docker-compose.dev-deps.yml up -d

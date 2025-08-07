@@ -50,7 +50,7 @@ jobs:
           AUTH_ENDPOINT: ${{ vars.AUTH_ENDPOINT }}
           AUTH_TYPE: ${{ vars.AUTH_TYPE }}
           OUTPOSTS_WEB_AUTH_APPID: ${{ vars.OUTPOSTS_WEB_AUTH_APPID }}
-          OUTPOSTS_WEB_ORIGIN: ${{ vars.OUTPOSTS_WEB_ORIGIN }}
+          OUTPOSTS_WEB_HOST: ${{ vars.OUTPOSTS_WEB_HOST }}
           CONFLUENCE_API_ENDPOINT: ${{ vars.CONFLUENCE_API_ENDPOINT }}
         with:
           input-prefix: '' # Optional (default: '')

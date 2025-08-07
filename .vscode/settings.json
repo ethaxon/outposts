@@ -1,23 +1,12 @@
 {
-  "[typescript]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "[json5]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer"
-  },
-  "editor.formatOnSave": true,
-  "rust-analyzer.check.command": "clippy",
-  "recommendations": [
-    "nrwl.angular-console",
-    "esbenp.prettier-vscode"
-  ]
+  "yaml.customTags": [
+    "!reset sequence",
+    "!override sequence",
+    "!reset scalar",
+    "!override scalar"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "source.fixAll.biome": "explicit"
+  }
 }
