@@ -6,6 +6,7 @@ services:
     networks:
     - traefik
     labels:
+    - traefik.enable=true
     # HTTPS router
     - traefik.http.routers.outposts-web.rule=Host(`${OUTPOSTS_WEB_HOST}`)
     - traefik.http.routers.outposts-web.entrypoints=websecure
@@ -26,6 +27,7 @@ services:
     networks:
     - traefik
     labels:
+    - traefik.enable=true
     # HTTPS router
     - traefik.http.routers.confluence.rule=Host(`${CONFLUENCE_HOST}`)
     - traefik.http.routers.confluence.entrypoints=websecure
