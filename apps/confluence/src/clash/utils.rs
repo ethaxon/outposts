@@ -14,18 +14,18 @@ pub fn parse_server_tld<'b>(
 ) -> Result<ServerTld<'b>, ConfigError> {
     let proxy_server = parse_domain_name(name);
 
-    if let Err(err) = &proxy_server {
-        if err.kind() == addr::error::Kind::NumericTld {
-            let addr = IpAddr::parse_ascii(name.as_bytes()).map_err(|e| {
-                ConfigError::ProxyServerIpInvalid {
-                    config_name: config_name.to_string(),
-                    server: name.to_string(),
-                    source: e,
-                }
-            })?;
+    if let Err(err) = &proxy_server
+        && err.kind() == addr::error::Kind::NumericTld
+    {
+        let addr = IpAddr::parse_ascii(name.as_bytes()).map_err(|e| {
+            ConfigError::ProxyServerIpInvalid {
+                config_name: config_name.to_string(),
+                server: name.to_string(),
+                source: e,
+            }
+        })?;
 
-            return Ok(ServerTld::Ip(addr));
-        }
+        return Ok(ServerTld::Ip(addr));
     }
 
     let proxy_server = proxy_server.map_err(|e| ConfigError::ProxyServerInvalid {

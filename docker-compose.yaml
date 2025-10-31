@@ -16,10 +16,10 @@ services:
     networks:
       - outposts
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -d $${POSTGRES_DB} -U $${POSTGRES_USER}']
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   logto:
     container_name: logto
@@ -27,7 +27,7 @@ services:
       postgres:
         condition: service_healthy
     image: svhd/logto:latest
-    entrypoint: ['sh', '-c', 'npm run cli db alteration deploy latest && npm run cli db seed -- --swe && npm start']
+    entrypoint: ['sh', '-c', 'npm run alteration deploy latest && npm run cli db seed -- --swe && npm start']
     ports:
       - 9001:3001
       - 9002:3002
@@ -44,7 +44,7 @@ services:
     container_name: confluence
     build:
       context: .
-      dockerfile: ./crates/confluence/Dockerfile
+      dockerfile: ./apps/confluence/Dockerfile
     env_file: ./.env
     restart: always
     ports:

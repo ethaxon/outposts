@@ -1,8 +1,8 @@
 declare global {
   interface Window {
     Prism: typeof import('prismjs');
-    ClipboardJS: typeof import('clipboard') 
+    ClipboardJS: typeof import('clipboard')
   }
 }
 
-export {};
+export { };

@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
       class="fullscreen-spinner flex justify-center items-center"
     >
       <p-progressSpinner
-        styleClass="w-16 h-16"
+        class="w-16 h-16"
         strokeWidth="8"
         fill="var(--surface-ground)"
         animationDuration=".5s"

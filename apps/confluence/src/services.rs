@@ -1,8 +1,8 @@
 use crate::auth::CurrentUser;
 use crate::clash::http::{
-    SUBSCRIPTION_USERINFO_HEADER, SUB_DOWNLOAD, SUB_EXPIRE, SUB_TOTAL, SUB_UPLOAD,
+    SUB_DOWNLOAD, SUB_EXPIRE, SUB_TOTAL, SUB_UPLOAD, SUBSCRIPTION_USERINFO_HEADER,
 };
-use crate::clash::{parse_subscription_userinfo_in_header, ClashConfig};
+use crate::clash::{ClashConfig, parse_subscription_userinfo_in_header};
 use crate::config::AppConfig;
 use crate::dto::{
     ConfluenceUpdateCronDto, SubscribeSourceCreationDto, SubscribeSourceDto,
@@ -22,14 +22,14 @@ use crate::{
     },
 };
 use axum::extract::{Path, State};
-use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
+use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};
 use axum::{Extension, Json};
 use chrono_tz::Tz;
 use cron::Schedule;
 use futures::future::try_join_all;
 use itertools::izip;
-use sea_orm::prelude::*;
 use sea_orm::ActiveValue::Set;
+use sea_orm::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect, TryIntoModel};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -105,19 +105,18 @@ pub async fn sync_one_subscribe_source_with_url(
 ) -> Result<subscribe_source::Model, AppError> {
     let mut client_builder = reqwest::ClientBuilder::new().user_agent(ua);
 
-    if let Some(proxy_server) = &sm.proxy_server {
-        if !proxy_server.is_empty() {
-            let mut proxy = reqwest::Proxy::all(proxy_server)?;
-            if let Some(proxy_auth) = &sm.proxy_auth {
-                if !proxy_auth.is_empty() {
-                    proxy = proxy.custom_http_auth(
-                        HeaderValue::from_str(proxy_auth)
-                            .map_err(|_| AppError::InvalidProxyAuthHeader)?,
-                    );
-                }
-            }
-            client_builder = client_builder.proxy(proxy);
+    if let Some(proxy_server) = &sm.proxy_server
+        && !proxy_server.is_empty()
+    {
+        let mut proxy = reqwest::Proxy::all(proxy_server)?;
+        if let Some(proxy_auth) = &sm.proxy_auth
+            && !proxy_auth.is_empty()
+        {
+            proxy = proxy.custom_http_auth(
+                HeaderValue::from_str(proxy_auth).map_err(|_| AppError::InvalidProxyAuthHeader)?,
+            );
         }
+        client_builder = client_builder.proxy(proxy);
     }
 
     let client = client_builder.build()?;
@@ -133,10 +132,10 @@ pub async fn sync_one_subscribe_source_with_url(
         if let Some(v) = sub_userinfo.get(SUB_TOTAL) {
             sm.sub_total = Set(Some(*v));
         };
-        if let Some(v) = sub_userinfo.get(SUB_EXPIRE) {
-            if let Some(ts) = chrono::DateTime::from_timestamp(*v, 0) {
-                sm.sub_expire = Set(Some(ts.naive_utc()));
-            }
+        if let Some(v) = sub_userinfo.get(SUB_EXPIRE)
+            && let Some(ts) = chrono::DateTime::from_timestamp(*v, 0)
+        {
+            sm.sub_expire = Set(Some(ts.naive_utc()));
         };
     };
     let content = res.text().await?;

@@ -22,7 +22,7 @@ import type { ConfluenceDto } from '../bindings/ConfluenceDto';
 import type { SubscribeSourceDto } from '../bindings/SubscribeSourceDto';
 import type { ProfileDto } from '../bindings/ProfileDto';
 import type { SubscribeSourceUpdateDto } from '../bindings/SubscribeSourceUpdateDto';
-import { isEqual } from 'lodash-es';
+import { isEqual } from 'es-toolkit';
 import {
   FormBuilder,
   FormControl,

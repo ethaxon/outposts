@@ -13,10 +13,10 @@ pub fn parse_subscription_userinfo(header_value: &str) -> HashMap<String, i64> {
 
     for field in header_value.split(';') {
         let parts: Vec<&str> = field.trim().split('=').collect();
-        if parts.len() == 2 {
-            if let Ok(value) = parts[1].trim().parse::<i64>() {
-                fields.insert(parts[0].trim().to_string(), value);
-            }
+        if parts.len() == 2
+            && let Ok(value) = parts[1].trim().parse::<i64>()
+        {
+            fields.insert(parts[0].trim().to_string(), value);
         }
     }
 
@@ -30,10 +30,10 @@ pub fn parse_subscription_userinfo_in_header(header: &HeaderMap) -> Option<HashM
 
     for field in header_str.split(';') {
         let parts: Vec<&str> = field.trim().split('=').collect();
-        if parts.len() == 2 {
-            if let Ok(value) = parts[1].trim().parse::<i64>() {
-                fields.insert(parts[0].trim().to_string(), value);
-            }
+        if parts.len() == 2
+            && let Ok(value) = parts[1].trim().parse::<i64>()
+        {
+            fields.insert(parts[0].trim().to_string(), value);
         }
     }
 

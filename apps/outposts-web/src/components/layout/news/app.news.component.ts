@@ -1,7 +1,7 @@
 import News from '@/assets/data/news.json';
 
 import { AppConfigService } from '@/core/servces/app-config.service';
-import { CommonModule } from '@angular/common';
+
 import { afterNextRender, ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
     standalone: true,
     templateUrl: './app.news.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [CommonModule, FormsModule]
+    imports: [FormsModule]
 })
 export class AppNewsComponent {
     storageKey = 'outposts-banner-news';

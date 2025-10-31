@@ -1,19 +1,17 @@
-#![feature(slice_take)]
-
 use axum::{
-    handler::HandlerWithoutStateExt, http::Method, http::StatusCode, middleware, routing::delete,
-    routing::get, routing::post, routing::put, Router,
+    Router, handler::HandlerWithoutStateExt, http::Method, http::StatusCode, middleware,
+    routing::delete, routing::get, routing::post, routing::put,
 };
 use confluence::auth::auth;
 use confluence::config::{AppConfig, AuthConfig};
 use confluence::error::AppError;
 use confluence::migrations;
 use confluence::services::{
-    create_one_confluence, create_one_profile, create_one_subscribe_source, delete_one_confluence,
-    delete_one_profile, delete_one_subscribe_source, find_many_confluences, find_one_confluence,
-    find_one_profile_as_subscription_by_token, mux_one_confluence, sync_one_confluence,
-    sync_one_subscribe_source, update_one_confluence, update_one_confluence_cron,
-    update_one_subscribe_source, AppState,
+    AppState, create_one_confluence, create_one_profile, create_one_subscribe_source,
+    delete_one_confluence, delete_one_profile, delete_one_subscribe_source, find_many_confluences,
+    find_one_confluence, find_one_profile_as_subscription_by_token, mux_one_confluence,
+    sync_one_confluence, sync_one_subscribe_source, update_one_confluence,
+    update_one_confluence_cron, update_one_subscribe_source,
 };
 use confluence::tasks::init_backend_jobs;
 use sea_orm::{ConnectOptions, Database};

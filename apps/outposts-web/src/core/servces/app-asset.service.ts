@@ -1,7 +1,7 @@
 /**
  * source partial from [ngx-script-loader](https://github.com/muratcorlu/ngx-script-loader)
  */
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, DOCUMENT } from '@angular/core';
 import {
   BehaviorSubject, catchError,
   map,
@@ -9,7 +9,7 @@ import {
   tap
 } from 'rxjs';
 import { take, shareReplay } from 'rxjs/operators';
-import { DOCUMENT } from '@angular/common';
+
 import { HttpClient } from "@angular/common/http";
 
 @Injectable({

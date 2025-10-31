@@ -1,6 +1,6 @@
-import { inject, Injectable, DestroyRef, NgZone, EnvironmentInjector, signal, afterNextRender } from "@angular/core";
+import { inject, Injectable, DestroyRef, NgZone, EnvironmentInjector, signal, afterNextRender, DOCUMENT } from "@angular/core";
 import { DocTableOfContentsLoader } from '@/tools/doc/services/doc-table-of-contents-loader.service';
-import { DOCUMENT, ViewportScroller } from "@angular/common";
+import { ViewportScroller } from "@angular/common";
 import { WINDOW } from '@/core/providers/window';
 import {
   auditTime,
@@ -16,7 +16,7 @@ import { RESIZE_EVENT_DELAY, SCROLL_EVENT_DELAY } from '@/core/defs/delay';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { shouldReduceMotion } from '@/tools/animation.utils';
 import { Router, Scroll } from "@angular/router";
-import { clamp } from "lodash-es";
+import { clamp } from "es-toolkit";
 
 @Injectable()
 export class DocTableOfContentsSpy {

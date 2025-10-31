@@ -1,6 +1,6 @@
 import { AppState } from '@/core/defs/app-state';
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { computed, effect, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, effect, inject, Injectable, PLATFORM_ID, signal, DOCUMENT } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 @Injectable({

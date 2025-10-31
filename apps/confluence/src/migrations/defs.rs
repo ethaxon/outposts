@@ -1,4 +1,3 @@
-use sea_orm::Statement;
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveIden)]
@@ -66,10 +65,7 @@ pub async fn create_postgres_auto_update_ts_fn(
         $$ language 'plpgsql';"
     );
 
-    manager
-        .get_connection()
-        .execute(Statement::from_string(manager.get_database_backend(), sql))
-        .await?;
+    manager.get_connection().execute_unprepared(&sql).await?;
 
     Ok(())
 }
@@ -82,10 +78,7 @@ pub async fn create_postgres_auto_update_ts_trigger(
     let sql = format!(
         "CREATE OR REPLACE TRIGGER update_{tab_name}_{col_name}_column_trigger BEFORE UPDATE ON {tab_name} FOR EACH ROW EXECUTE PROCEDURE update_{col_name}_column();"
     );
-    manager
-        .get_connection()
-        .execute(Statement::from_string(manager.get_database_backend(), sql))
-        .await?;
+    manager.get_connection().execute_unprepared(&sql).await?;
     Ok(())
 }
 
@@ -94,10 +87,7 @@ pub async fn drop_postgres_auto_update_ts_fn(
     col_name: &str,
 ) -> Result<(), DbErr> {
     let sql = format!("DROP FUNCTION IF EXISTS update_{col_name}_column();");
-    manager
-        .get_connection()
-        .execute(Statement::from_string(manager.get_database_backend(), sql))
-        .await?;
+    manager.get_connection().execute_unprepared(&sql).await?;
     Ok(())
 }
 
@@ -109,9 +99,6 @@ pub async fn drop_postgres_auto_update_ts_trigger(
     let sql = format!(
         "DROP TRIGGER IF EXISTS update_{tab_name}_{col_name}_column_trigger ON {tab_name};"
     );
-    manager
-        .get_connection()
-        .execute(Statement::from_string(manager.get_database_backend(), sql))
-        .await?;
+    manager.get_connection().execute_unprepared(&sql).await?;
     Ok(())
 }

@@ -20,7 +20,7 @@ import {
   throwError
 } from "rxjs";
 import { Observe } from '@/tools/rx';
-import { isNil } from "lodash-es";
+import { isNil } from "es-toolkit";
 import { KatexOptions } from "ngx-markdown";
 import { DocClipboardButtonComponent } from '@/tools/doc/components/clipboard-button/doc-clipboard-button.component';
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";

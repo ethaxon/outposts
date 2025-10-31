@@ -7,7 +7,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use biscuit::{jwk, Validation, ValidationOptions, JWT};
+use biscuit::{JWT, Validation, ValidationOptions, jwk};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -21,10 +21,10 @@ pub async fn get_jwks_cached(
             .as_ref()
             .map(|conf| (conf.jwks_expiry, conf.jwks_set.clone()))
     };
-    if let Some((jwks_expiry, jwks_set)) = jwks_conf {
-        if jwks_expiry > std::time::Instant::now() {
-            return Ok(jwks_set);
-        }
+    if let Some((jwks_expiry, jwks_set)) = jwks_conf
+        && jwks_expiry > std::time::Instant::now()
+    {
+        return Ok(jwks_set);
     }
     let mut jwks = state.jwks.write().await;
     let jwks_res = reqwest::get(jwks_uri).await?.text().await?;

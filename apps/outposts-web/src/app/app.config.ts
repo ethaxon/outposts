@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection, DOCUMENT } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { routes } from './app.routes';
 import {
@@ -6,7 +6,7 @@ import {
   withEventReplay,
 } from '@angular/platform-browser';
 import { AppConfigService } from '@/core/servces/app-config.service';
-import { DOCUMENT, IMAGE_CONFIG } from '@angular/common';
+import { IMAGE_CONFIG } from '@angular/common';
 import { AppOverlayService } from '@/core/servces/app-overlay.service';
 import Noir from './app-theme';
 import { provideHttpClient, withFetch, withInterceptorsFromDi } from '@angular/common/http';

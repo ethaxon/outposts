@@ -1,6 +1,6 @@
 import { inject, NgModule, PLATFORM_ID, SecurityContext } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { MarkdownModule, MARKED_OPTIONS } from 'ngx-markdown';
+import { MarkdownModule, MARKED_EXTENSIONS, MARKED_OPTIONS } from 'ngx-markdown';
 import { HttpClient } from '@angular/common/http';
 import { DocSectionComponent } from '@/tools/doc/components/section/doc-section.component';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
@@ -41,7 +41,11 @@ import { DocLayoutComponent } from '@/tools/doc/components/layout/doc-layout.com
     MarkdownModule.forRoot({
       loader: HttpClient,
       sanitize: SecurityContext.NONE,
-      markedExtensions: [gfmHeadingId()],
+      markedExtensions: [{
+        provide: MARKED_EXTENSIONS,
+        useFactory: gfmHeadingId,
+        multi: true,
+      },],
       markedOptions: {
         provide: MARKED_OPTIONS,
         useValue: {

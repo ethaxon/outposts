@@ -1,4 +1,4 @@
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, DOCUMENT } from '@angular/core';
 import LogtoClient from '@logto/browser';
 import { type AccessTokenClaims } from '@logto/js';
 import { environment } from '../../environments/environment';
@@ -30,7 +30,7 @@ import {
 } from './auth.defs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WINDOW } from '@/core/providers/window';
-import { DOCUMENT, Location } from '@angular/common';
+import { Location } from '@angular/common';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { parseScope } from './auth.utils';
 

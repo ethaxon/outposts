@@ -13,10 +13,10 @@ import { AppOverlayService } from '@/core/servces/app-overlay.service';
       <ng-template #emptymessage>
         @if (overlayService.loading$$ | async) {
         <div class="p-4">
-          <p-skeleton styleClass="mb-2"></p-skeleton>
-          <p-skeleton width="10rem" styleClass="mb-2"></p-skeleton>
-          <p-skeleton width="5rem" styleClass="mb-2"></p-skeleton>
-          <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+          <p-skeleton class="mb-2"></p-skeleton>
+          <p-skeleton width="10rem" class="mb-2"></p-skeleton>
+          <p-skeleton width="5rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="2rem" class="mb-2"></p-skeleton>
         </div>
         } @else {
           <div class="flex justify-center align-center py-10">
@@ -43,7 +43,7 @@ import { AppOverlayService } from '@/core/servces/app-overlay.service';
         >
           <p-avatar
             [label]="item.name.slice(0, 1).toUpperCase()"
-            styleClass="mr-1"
+            class="mr-1"
             size="xlarge"
           ></p-avatar>
           <div

@@ -1,4 +1,3 @@
-#![feature(slice_take)]
 #![feature(iter_intersperse)]
 #![feature(addr_parse_ascii)]
 #![feature(assert_matches)]

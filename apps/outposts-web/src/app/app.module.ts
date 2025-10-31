@@ -1,4 +1,4 @@
-import { NgModule, provideZoneChangeDetection } from '@angular/core';
+import { NgModule, provideZoneChangeDetection, DOCUMENT } from '@angular/core';
 import { BrowserModule, provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -9,7 +9,7 @@ import {
 } from '@angular/common/http';
 import { TranslocoRootModule } from './transloco-root.module';
 import { WINDOW, windowProvider } from '@/core/providers/window';
-import { DOCUMENT, IMAGE_CONFIG } from '@angular/common';
+import { IMAGE_CONFIG } from '@angular/common';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { AuthModule } from '@/domain/auth/auth.module';
 import { MessageService } from 'primeng/api';

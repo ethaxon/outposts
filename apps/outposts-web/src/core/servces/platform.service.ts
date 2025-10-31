@@ -1,6 +1,6 @@
 import { WINDOW } from '@/core/providers/window';
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID, DOCUMENT } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class PlatformService {

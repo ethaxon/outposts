@@ -14,14 +14,14 @@ path = "src/bin/server.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 uuid = { version = "1", features = [
-    "v4",                # Lets you generate random UUIDs
-    "fast-rng",          # Use a faster (but still sufficiently random) RNG
-    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+  "v4",                # Lets you generate random UUIDs
+  "fast-rng",          # Use a faster (but still sufficiently random) RNG
+  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ] }
 addr = "0.15"
-anyhow = "1"
+anyhow = "1.0.100"
 axum = "0.8"
-axum-extra = "0.10"
+axum-extra = "0.12"
 biscuit = "0.7"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
@@ -29,29 +29,29 @@ futures = "0.3"
 itertools = "0.14"
 lazy_static = "1.5"
 reqwest = { version = "0.12", features = ["json"] }
-sea-orm = { version = "1.1", features = [
-    "debug-print",
-    "runtime-tokio-native-tls",
-    "sqlx-postgres",
+sea-orm = { version = "2.0.0-rc.18", features = [
+  "debug-print",
+  "runtime-tokio-native-tls",
+  "sqlx-postgres",
 ] }
-sea-orm-migration = { version = "1.1", features = [
-    "runtime-tokio-native-tls",
-    "sqlx-postgres",
+sea-orm-migration = { version = "2.0.0-rc.18", features = [
+  "runtime-tokio-native-tls",
+  "sqlx-postgres",
 ] }
 random_name_generator = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde-enum-str = "0.4"
 serde_json = "1"
-serde_yaml = "0.9"
-thiserror = { version = "1", features = [] }
+serde_yaml = "0.9.34-depcreated"
+thiserror = { version = "2", features = [] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
-tower-http = { version = "0.5", features = ["fs", "trace", "cors"] }
+tower-http = { version = "0.6", features = ["fs", "trace", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-ts-rs = "10"
+ts-rs = "11"
 cron = "0.15"
 chrono-tz = "0.10"
-tokio-cron-scheduler = "0.11"
-monostate = "0.1"
-log = "0.4.25"
+tokio-cron-scheduler = "0.15"
+monostate = "1"
+log = "0.4.28"

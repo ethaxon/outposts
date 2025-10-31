@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
     standalone: true,
-    imports: [CommonModule, ButtonModule, RouterModule],
+    imports: [ButtonModule, RouterModule],
     template: ` <div class="flex min-h-screen items-center justify-center">
         <div class="flex card flex-col items-center gap-20 sm:p-20">
             <div class="flex flex-col sm:flex-row items-baseline justify-center gap-6 text-primary">

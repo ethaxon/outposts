@@ -1,9 +1,9 @@
 /**
  * some code fragments from [angular/dev-infra](https://github.com/angular/dev-infra/)
  */
-import { inject, Injectable, PLATFORM_ID } from "@angular/core";
+import { inject, Injectable, PLATFORM_ID, DOCUMENT } from "@angular/core";
 import { DocTableOfContentsItem, DocTableOfContentsLevel } from '@/tools/doc/defs/doc-table-of-contents.defs';
-import { DOCUMENT, isPlatformBrowser } from "@angular/common";
+import { isPlatformBrowser } from "@angular/common";
 import { WINDOW } from '@/core/providers/window';
 
 @Injectable()

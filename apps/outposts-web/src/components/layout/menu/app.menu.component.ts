@@ -1,6 +1,6 @@
 import { default as MenuData } from '@/assets/data/menu.json';
 import { AppConfigService } from '@/core/servces/app-config.service';
-import { CommonModule } from '@angular/common';
+
 import { afterNextRender, Component, computed, ElementRef, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { DomHandler } from 'primeng/dom';
@@ -19,18 +19,20 @@ export interface MenuItem {
 @Component({
     selector: 'app-menu',
     template: ` <aside>
-        <nav>
+          <nav>
             <ol class="layout-menu">
-                <li *ngFor="let item of menu; let i = index" app-menuitem [item]="item" [root]="true"></li>
+              @for (item of menu; track item; let i = $index) {
+                <li app-menuitem [item]="item" [root]="true"></li>
+              }
             </ol>
-        </nav>
-    </aside>`,
+          </nav>
+        </aside>`,
     host: {
         class: 'layout-sidebar',
         '[class.active]': 'isActive()'
     },
     standalone: true,
-    imports: [CommonModule, RouterModule, AppMenuItemComponent]
+    imports: [RouterModule, AppMenuItemComponent]
 })
 export class AppMenuComponent implements OnDestroy {
     menu!: MenuItem[];
