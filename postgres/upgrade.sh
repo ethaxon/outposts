@@ -18,3 +18,4 @@ docker run --name pgauto -it --rm \
 (cd .. && docker compose down)
 rm -r ./data
 cp -r ./data-new ./data
+chmod -R 777 ./data
