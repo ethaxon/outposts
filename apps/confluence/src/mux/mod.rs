@@ -1,9 +1,30 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::clash::utils::{parse_server_tld, ServerTld};
+use crate::clash::utils::{ServerTld, parse_server_tld};
 use crate::clash::{ClashConfig, Proxy, ProxyGroup, ProxyGroupKind, Rule};
+use fancy_regex::Regex;
 
-const PROXY_SLOT: &str = "<mux>";
+const MUX_SLOT: &str = "<mux>";
+
+/// Parse a regex slot from a string.
+///
+/// # Examples
+///
+/// ```
+/// let slot = "<proxy-regex:^CN|中国$>";
+/// let regex = parse_regex_slot(slot);
+/// assert_eq!(regex.unwrap().as_str(), "^CN|中国$");
+/// ```
+fn parse_regex_slot(slot: &str) -> Option<fancy_regex::Result<Regex>> {
+    if slot.starts_with("<proxy-regex:") && slot.ends_with(">") {
+        let regex_str = slot
+            .trim_start_matches("<proxy-regex:")
+            .trim_end_matches(">");
+        Some(Regex::new(regex_str))
+    } else {
+        None
+    }
+}
 
 pub fn mux_configs(
     template_name: &str,
@@ -22,30 +43,30 @@ pub fn mux_configs(
     let mut mux_rules = vec![];
 
     {
-      for p in template_proxies {
-        {
-          // resolve proxy server root domain
-          let proxy_server_root = parse_server_tld(template_name, p.server())?;
-          proxy_servers_root_ltd.insert(proxy_server_root);
-        }
+        for p in template_proxies {
+            {
+                // resolve proxy server root domain
+                let proxy_server_root = parse_server_tld(template_name, p.server())?;
+                proxy_servers_root_ltd.insert(proxy_server_root);
+            }
 
-        {
-          // group proxies by config name
-          source_name_to_proxies_map
-            .entry(template_name)
-            .and_modify(|v| v.push(p.clone()))
-            .or_insert_with(|| vec![p.clone()]);
-        }
+            {
+                // group proxies by config name
+                source_name_to_proxies_map
+                    .entry(template_name)
+                    .and_modify(|v| v.push(p.clone()))
+                    .or_insert_with(|| vec![p.clone()]);
+            }
 
-        {
-          proxy_name_count
-            .entry(p.name())
-            .and_modify(|v| {
-              *v += 1;
-            })
-            .or_insert_with(|| 1);
+            {
+                proxy_name_count
+                    .entry(p.name())
+                    .and_modify(|v| {
+                        *v += 1;
+                    })
+                    .or_insert_with(|| 1);
+            }
         }
-      }
     }
 
     for (source_name, source_config) in sources {
@@ -78,11 +99,14 @@ pub fn mux_configs(
     let mut mux_proxies = vec![];
 
     {
-        let source_names = sources.iter().map(|e| e.0.to_string()).collect::<Vec<_>>();
+        let source_names = sources
+            .iter()
+            .map(|(source_name, _)| source_name.to_string())
+            .collect::<Vec<_>>();
 
         for g in proxy_groups {
             let mut n = g.clone();
-            if let Some(index) = n.proxies.iter().position(|f| f.trim() == PROXY_SLOT) {
+            if let Some(index) = n.proxies.iter().position(|f| f.trim() == MUX_SLOT) {
                 n.proxies.splice(index..index + 1, source_names.clone());
             }
             mux_proxy_groups.push(n);
@@ -112,6 +136,31 @@ pub fn mux_configs(
             });
 
             mux_proxies.extend(new_proxies);
+        }
+
+        let mux_proxie_names = mux_proxies
+            .iter()
+            .map(|p| p.name().to_string())
+            .collect::<Vec<_>>();
+
+        for pg in &mut mux_proxy_groups {
+            let mut index_and_regex_proxies: Option<(usize, Vec<String>)> = None;
+            for (i, p) in pg.proxies.iter().enumerate() {
+                if let Some(regex) = parse_regex_slot(p) {
+                    let regex = regex?;
+                    let filtered_proxies = mux_proxie_names
+                        .iter()
+                        .filter(|pn| regex.is_match(pn as &str).is_ok_and(|b| b))
+                        .map(|pn| pn.to_string())
+                        .collect::<Vec<_>>();
+
+                    index_and_regex_proxies = Some((i, filtered_proxies));
+                }
+            }
+
+            if let Some((index, regex_proxies)) = index_and_regex_proxies {
+                pg.proxies.splice(index..index + 1, regex_proxies);
+            }
         }
     }
 
@@ -147,7 +196,7 @@ mod tests {
     use crate::mux::mux_configs;
 
     #[test]
-    fn test_mux_configs() -> anyhow::Result<()> {
+    fn test_mux_slot() -> anyhow::Result<()> {
         let rules1 = include_str!("../tests/profile1.yaml");
 
         let rules2 = include_str!("../tests/profile2.yaml");
@@ -161,14 +210,6 @@ mod tests {
 
         let config_res = mux_configs("test", &config_tmpl, &sources)?;
 
-        //         let expected_rules: Vec<Rule> = serde_yaml::from_str(
-        //             r"
-        // - DOMAIN-SUFFIX,proxy1.com,DIRECT
-        // - DOMAIN-SUFFIX,proxy2.com,DIRECT
-        // - DOMAIN-SUFFIX,google.com,Proxy
-        //         ",
-        //         )?;
-
         let expected_proxies: Vec<String> = serde_yaml::from_str(
             r#"
 - "SPEED"
@@ -176,6 +217,46 @@ mod tests {
 - "DIRECT"
 - "proxy1"
 - "proxy2"
+- "REJECT"
+        "#,
+        )?;
+
+        assert!(&config_res.proxy_groups.iter().any(|p| p.name == "proxy1"));
+        assert_eq!(
+            &config_res
+                .proxy_groups
+                .iter()
+                .find(|p| p.name == "PROXY")
+                .unwrap()
+                .proxies,
+            &expected_proxies
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_proxy_regex_slot() -> anyhow::Result<()> {
+        let rules1 = include_str!("../tests/profile1.yaml");
+
+        let rules2 = include_str!("../tests/profile2.yaml");
+
+        let tmpl = include_str!("../tests/tmpl-regex.yaml");
+
+        let config1: ClashConfig = serde_yaml::from_str(rules1)?;
+        let config2: ClashConfig = serde_yaml::from_str(rules2)?;
+        let config_tmpl: ClashConfig = serde_yaml::from_str(tmpl)?;
+        let sources = vec![("proxy1", config1), ("proxy2", config2)];
+
+        let config_res = mux_configs("test", &config_tmpl, &sources)?;
+
+        let expected_proxies: Vec<String> = serde_yaml::from_str(
+            r#"
+- "SPEED"
+- "QUANTITY"
+- "DIRECT"
+- "C"
+- "A"
 - "REJECT"
         "#,
         )?;
