@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::clash::utils::{ServerTld, parse_server_tld};
 use crate::clash::{ClashConfig, Proxy, ProxyGroup, ProxyGroupKind, Rule};
@@ -35,9 +35,8 @@ pub fn mux_configs(
     let rules = &template.rules;
     let proxy_groups = &template.proxy_groups;
     let template_proxies = &template.proxies;
-    let mut source_name_to_proxies_map = HashMap::<&str, Vec<Proxy>>::new();
+    let mut source_name_to_proxies_map = BTreeMap::<&str, Vec<Proxy>>::new();
     let mut proxy_servers_root_ltd = HashSet::<ServerTld<'_>>::new();
-    let mut proxy_name_count = HashMap::<&str, usize>::new();
 
     let mut mux_proxy_groups = vec![];
     let mut mux_rules = vec![];
@@ -57,15 +56,6 @@ pub fn mux_configs(
                     .and_modify(|v| v.push(p.clone()))
                     .or_insert_with(|| vec![p.clone()]);
             }
-
-            {
-                proxy_name_count
-                    .entry(p.name())
-                    .and_modify(|v| {
-                        *v += 1;
-                    })
-                    .or_insert_with(|| 1);
-            }
         }
     }
 
@@ -83,15 +73,6 @@ pub fn mux_configs(
                     .entry(source_name)
                     .and_modify(|v| v.push(p.clone()))
                     .or_insert_with(|| vec![p.clone()]);
-            }
-
-            {
-                proxy_name_count
-                    .entry(p.name())
-                    .and_modify(|v| {
-                        *v += 1;
-                    })
-                    .or_insert_with(|| 1);
             }
         }
     }
@@ -117,12 +98,7 @@ pub fn mux_configs(
                 .into_iter()
                 .map(|mut p| {
                     let proxy_name = p.name();
-                    let new_proxy_name = if proxy_name_count.get(proxy_name).is_some_and(|s| s > &1)
-                    {
-                        format!("{} {}", source_name, proxy_name)
-                    } else {
-                        proxy_name.to_string()
-                    };
+                    let new_proxy_name = format!("{} | {}", proxy_name, source_name);
                     p.set_name(new_proxy_name);
                     p
                 })
@@ -255,8 +231,8 @@ mod tests {
 - "SPEED"
 - "QUANTITY"
 - "DIRECT"
-- "C"
-- "A"
+- "A | proxy1"
+- "C | proxy2"
 - "REJECT"
         "#,
         )?;

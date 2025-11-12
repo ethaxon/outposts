@@ -13,7 +13,7 @@ proxy-groups:
       - "SPEED"
       - "QUANTITY"
       - "DIRECT"
-      - "<proxy-regex:^A|C$>"
+      - "<proxy-regex:^(?i)a|c>"
       - "REJECT"
   - name: "SPEED"
     type: select
