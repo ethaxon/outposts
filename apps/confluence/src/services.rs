@@ -413,8 +413,24 @@ pub async fn find_one_profile_as_subscription_by_token(
             HeaderValue::from_static("application/octet-stream; charset=utf-8"),
         );
         headers.insert(
-            header::CONTENT_TYPE,
+            header::CONTENT_DISPOSITION,
             HeaderValue::from_static("attachment; filename=Confluence.yaml"),
+        );
+
+        // Generate ETag based on updated_at
+        let etag = format!("\"{}\"", cm.updated_at.and_utc().timestamp_millis());
+        headers.insert(
+            header::ETAG,
+            HeaderValue::from_str(&etag).unwrap_or_else(|_| HeaderValue::from_static("\"0\"")),
+        );
+
+        // Set Cache-Control to ensure Cloudflare can cache properly and update timely
+        // max-age=0 forces revalidation every time, used with ETag
+        // s-maxage=60 allows CDN to cache for 60 seconds
+        // must-revalidate ensures revalidation is required after expiration
+        headers.insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("max-age=0, s-maxage=60, must-revalidate"),
         );
         let sub_expr_to_part = |a: DateTime| {
             let ts = a.and_utc().timestamp();
