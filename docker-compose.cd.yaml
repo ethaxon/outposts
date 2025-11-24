@@ -42,7 +42,7 @@ services:
 
   confluence:
     container_name: confluence
-    image: 'ghcr.io/aitiome/confluence:latest'
+    image: 'ghcr.io/ethaxon/confluence:latest'
     env_file: ./.env
     restart: always
     ports:
@@ -55,7 +55,7 @@ services:
 
   outposts-web:
     container_name: outposts-web
-    image: 'ghcr.io/aitiome/outposts-web:latest'
+    image: 'ghcr.io/ethaxon/outposts-web:latest'
     env_file: ./.env
     restart: always
     ports:

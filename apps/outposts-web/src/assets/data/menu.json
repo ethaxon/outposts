@@ -10,7 +10,7 @@
                 },
                 {
                     "name": "Get Started",
-                    "href": "https://github.com/aitiome/outposts?tab=readme-ov-file#quick-start"
+                    "href": "https://github.com/ethaxon/outposts?tab=readme-ov-file#quick-start"
                 }
             ]
         },
@@ -32,7 +32,7 @@
                     "children": [
                         {
                             "name": "Coming Soon",
-                            "href": "https://github.com/aitiome/securitydept"
+                            "href": "https://github.com/ethaxon/securitydept"
                         }
                     ]
                 }
@@ -58,7 +58,7 @@
             "children": [
                 {
                     "name": "Forum",
-                    "href": "https://github.com/aitiome/outposts/discussions"
+                    "href": "https://github.com/ethaxon/outposts/discussions"
                 },
                 {
                     "name": "Telegram Channel",
@@ -86,11 +86,11 @@
             "children": [
                 {
                     "name": "Source Code",
-                    "href": "https://github.com/aitiome/outposts"
+                    "href": "https://github.com/ethaxon/outposts"
                 },
                 {
                     "name": "Changelog",
-                    "href": "https://github.com/aitiome/outposts/blob/master/CHANGELOG.md"
+                    "href": "https://github.com/ethaxon/outposts/blob/master/CHANGELOG.md"
                 }
             ]
         }
