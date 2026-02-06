@@ -1,14 +1,20 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
-import { ConfluenceService } from '../confluence.service';
-import { switchMap } from 'rxjs';
-import { ConfluenceDto } from '../bindings/ConfluenceDto';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AppOverlayService } from '@/core/servces/app-overlay.service';
+import {
+	Component,
+	DestroyRef,
+	inject,
+	type OnInit,
+	signal,
+} from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { switchMap } from "rxjs";
+import { AppOverlayService } from "@/core/servces/app-overlay.service";
+import type { ConfluenceDto } from "../bindings/ConfluenceDto";
+import { ConfluenceService } from "../confluence.service";
 
 @Component({
-  standalone: false,
-  selector: 'app-confluence-dashboard',
-  template: `
+	standalone: false,
+	selector: "app-confluence-dashboard",
+	template: `
     <p-dataView #dv [value]="confluences()">
       <ng-template #emptymessage>
         @if (overlayService.loading$$ | async) {
@@ -91,68 +97,68 @@ import { AppOverlayService } from '@/core/servces/app-overlay.service';
       </ng-template>
     </p-dataView>
   `,
-  providers: [],
+	providers: [],
 })
 export class DashboardComponent implements OnInit {
-  protected readonly confluenceService = inject(ConfluenceService);
-  protected readonly destoryRef = inject(DestroyRef);
-  protected readonly overlayService = inject(AppOverlayService);
+	protected readonly confluenceService = inject(ConfluenceService);
+	protected readonly destoryRef = inject(DestroyRef);
+	protected readonly overlayService = inject(AppOverlayService);
 
-  confluences = signal<ConfluenceDto[]>([]);
+	confluences = signal<ConfluenceDto[]>([]);
 
-  ngOnInit() {
-    this.overlayService
-      .withSuspense(this.confluenceService.getAllConfluences())
-      .pipe(takeUntilDestroyed(this.destoryRef))
-      .subscribe((data) => {
-        this.confluences.set(data);
-      });
-  }
+	ngOnInit() {
+		this.overlayService
+			.withSuspense(this.confluenceService.getAllConfluences())
+			.pipe(takeUntilDestroyed(this.destoryRef))
+			.subscribe((data) => {
+				this.confluences.set(data);
+			});
+	}
 
-  async addConfluence() {
-    this.overlayService
-      .withSuspense(
-        this.confluenceService.addConfluence().pipe(
-          switchMap(() => this.confluenceService.getAllConfluences()),
-          takeUntilDestroyed(this.destoryRef)
-        )
-      )
-      .subscribe((c) => {
-        this.confluences.set(c);
-        this.overlayService.toast({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Create successfully',
-        });
-      });
-  }
+	async addConfluence() {
+		this.overlayService
+			.withSuspense(
+				this.confluenceService.addConfluence().pipe(
+					switchMap(() => this.confluenceService.getAllConfluences()),
+					takeUntilDestroyed(this.destoryRef),
+				),
+			)
+			.subscribe((c) => {
+				this.confluences.set(c);
+				this.overlayService.toast({
+					severity: "success",
+					summary: "Success",
+					detail: "Create successfully",
+				});
+			});
+	}
 
-  getSeverityText(item: ConfluenceDto): string {
-    if (item.mux_content && item.profiles.length) {
-      return 'active';
-    }
-    return 'not active';
-  }
+	getSeverityText(item: ConfluenceDto): string {
+		if (item.mux_content && item.profiles.length) {
+			return "active";
+		}
+		return "not active";
+	}
 
-  getSeverity(_item: ConfluenceDto): 'info' {
-    return 'info';
-  }
+	getSeverity(_item: ConfluenceDto): "info" {
+		return "info";
+	}
 
-  removeConfluence(id: number) {
-    this.overlayService
-      .withSuspense(
-        this.confluenceService.removeConfluence(id).pipe(
-          switchMap(() => this.confluenceService.getAllConfluences()),
-          takeUntilDestroyed(this.destoryRef)
-        )
-      )
-      .subscribe((c) => {
-        this.confluences.set(c);
-        this.overlayService.toast({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Remove successfully',
-        });
-      });
-  }
+	removeConfluence(id: number) {
+		this.overlayService
+			.withSuspense(
+				this.confluenceService.removeConfluence(id).pipe(
+					switchMap(() => this.confluenceService.getAllConfluences()),
+					takeUntilDestroyed(this.destoryRef),
+				),
+			)
+			.subscribe((c) => {
+				this.confluences.set(c);
+				this.overlayService.toast({
+					severity: "success",
+					summary: "Success",
+					detail: "Remove successfully",
+				});
+			});
+	}
 }

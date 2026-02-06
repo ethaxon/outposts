@@ -1,1 +1,1 @@
-declare module 'marked-gfm-heading-id';
+declare module "marked-gfm-heading-id";

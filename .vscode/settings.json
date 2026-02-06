@@ -1,12 +1,12 @@
 {
-  "yaml.customTags": [
-    "!reset sequence",
-    "!override sequence",
-    "!reset scalar",
-    "!override scalar"
-  ],
-  "editor.codeActionsOnSave": {
-    "source.organizeImports.biome": "explicit",
-    "source.fixAll.biome": "explicit"
-  }
+	"yaml.customTags": [
+		"!reset sequence",
+		"!override sequence",
+		"!reset scalar",
+		"!override scalar"
+	],
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "explicit",
+		"source.fixAll.biome": "explicit"
+	}
 }

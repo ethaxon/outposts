@@ -1,56 +1,59 @@
-import News from '@/assets/data/news.json';
-
-import { AppConfigService } from '@/core/servces/app-config.service';
-
-import { afterNextRender, ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+	afterNextRender,
+	ChangeDetectionStrategy,
+	type ChangeDetectorRef,
+	Component,
+} from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import News from "@/assets/data/news.json";
+import type { AppConfigService } from "@/core/servces/app-config.service";
 
 @Component({
-    selector: 'app-news',
-    standalone: true,
-    templateUrl: './app.news.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FormsModule]
+	selector: "app-news",
+	standalone: true,
+	templateUrl: "./app.news.component.html",
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [FormsModule],
 })
 export class AppNewsComponent {
-    storageKey = 'outposts-banner-news';
+	storageKey = "outposts-banner-news";
 
-    announcement: any;
+	announcement: any;
 
-    constructor(
-        private configService: AppConfigService,
-        private cd: ChangeDetectorRef
-    ) {
-        afterNextRender(() => {
-            const itemString = localStorage.getItem(this.storageKey);
+	constructor(
+		private configService: AppConfigService,
+		private cd: ChangeDetectorRef,
+	) {
+		afterNextRender(() => {
+			const itemString = localStorage.getItem(this.storageKey);
 
-            if (itemString) {
-                const item = JSON.parse(itemString);
+			if (itemString) {
+				const item = JSON.parse(itemString);
 
-                if (!item.hiddenNews || item.hiddenNews !== News.id) {
-                    this.configService.newsActive.set(true);
-                    this.announcement = News;
-                } else {
-                    this.configService.newsActive.set(false);
-                }
-            } else {
-                this.configService.newsActive.set(true);
-                this.announcement = News;
-            }
-            this.cd.markForCheck();
-        });
-    }
+				if (!item.hiddenNews || item.hiddenNews !== News.id) {
+					this.configService.newsActive.set(true);
+					this.announcement = News;
+				} else {
+					this.configService.newsActive.set(false);
+				}
+			} else {
+				this.configService.newsActive.set(true);
+				this.announcement = News;
+			}
+			this.cd.markForCheck();
+		});
+	}
 
-    get isNewsActive(): boolean {
-        return this.configService.newsActive();
-    }
+	get isNewsActive(): boolean {
+		return this.configService.newsActive();
+	}
 
-    hideNews() {
-        this.configService.hideNews();
-        const item = {
-            hiddenNews: this.announcement.id
-        };
+	hideNews() {
+		this.configService.hideNews();
+		const item = {
+			hiddenNews: this.announcement.id,
+		};
 
-        localStorage.setItem(this.storageKey, JSON.stringify(item));
-    }
+		localStorage.setItem(this.storageKey, JSON.stringify(item));
+	}
 }

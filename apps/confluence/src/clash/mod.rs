@@ -150,7 +150,7 @@ pub struct ClashConfig {
 #[cfg(test)]
 mod tests {
     use super::{ClashConfig, Proxy};
-    use std::assert_matches::assert_matches;
+    use std::assert_matches;
 
     #[test]
     fn test_model() -> anyhow::Result<()> {

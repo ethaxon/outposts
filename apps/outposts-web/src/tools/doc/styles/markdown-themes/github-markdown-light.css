@@ -1,16 +1,17 @@
 doc-markdown {
-  font-family: 'Helvetica Neue', Helvetica, 'Segoe UI', Arial, freesans, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #333;
-  background-color: #fff;
-  overflow: initial;
-  box-sizing: border-box;
-  word-wrap: break-word
+	font-family:
+		"Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+	font-size: 16px;
+	line-height: 1.6;
+	color: #333;
+	background-color: #fff;
+	overflow: initial;
+	box-sizing: border-box;
+	word-wrap: break-word;
 }
 
-doc-markdown>:first-child {
-  margin-top: 0
+doc-markdown > :first-child {
+	margin-top: 0;
 }
 
 doc-markdown h1,
@@ -19,42 +20,42 @@ doc-markdown h3,
 doc-markdown h4,
 doc-markdown h5,
 doc-markdown h6 {
-  line-height: 1.2;
-  margin-top: 1em;
-  margin-bottom: 16px;
-  color: #000
+	line-height: 1.2;
+	margin-top: 1em;
+	margin-bottom: 16px;
+	color: #000;
 }
 
 doc-markdown h1 {
-  font-size: 2.25em;
-  font-weight: 300;
-  padding-bottom: .3em
+	font-size: 2.25em;
+	font-weight: 300;
+	padding-bottom: 0.3em;
 }
 
 doc-markdown h2 {
-  font-size: 1.75em;
-  font-weight: 400;
-  padding-bottom: .3em
+	font-size: 1.75em;
+	font-weight: 400;
+	padding-bottom: 0.3em;
 }
 
 doc-markdown h3 {
-  font-size: 1.5em;
-  font-weight: 500
+	font-size: 1.5em;
+	font-weight: 500;
 }
 
 doc-markdown h4 {
-  font-size: 1.25em;
-  font-weight: 600
+	font-size: 1.25em;
+	font-weight: 600;
 }
 
 doc-markdown h5 {
-  font-size: 1.1em;
-  font-weight: 600
+	font-size: 1.1em;
+	font-weight: 600;
 }
 
 doc-markdown h6 {
-  font-size: 1em;
-  font-weight: 600
+	font-size: 1em;
+	font-weight: 600;
 }
 
 doc-markdown h1,
@@ -62,219 +63,219 @@ doc-markdown h2,
 doc-markdown h3,
 doc-markdown h4,
 doc-markdown h5 {
-  font-weight: 600
+	font-weight: 600;
 }
 
 doc-markdown h5 {
-  font-size: 1em
+	font-size: 1em;
 }
 
 doc-markdown h6 {
-  color: #5c5c5c
+	color: #5c5c5c;
 }
 
 doc-markdown strong {
-  color: #000
+	color: #000;
 }
 
 doc-markdown del {
-  color: #5c5c5c
+	color: #5c5c5c;
 }
 
 doc-markdown a:not([href]) {
-  color: inherit;
-  text-decoration: none
+	color: inherit;
+	text-decoration: none;
 }
 
 doc-markdown a {
-  color: #08c;
-  text-decoration: none
+	color: #08c;
+	text-decoration: none;
 }
 
 doc-markdown a:hover {
-  color: #00a3f5;
-  text-decoration: none
+	color: #00a3f5;
+	text-decoration: none;
 }
 
 doc-markdown img {
-  max-width: 100%
+	max-width: 100%;
 }
 
-doc-markdown>p {
-  margin-top: 0;
-  margin-bottom: 16px;
-  word-wrap: break-word
+doc-markdown > p {
+	margin-top: 0;
+	margin-bottom: 16px;
+	word-wrap: break-word;
 }
 
-doc-markdown>ol,
-doc-markdown>ul {
-  margin-bottom: 16px
+doc-markdown > ol,
+doc-markdown > ul {
+	margin-bottom: 16px;
 }
 
 doc-markdown ol,
 doc-markdown ul {
-  padding-left: 2em
+	padding-left: 2em;
 }
 
 doc-markdown ol.no-list,
 doc-markdown ul.no-list {
-  padding: 0;
-  list-style-type: none
+	padding: 0;
+	list-style-type: none;
 }
 
 doc-markdown ol ol,
 doc-markdown ol ul,
 doc-markdown ul ol,
 doc-markdown ul ul {
-  margin-top: 0;
-  margin-bottom: 0
+	margin-top: 0;
+	margin-bottom: 0;
 }
 
 doc-markdown li {
-  margin-bottom: 0
+	margin-bottom: 0;
 }
 
 doc-markdown li.task-list-item {
-  list-style: none
+	list-style: none;
 }
 
-doc-markdown li>p {
-  margin-top: 0;
-  margin-bottom: 0
+doc-markdown li > p {
+	margin-top: 0;
+	margin-bottom: 0;
 }
 
 doc-markdown .task-list-item-checkbox {
-  margin: 0 .2em .25em -1.8em;
-  vertical-align: middle
+	margin: 0 0.2em 0.25em -1.8em;
+	vertical-align: middle;
 }
 
 doc-markdown .task-list-item-checkbox:hover {
-  cursor: pointer
+	cursor: pointer;
 }
 
 doc-markdown blockquote {
-  margin: 16px 0;
-  font-size: inherit;
-  padding: 0 15px;
-  color: #5c5c5c;
-  background-color: #f0f0f0;
-  border-left: 4px solid #d6d6d6
+	margin: 16px 0;
+	font-size: inherit;
+	padding: 0 15px;
+	color: #5c5c5c;
+	background-color: #f0f0f0;
+	border-left: 4px solid #d6d6d6;
 }
 
-doc-markdown blockquote>:first-child {
-  margin-top: 0
+doc-markdown blockquote > :first-child {
+	margin-top: 0;
 }
 
-doc-markdown blockquote>:last-child {
-  margin-bottom: 0
+doc-markdown blockquote > :last-child {
+	margin-bottom: 0;
 }
 
 doc-markdown hr {
-  height: 4px;
-  margin: 32px 0;
-  background-color: #d6d6d6;
-  border: 0 none
+	height: 4px;
+	margin: 32px 0;
+	background-color: #d6d6d6;
+	border: 0 none;
 }
 
 doc-markdown table {
-  margin: 10px 0 15px 0;
-  border-collapse: collapse;
-  border-spacing: 0;
-  display: block;
-  width: 100%;
-  overflow: auto;
-  word-break: normal;
-  word-break: keep-all
+	margin: 10px 0 15px 0;
+	border-collapse: collapse;
+	border-spacing: 0;
+	display: block;
+	width: 100%;
+	overflow: auto;
+	word-break: normal;
+	word-break: keep-all;
 }
 
 doc-markdown table th {
-  font-weight: 700;
-  color: #000
+	font-weight: 700;
+	color: #000;
 }
 
 doc-markdown table td,
 doc-markdown table th {
-  border: 1px solid #d6d6d6;
-  padding: 6px 13px
+	border: 1px solid #d6d6d6;
+	padding: 6px 13px;
 }
 
 doc-markdown dl {
-  padding: 0
+	padding: 0;
 }
 
 doc-markdown dl dt {
-  padding: 0;
-  margin-top: 16px;
-  font-size: 1em;
-  font-style: italic;
-  font-weight: 700
+	padding: 0;
+	margin-top: 16px;
+	font-size: 1em;
+	font-style: italic;
+	font-weight: 700;
 }
 
 doc-markdown dl dd {
-  padding: 0 16px;
-  margin-bottom: 16px
+	padding: 0 16px;
+	margin-bottom: 16px;
 }
 
 doc-markdown code {
-  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
-  font-size: .85em;
-  color: #000;
-  background-color: #f0f0f0;
-  border-radius: 3px;
-  padding: .2em 0
+	font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+	font-size: 0.85em;
+	color: #000;
+	background-color: #f0f0f0;
+	border-radius: 3px;
+	padding: 0.2em 0;
 }
 
 doc-markdown code::after,
 doc-markdown code::before {
-  letter-spacing: -.2em;
-  content: '\00a0'
+	letter-spacing: -0.2em;
+	content: "\00a0";
 }
 
-doc-markdown pre>code {
-  padding: 0;
-  margin: 0;
-  word-break: normal;
-  white-space: pre;
-  background: 0 0;
-  border: 0
+doc-markdown pre > code {
+	padding: 0;
+	margin: 0;
+	word-break: normal;
+	white-space: pre;
+	background: 0 0;
+	border: 0;
 }
 
 doc-markdown .highlight {
-  margin-bottom: 16px
+	margin-bottom: 16px;
 }
 
 doc-markdown .highlight pre,
 doc-markdown pre {
-  padding: 1em;
-  overflow: auto;
-  line-height: 1.45;
-  border: #d6d6d6;
-  border-radius: 3px
+	padding: 1em;
+	overflow: auto;
+	line-height: 1.45;
+	border: #d6d6d6;
+	border-radius: 3px;
 }
 
 doc-markdown .highlight pre {
-  margin-bottom: 0;
-  word-break: normal
+	margin-bottom: 0;
+	word-break: normal;
 }
 
 doc-markdown pre code,
 doc-markdown pre tt {
-  display: inline;
-  max-width: initial;
-  padding: 0;
-  margin: 0;
-  overflow: initial;
-  line-height: inherit;
-  word-wrap: normal;
-  background-color: transparent;
-  border: 0
+	display: inline;
+	max-width: initial;
+	padding: 0;
+	margin: 0;
+	overflow: initial;
+	line-height: inherit;
+	word-wrap: normal;
+	background-color: transparent;
+	border: 0;
 }
 
 doc-markdown pre code:after,
 doc-markdown pre code:before,
 doc-markdown pre tt:after,
 doc-markdown pre tt:before {
-  content: normal
+	content: normal;
 }
 
 doc-markdown blockquote,
@@ -283,55 +284,55 @@ doc-markdown ol,
 doc-markdown p,
 doc-markdown pre,
 doc-markdown ul {
-  margin-top: 0;
-  margin-bottom: 16px
+	margin-top: 0;
+	margin-bottom: 16px;
 }
 
 doc-markdown kbd {
-  color: #000;
-  border: 1px solid #d6d6d6;
-  border-bottom: 2px solid #c7c7c7;
-  padding: 2px 4px;
-  background-color: #f0f0f0;
-  border-radius: 3px
+	color: #000;
+	border: 1px solid #d6d6d6;
+	border-bottom: 2px solid #c7c7c7;
+	padding: 2px 4px;
+	background-color: #f0f0f0;
+	border-radius: 3px;
 }
 
 @media print {
-  doc-markdown {
-    background-color: #fff
-  }
+	doc-markdown {
+		background-color: #fff;
+	}
 
-  doc-markdown h1,
-  doc-markdown h2,
-  doc-markdown h3,
-  doc-markdown h4,
-  doc-markdown h5,
-  doc-markdown h6 {
-    color: #000;
-    page-break-after: avoid
-  }
+	doc-markdown h1,
+	doc-markdown h2,
+	doc-markdown h3,
+	doc-markdown h4,
+	doc-markdown h5,
+	doc-markdown h6 {
+		color: #000;
+		page-break-after: avoid;
+	}
 
-  doc-markdown blockquote {
-    color: #5c5c5c
-  }
+	doc-markdown blockquote {
+		color: #5c5c5c;
+	}
 
-  doc-markdown pre {
-    page-break-inside: avoid
-  }
+	doc-markdown pre {
+		page-break-inside: avoid;
+	}
 
-  doc-markdown table {
-    display: table
-  }
+	doc-markdown table {
+		display: table;
+	}
 
-  doc-markdown img {
-    display: block;
-    max-width: 100%;
-    max-height: 100%
-  }
+	doc-markdown img {
+		display: block;
+		max-width: 100%;
+		max-height: 100%;
+	}
 
-  doc-markdown code,
-  doc-markdown pre {
-    word-wrap: break-word;
-    white-space: pre
-  }
+	doc-markdown code,
+	doc-markdown pre {
+		word-wrap: break-word;
+		white-space: pre;
+	}
 }

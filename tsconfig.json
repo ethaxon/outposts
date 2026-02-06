@@ -1,0 +1,7 @@
+{
+	"references": [
+		{
+			"path": "./apps/outposts-web/tsconfig.json"
+		}
+	]
+}

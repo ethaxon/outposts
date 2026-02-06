@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common';
-import { booleanAttribute, Component, Input } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { StyleClass } from 'primeng/styleclass';
-import { MenuItem } from './app.menu.component';
-import { Tag } from 'primeng/tag';
+import { CommonModule } from "@angular/common";
+import { booleanAttribute, Component, Input, inject } from "@angular/core";
+import { Router, RouterModule } from "@angular/router";
+import { StyleClass } from "primeng/styleclass";
+import { Tag } from "primeng/tag";
+import type { MenuItem } from "./app.menu.component";
 
 @Component({
-    // eslint-disable-next-line
-    selector: '[app-menuitem]',
-    template: `
+	// eslint-disable-next-line
+	selector: "[app-menuitem]",
+	template: `
        @if (item) {
          @if (root && item.children) {
            <button pButton type="button" class="px-link" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-slidedown" leaveToClass="hidden" leaveActiveClass="animate-slideup">
@@ -59,18 +59,25 @@ import { Tag } from 'primeng/tag';
          }
        }
        `,
-    standalone: true,
-    imports: [CommonModule, StyleClass, RouterModule, Tag]
+	standalone: true,
+	imports: [CommonModule, StyleClass, RouterModule, Tag],
 })
 export class AppMenuItemComponent {
-    @Input() item?: MenuItem;
+	@Input() item?: MenuItem;
 
-    @Input({ transform: booleanAttribute }) root = true;
+	@Input({ transform: booleanAttribute }) root = true;
 
-    constructor(private router: Router) { }
+	private router: Router = inject(Router);
 
-    isActiveRootMenuItem(menuitem: MenuItem): boolean {
-        const url = this.router.url.split('#')[0];
-        return !!menuitem.children && !menuitem.children.some((item) => item.routerLink === `${url}` || (item.children && item.children.some((it) => it.routerLink === `${url}`)));
-    }
+	isActiveRootMenuItem(menuitem: MenuItem): boolean {
+		const url = this.router.url.split("#")[0];
+		return (
+			!!menuitem.children &&
+			!menuitem.children.some(
+				(item) =>
+					item.routerLink === `${url}` ||
+					item.children?.some((it) => it.routerLink === `${url}`),
+			)
+		);
+	}
 }

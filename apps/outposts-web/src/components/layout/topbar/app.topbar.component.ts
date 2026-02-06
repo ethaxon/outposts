@@ -1,17 +1,28 @@
-import Versions from '@/assets/data/versions.json';
-import { AppConfigService } from '@/core/servces/app-config.service';
-import { CommonModule } from '@angular/common';
-import { afterNextRender, booleanAttribute, Component, computed, ElementRef, Inject, Input, OnDestroy, Renderer2, DOCUMENT } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { DomHandler } from 'primeng/dom';
-import { StyleClass } from 'primeng/styleclass';
+import { CommonModule } from "@angular/common";
+import {
+	afterNextRender,
+	booleanAttribute,
+	Component,
+	computed,
+	ElementRef,
+	Input,
+	inject,
+	type OnDestroy,
+	Renderer2,
+} from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
+import { DomHandler } from "primeng/dom";
+import { StyleClass } from "primeng/styleclass";
+import Versions from "@/assets/data/versions.json";
+import { WINDOW } from "@/core/providers/window";
+import { AppConfigService } from "@/core/servces/app-config.service";
 
 @Component({
-  selector: 'app-topbar',
-  standalone: true,
-  imports: [CommonModule, FormsModule, StyleClass, RouterModule],
-  template: `<div class="layout-topbar">
+	selector: "app-topbar",
+	standalone: true,
+	imports: [CommonModule, FormsModule, StyleClass, RouterModule],
+	template: `<div class="layout-topbar">
           <div class="layout-topbar-inner">
             <div class="layout-topbar-logo-container">
               <a [routerLink]="['/']" class="layout-topbar-logo" aria-label="OUTPOSTS Logo">
@@ -74,70 +85,73 @@ import { StyleClass } from 'primeng/styleclass';
               }
             </ul>
           </div>
-        </div>`
+        </div>`,
 })
 export class AppTopBarComponent implements OnDestroy {
-  @Input({ transform: booleanAttribute }) showConfigurator = true;
+	@Input({ transform: booleanAttribute }) showConfigurator = true;
 
-  @Input({ transform: booleanAttribute }) showMenuButton = true;
+	@Input({ transform: booleanAttribute }) showMenuButton = true;
 
-  versions: any[] = Versions;
+	versions: typeof Versions = Versions;
 
-  scrollListener?: VoidFunction;
+	scrollListener?: VoidFunction;
 
-  private window: Window;
+	private window: Window = inject(WINDOW);
+	private renderer: Renderer2 = inject(Renderer2);
+	private el: ElementRef = inject(ElementRef);
+	private configService: AppConfigService = inject(AppConfigService);
 
-  constructor(
-    @Inject(DOCUMENT) private document: Document,
-    private el: ElementRef,
-    private renderer: Renderer2,
-    private configService: AppConfigService
-  ) {
-    this.window = this.document.defaultView as Window;
+	constructor() {
+		afterNextRender(() => {
+			this.bindScrollListener();
+		});
+	}
 
-    afterNextRender(() => {
-      this.bindScrollListener();
-    });
-  }
+	isDarkMode = computed(() => this.configService.appState().darkTheme);
 
-  isDarkMode = computed(() => this.configService.appState().darkTheme);
+	isMenuActive = computed(() => this.configService.appState().menuActive);
 
-  isMenuActive = computed(() => this.configService.appState().menuActive);
+	toggleMenu() {
+		if (this.isMenuActive()) {
+			this.configService.hideMenu();
+			DomHandler.unblockBodyScroll("blocked-scroll");
+		} else {
+			this.configService.showMenu();
+			DomHandler.blockBodyScroll("blocked-scroll");
+		}
+	}
 
-  toggleMenu() {
-    if (this.isMenuActive()) {
-      this.configService.hideMenu();
-      DomHandler.unblockBodyScroll('blocked-scroll');
-    } else {
-      this.configService.showMenu();
-      DomHandler.blockBodyScroll('blocked-scroll');
-    }
-  }
+	toggleDarkMode() {
+		this.configService.appState.update((state) => ({
+			...state,
+			darkTheme: !state.darkTheme,
+		}));
+	}
 
-  toggleDarkMode() {
-    this.configService.appState.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
-  }
+	bindScrollListener() {
+		if (!this.scrollListener) {
+			this.scrollListener = this.renderer.listen(this.window, "scroll", () => {
+				if (this.window.scrollY > 0) {
+					this.el.nativeElement.children[0].classList.add(
+						"layout-topbar-sticky",
+					);
+				} else {
+					this.el.nativeElement.children[0].classList.remove(
+						"layout-topbar-sticky",
+					);
+				}
+			});
+		}
+	}
 
-  bindScrollListener() {
-    if (!this.scrollListener) {
-      this.scrollListener = this.renderer.listen(this.window, 'scroll', () => {
-        if (this.window.scrollY > 0) {
-          this.el.nativeElement.children[0].classList.add('layout-topbar-sticky');
-        } else {
-          this.el.nativeElement.children[0].classList.remove('layout-topbar-sticky');
-        }
-      });
-    }
-  }
+	unbindScrollListener() {
+		if (this.scrollListener) {
+			this.scrollListener();
+			this.scrollListener = undefined;
+		}
+	}
 
-  unbindScrollListener() {
-    if (this.scrollListener) {
-      this.scrollListener();
-      this.scrollListener = undefined;
-    }
-  }
-
-  ngOnDestroy() {
-    this.unbindScrollListener();
-  }
+	ngOnDestroy() {
+		this.unbindScrollListener();
+	}
 }

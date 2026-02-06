@@ -1,106 +1,98 @@
 {
-  "name": "outposts-web",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "projectType": "application",
-  "prefix": "app",
-  "sourceRoot": "apps/outposts-web/src",
-  "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@angular-devkit/build-angular:application",
-      "outputs": [
-        "{options.outputPath}"
-      ],
-      "options": {
-        "outputPath": "dist/apps/outposts-web",
-        "index": "apps/outposts-web/src/index.html",
-        "browser": "apps/outposts-web/src/main.ts",
-        "polyfills": [
-          "zone.js"
-        ],
-        "tsConfig": "apps/outposts-web/tsconfig.app.json",
-        "inlineStyleLanguage": "scss",
-        "assets": [
-          {
-            "glob": "**/*",
-            "input": "apps/outposts-web/public"
-          }
-        ],
-        "styles": [
-          "apps/outposts-web/src/styles.scss"
-        ],
-        "scripts": [],
-        "server": "apps/outposts-web/src/main.server.ts",
-        "ssr": {
-          "entry": "apps/outposts-web/src/server.ts"
-        },
-        "outputMode": "server"
-      },
-      "configurations": {
-        "production": {
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "500kb",
-              "maximumError": "1mb"
-            },
-            {
-              "type": "anyComponentStyle",
-              "maximumWarning": "4kb",
-              "maximumError": "8kb"
-            }
-          ],
-          "outputHashing": "all"
-        },
-        "development": {
-          "optimization": false,
-          "extractLicenses": false,
-          "sourceMap": true
-        }
-      },
-      "defaultConfiguration": "production"
-    },
-    "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
-      "configurations": {
-        "production": {
-          "buildTarget": "outposts-web:build:production"
-        },
-        "development": {
-          "buildTarget": "outposts-web:build:development"
-        }
-      },
-      "defaultConfiguration": "development",
-      "options": {
-        "host": "0.0.0.0"
-      }
-    },
-    "extract-i18n": {
-      "executor": "@angular-devkit/build-angular:extract-i18n",
-      "options": {
-        "buildTarget": "outposts-web:build"
-      }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    },
-    "test": {
-      "executor": "@nx/vite:test",
-      "outputs": [
-        "{options.reportsDirectory}"
-      ],
-      "options": {
-        "reportsDirectory": "../../coverage/apps/outposts-web"
-      }
-    },
-    "serve-static": {
-      "executor": "@nx/web:file-server",
-      "options": {
-        "buildTarget": "outposts-web:build",
-        "port": 4200,
-        "staticFilePath": "dist/apps/outposts-web/browser",
-        "spa": true
-      }
-    }
-  }
+	"name": "outposts-web",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"projectType": "application",
+	"prefix": "app",
+	"sourceRoot": "apps/outposts-web/src",
+	"tags": [],
+	"targets": {
+		"build": {
+			"executor": "@angular-devkit/build-angular:application",
+			"outputs": ["{options.outputPath}"],
+			"options": {
+				"outputPath": "dist/apps/outposts-web",
+				"index": "apps/outposts-web/src/index.html",
+				"browser": "apps/outposts-web/src/main.ts",
+				"polyfills": ["zone.js"],
+				"tsConfig": "apps/outposts-web/tsconfig.app.json",
+				"inlineStyleLanguage": "scss",
+				"assets": [
+					{
+						"glob": "**/*",
+						"input": "apps/outposts-web/public"
+					}
+				],
+				"styles": ["apps/outposts-web/src/styles.scss"],
+				"scripts": [],
+				"server": "apps/outposts-web/src/main.server.ts",
+				"ssr": {
+					"entry": "apps/outposts-web/src/server.ts"
+				},
+				"outputMode": "server"
+			},
+			"configurations": {
+				"production": {
+					"budgets": [
+						{
+							"type": "initial",
+							"maximumWarning": "500kb",
+							"maximumError": "1mb"
+						},
+						{
+							"type": "anyComponentStyle",
+							"maximumWarning": "4kb",
+							"maximumError": "8kb"
+						}
+					],
+					"outputHashing": "all"
+				},
+				"development": {
+					"optimization": false,
+					"extractLicenses": false,
+					"sourceMap": true
+				}
+			},
+			"defaultConfiguration": "production"
+		},
+		"serve": {
+			"executor": "@angular-devkit/build-angular:dev-server",
+			"configurations": {
+				"production": {
+					"buildTarget": "outposts-web:build:production"
+				},
+				"development": {
+					"buildTarget": "outposts-web:build:development"
+				}
+			},
+			"defaultConfiguration": "development",
+			"options": {
+				"host": "0.0.0.0"
+			}
+		},
+		"extract-i18n": {
+			"executor": "@angular-devkit/build-angular:extract-i18n",
+			"options": {
+				"buildTarget": "outposts-web:build"
+			}
+		},
+		"lint": {
+			"executor": "@nx/eslint:lint"
+		},
+		"test": {
+			"executor": "@nx/vite:test",
+			"outputs": ["{options.reportsDirectory}"],
+			"options": {
+				"reportsDirectory": "../../coverage/apps/outposts-web"
+			}
+		},
+		"serve-static": {
+			"executor": "@nx/web:file-server",
+			"options": {
+				"buildTarget": "outposts-web:build",
+				"port": 4200,
+				"staticFilePath": "dist/apps/outposts-web/browser",
+				"spa": true
+			}
+		}
+	}
 }

@@ -1,8 +1,8 @@
 {
-  "doc": {
-    "clipboard_copied_toast": {
-      "title": "Success",
-      "detail": "Copied to clipboard!"
-    }
-  }
+	"doc": {
+		"clipboard_copied_toast": {
+			"title": "Success",
+			"detail": "Copied to clipboard!"
+		}
+	}
 }
