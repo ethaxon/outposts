@@ -1,5 +1,5 @@
-import type { HttpClient } from "@angular/common/http";
-import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Injectable, inject } from "@angular/core";
 import { environment } from "@/environments/environment";
 import type { ConfluenceDto } from "./bindings/ConfluenceDto";
 import type { ConfluenceUpdateCronDto } from "./bindings/ConfluenceUpdateCronDto";
@@ -13,8 +13,7 @@ import type { SubscribeSourceUpdateDto } from "./bindings/SubscribeSourceUpdateD
 @Injectable()
 export class ConfluenceService {
 	protected readonly apiEndpoint = environment.CONFLUENCE_API_ENDPOINT;
-
-	constructor(protected readonly httpClient: HttpClient) {}
+	protected httpClient: HttpClient = inject(HttpClient);
 
 	getAllConfluences() {
 		return this.httpClient.get<ConfluenceDto[]>(

@@ -1,12 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, type OnInit } from "@angular/core";
-import type { Meta, Title } from "@angular/platform-browser";
+import { Component, computed, inject, type OnInit } from "@angular/core";
+import { Meta, Title } from "@angular/platform-browser";
 import { ButtonModule } from "primeng/button";
 import { ToastModule } from "primeng/toast";
 import type { Subscription } from "rxjs";
 import { AppNewsComponent } from "@/components/layout/news/app.news.component";
 import { AppTopBarComponent } from "@/components/layout/topbar/app.topbar.component";
-import type { AppConfigService } from "@/core/servces/app-config.service";
+import { AppConfigService } from "@/core/servces/app-config.service";
 import { FooterSectionComponent } from "./footersection.component";
 import { HeroSectionComponent } from "./herosection.component";
 
@@ -39,11 +39,9 @@ export class LandingComponent implements OnInit {
 		};
 	});
 
-	constructor(
-		private configService: AppConfigService,
-		private metaService: Meta,
-		private titleService: Title,
-	) {}
+  private configService = inject(AppConfigService);
+  private metaService = inject(Meta);
+  private titleService = inject(Title);
 
 	ngOnInit() {
 		this.titleService.setTitle(

@@ -1,12 +1,13 @@
 import {
 	afterNextRender,
 	ChangeDetectionStrategy,
-	type ChangeDetectorRef,
+	 ChangeDetectorRef,
 	Component,
+  inject,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import News from "@/assets/data/news.json";
-import type { AppConfigService } from "@/core/servces/app-config.service";
+import { AppConfigService } from "@/core/servces/app-config.service";
 
 @Component({
 	selector: "app-news",
@@ -20,10 +21,10 @@ export class AppNewsComponent {
 
 	announcement: any;
 
-	constructor(
-		private configService: AppConfigService,
-		private cd: ChangeDetectorRef,
-	) {
+  private configService = inject(AppConfigService);
+  private cd = inject(ChangeDetectorRef);
+
+	constructor() {
 		afterNextRender(() => {
 			const itemString = localStorage.getItem(this.storageKey);
 
