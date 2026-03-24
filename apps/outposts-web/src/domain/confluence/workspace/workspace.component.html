@@ -1,4 +1,8 @@
-<p-breadcrumb class="max-w-full" [model]="breadcrumb().items" [home]="breadcrumb().home"></p-breadcrumb>
+<p-breadcrumb
+  class="max-w-full"
+  [model]="breadcrumb().items"
+  [home]="breadcrumb().home"
+></p-breadcrumb>
 <div class="card flex-1 min-w-0 mt-2">
   <p-panel class="flex-1 min-w-0">
     <ng-template #header>
@@ -45,7 +49,9 @@
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
-        <div class="text-xl">{{ "confluence.workspace.sections.subscribeSources" | transloco }}</div>
+        <div class="text-xl">
+          {{ "confluence.workspace.sections.subscribeSources" | transloco }}
+        </div>
         <div class="flex gap-2">
           <p-button
             size="small"
@@ -297,7 +303,7 @@
           [ngClass]="{ 'mt-4': !$first }"
           for="subscribe-source-creation-{{ item.key }}"
         >
-          {{ ("confluence.workspace.fields." + item.key) | transloco }}
+          {{ "confluence.workspace.fields." + item.key | transloco }}
         </label>
         @if (item.key === "passive_sync") {
           <p-checkbox
@@ -357,7 +363,7 @@
           [ngClass]="{ 'mt-4': !$first }"
           for="update-name-{{ item.key }}"
         >
-          {{ ("confluence.workspace.fields." + item.key) | transloco }}
+          {{ "confluence.workspace.fields." + item.key | transloco }}
         </label>
         <input
           class="mt-2"
@@ -424,7 +430,7 @@
           class="mt-6"
           for="subscribe-source-creation-{{ item.key }}"
         >
-          {{ ("confluence.workspace.fields." + item.key) | transloco }}
+          {{ "confluence.workspace.fields." + item.key | transloco }}
         </label>
         @if (item.key === "passive_sync") {
           <p-checkbox

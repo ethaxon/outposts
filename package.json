@@ -20,7 +20,8 @@
     "lint:fix": "eslint . --fix --cache --cache-location .cache/eslint",
     "lint:outposts-web": "nx --no-cloud lint outposts-web",
     "format": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js",
-    "format:check": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js --check"
+    "format:check": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js --check",
+    "prepare": "prek install"
   },
   "dependencies": {
     "@angular/animations": "21.2.5",
@@ -74,6 +75,7 @@
     "@angular/compiler-cli": "21.2.5",
     "@angular/language-service": "21.2.5",
     "@eslint/js": "^10.0.1",
+    "@j178/prek": "^0.3.8",
     "@nx/angular": "22.6.1",
     "@nx/devkit": "22.6.1",
     "@nx/eslint": "22.6.1",
@@ -119,6 +121,7 @@
       "node-fetch": "3.3.2"
     },
     "onlyBuiltDependencies": [
+      "@j178/prek",
       "@parcel/watcher",
       "@swc/core",
       "esbuild",

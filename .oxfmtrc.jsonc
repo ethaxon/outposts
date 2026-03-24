@@ -7,6 +7,6 @@
     "**/.nx/**",
     "**/target/**",
     "apps/outposts-web/src/assets/**",
-    "postgres/data/**"
-  ]
+    "postgres/data/**",
+  ],
 }

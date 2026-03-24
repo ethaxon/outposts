@@ -16,9 +16,7 @@ export class DocClipboardButtonComponent {
 
   onClick() {
     this.t
-      .selectTranslateObject<{ title: string; detail: string }>(
-        "doc.clipboardCopiedToast",
-      )
+      .selectTranslateObject<{ title: string; detail: string }>("doc.clipboardCopiedToast")
       .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe((translation) => {
         this.overlayService.toast({
