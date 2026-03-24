@@ -3,6 +3,7 @@ set dotenv-load := true
 
 setup:
   pnpm install
+  pnpm exec prek install
   cargo check --workspace --all-features
 
 dev-confluence:
@@ -31,6 +32,10 @@ format:
 
 format-check:
   pnpm format:check
+
+fix:
+  just lint-fix
+  just format
 
 container-build:
   docker compose build

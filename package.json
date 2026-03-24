@@ -18,10 +18,8 @@
     "build:outposts-web": "nx --no-cloud build outposts-web",
     "lint": "eslint . --cache --cache-location .cache/eslint",
     "lint:fix": "eslint . --fix --cache --cache-location .cache/eslint",
-    "lint:outposts-web": "nx --no-cloud lint outposts-web",
     "format": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js",
-    "format:check": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js --check",
-    "prepare": "prek install"
+    "format:check": "oxfmt apps/outposts-web eslint.config.mjs apps/outposts-web/eslint.config.mjs package.json nx.json .oxfmtrc.jsonc .vscode/settings.json .github/workflows/ci.yaml apps/dev-proxy/package.json transloco.config.js --check"
   },
   "dependencies": {
     "@angular/animations": "21.2.5",
