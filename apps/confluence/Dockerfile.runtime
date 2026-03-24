@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 
 COPY dist/confluence/confluence_server /usr/local/bin/confluence_server
 RUN chmod +x /usr/local/bin/confluence_server
