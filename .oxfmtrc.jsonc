@@ -1,0 +1,12 @@
+{
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/.angular/**",
+    "**/.nx/**",
+    "**/target/**",
+    "apps/outposts-web/src/assets/**",
+    "postgres/data/**"
+  ]
+}

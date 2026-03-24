@@ -1,4 +1,5 @@
 set windows-shell := ["pwsh.exe", "-c"]
+set dotenv-load := true
 
 dev-confluence:
   watchexec -r -e rs,toml,yaml,yml,env,json -- cargo run -p confluence --bin confluence_server
@@ -8,6 +9,24 @@ dev-webui:
 
 dev-proxy:
   npm run start -w dev-proxy
+
+build-webui:
+  pnpm exec nx build outposts-web
+
+build-confluence:
+  cargo build --release -p confluence --bin confluence_server
+
+lint:
+  pnpm lint
+
+lint-fix:
+  pnpm lint:fix
+
+format:
+  pnpm format
+
+format-check:
+  pnpm format:check
 
 container-build:
   docker compose build

@@ -1,21 +1,12 @@
 @use "sass:meta";
-
-@import 'primeicons/primeicons.css';
-
-@layer tailwind-base {
-    @tailwind base;
-}
-
-@layer tailwind-utilities {
-    @tailwind components;
-    @tailwind utilities;
-}
+@use "primeicons/primeicons.css";
+@use "./tailwind.css";
 
 /* You can add global styles to this file, and also import other style files */
 
-@include meta.load-css('assets/styles/layout/layout.scss');
+@include meta.load-css("assets/styles/layout/layout.scss");
 
 body {
-    visibility: hidden;
-    opacity: 0;
+  visibility: hidden;
+  opacity: 0;
 }

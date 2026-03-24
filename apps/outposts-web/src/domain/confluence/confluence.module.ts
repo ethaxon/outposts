@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { NgModule } from "@angular/core";
+import { TranslocoModule } from "@jsverse/transloco";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
 import { MonacoEditorModule } from "ngx-monaco-editor-v2";
@@ -24,30 +25,31 @@ import { DashboardComponent } from "./dashboard/dashboard.component";
 import { WorkspaceComponent } from "./workspace/workspace.component";
 
 @NgModule({
-	declarations: [DashboardComponent, WorkspaceComponent],
-	providers: [ConfluenceService],
-	imports: [
-		BreadcrumbModule,
-		CommonModule,
-		ConfluenceRoutingModule,
-		DocModule,
-		ScrollTopModule,
-		DataViewModule,
-		TagModule,
-		ButtonModule,
-		CardModule,
-		AvatarModule,
-		PanelModule,
-		RouterModule,
-		FormsModule,
-		MonacoEditorModule,
-		DialogModule,
-		ReactiveFormsModule,
-		InputTextModule,
-		ClipboardModule,
-		QrcodeModule,
-		SkeletonModule,
-		CheckboxModule,
-	],
+  declarations: [DashboardComponent, WorkspaceComponent],
+  providers: [ConfluenceService],
+  imports: [
+    BreadcrumbModule,
+    CommonModule,
+    ConfluenceRoutingModule,
+    DocModule,
+    ScrollTopModule,
+    DataViewModule,
+    TagModule,
+    ButtonModule,
+    CardModule,
+    AvatarModule,
+    PanelModule,
+    RouterModule,
+    FormsModule,
+    MonacoEditorModule,
+    DialogModule,
+    ReactiveFormsModule,
+    InputTextModule,
+    ClipboardModule,
+    QrcodeModule,
+    SkeletonModule,
+    CheckboxModule,
+    TranslocoModule,
+  ],
 })
 export class ConfluenceModule {}

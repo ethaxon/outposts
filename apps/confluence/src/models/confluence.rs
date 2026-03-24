@@ -62,3 +62,50 @@ impl Related<super::subscribe_source::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[cfg(test)]
+mod tests {
+    use super::Model;
+    use chrono::NaiveDate;
+
+    fn sample_model(user_agent: &str) -> Model {
+        let now = NaiveDate::from_ymd_opt(1970, 1, 1)
+            .expect("date should be valid")
+            .and_hms_opt(0, 0, 0)
+            .expect("time should be valid");
+
+        Model {
+            id: 1,
+            name: "demo".to_string(),
+            template: String::new(),
+            creator: "user-1".to_string(),
+            created_at: now,
+            updated_at: now,
+            mux_content: String::new(),
+            sub_upload: None,
+            sub_download: None,
+            sub_total: None,
+            sub_expire: None,
+            cron_expr: None,
+            cron_expr_tz: None,
+            cron_prev_at: None,
+            cron_err: None,
+            cron_next_at: None,
+            user_agent: user_agent.to_string(),
+        }
+    }
+
+    #[test]
+    fn user_agent_or_default_returns_default_when_empty() {
+        let model = sample_model("");
+
+        assert_eq!(model.user_agent_or_default(), "clash-verge/v2.0.3");
+    }
+
+    #[test]
+    fn user_agent_or_default_returns_explicit_value() {
+        let model = sample_model("custom-agent/1.0");
+
+        assert_eq!(model.user_agent_or_default(), "custom-agent/1.0");
+    }
+}

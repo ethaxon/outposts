@@ -1,0 +1,149 @@
+<div class="layout-topbar">
+  <div class="layout-topbar-inner">
+    <div class="layout-topbar-logo-container">
+      <a
+        [routerLink]="['/']"
+        class="layout-topbar-logo"
+        [attr.aria-label]="'topbar.logoAriaLabel' | transloco"
+      >
+        <img width="150" height="30" src="image/logo-512-w.png" alt="logo" />
+      </a>
+      <a
+        [routerLink]="['/']"
+        class="layout-topbar-icon"
+        [attr.aria-label]="'topbar.logoAriaLabel' | transloco"
+      >
+        <img width="30" height="30" src="image/logo-512.png" alt="logo" />
+      </a>
+    </div>
+
+    <ul class="topbar-items">
+      <li>
+        <a
+          href="https://github.com/ethaxon/outposts"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="topbar-item"
+          [attr.aria-label]="'topbar.links.github' | transloco"
+        >
+          <i class="pi pi-github text-surface-700 dark:text-surface-100"></i>
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://t.me/outposts_project"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="topbar-item"
+          [attr.aria-label]="'topbar.links.telegram' | transloco"
+        >
+          <i class="pi pi-telegram text-surface-700 dark:text-surface-100"></i>
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://discord.gg/dj9teD6G"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="topbar-item"
+          [attr.aria-label]="'topbar.links.discord' | transloco"
+        >
+          <i class="pi pi-discord text-surface-700 dark:text-surface-100"></i>
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/ethaxon/outposts/discussions"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="topbar-item"
+          [attr.aria-label]="'topbar.links.discussions' | transloco"
+        >
+          <i class="pi pi-comments text-surface-700 dark:text-surface-100"></i>
+        </a>
+      </li>
+      <li>
+        <button
+          type="button"
+          class="topbar-item"
+          (click)="toggleDarkMode()"
+          [attr.aria-label]="'topbar.toggleTheme' | transloco"
+        >
+          <i class="pi" [ngClass]="{ 'pi-moon': isDarkMode(), 'pi-sun': !isDarkMode() }"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          pStyleClass="@next"
+          enterFromClass="hidden"
+          enterActiveClass="animate-scalein"
+          leaveToClass="hidden"
+          leaveActiveClass="animate-fadeout"
+          [hideOnOutsideClick]="true"
+          type="button"
+          class="topbar-item version-item"
+          [attr.aria-label]="'topbar.language' | transloco"
+        >
+          <span class="version-text">{{ activeLangLabel() }}</span>
+          <span class="version-icon pi pi-angle-down"></span>
+        </button>
+        <div class="versions-panel hidden">
+          <ul>
+            @for (lang of languages; track lang.id) {
+              <li role="none">
+                <button
+                  type="button"
+                  class="w-full text-left"
+                  [class.font-bold]="lang.id === activeLang()"
+                  (click)="setLanguage(lang.id)"
+                >
+                  {{ lang.label }}
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      </li>
+      <li>
+        <button
+          pStyleClass="@next"
+          enterFromClass="hidden"
+          enterActiveClass="animate-scalein"
+          leaveToClass="hidden"
+          leaveActiveClass="animate-fadeout"
+          [hideOnOutsideClick]="true"
+          type="button"
+          class="topbar-item version-item"
+        >
+          <span class="version-text">{{
+            versions ? versions[0].name : ("topbar.latest" | transloco)
+          }}</span>
+          <span class="version-icon pi pi-angle-down"></span>
+        </button>
+        <div class="versions-panel hidden">
+          <ul>
+            @for (v of versions; track v) {
+              <li role="none">
+                <a [href]="v.url">
+                  <span>{{ v.version }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      </li>
+      @if (showMenuButton) {
+        <li class="menu-button">
+          <button
+            type="button"
+            class="topbar-item menu-button"
+            (click)="toggleMenu()"
+            [attr.aria-label]="'topbar.menu' | transloco"
+          >
+            <i class="pi pi-bars"></i>
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

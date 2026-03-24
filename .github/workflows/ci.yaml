@@ -6,17 +6,67 @@ env:
   ORG: ethaxon
 
 jobs:
-  build-confluence:
-    name: Build Confluence
-    runs-on: ubuntu-latest
+  build-confluence-binary:
+    name: Build Confluence Binary (${{ matrix.tag_suffix }})
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
-      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+            tag_suffix: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            tag_suffix: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
+          cache-shared-key: confluence-${{ matrix.tag_suffix }}
+          cache-workspaces: |
+            . -> target
+      - name: Build confluence binary
+        run: cargo build --locked --release --bin confluence_server
+      - name: Upload confluence binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: confluence-server-${{ matrix.tag_suffix }}
+          path: target/release/confluence_server
+          if-no-files-found: error
+
+  package-confluence-image:
+    name: Package Confluence Image (${{ matrix.tag_suffix }})
+    runs-on: ${{ matrix.runner }}
+    needs: build-confluence-binary
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+            tag_suffix: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            tag_suffix: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download confluence binary
+        uses: actions/download-artifact@v4
+        with:
+          name: confluence-server-${{ matrix.tag_suffix }}
+          path: dist/confluence
+      - name: Ensure binary is executable
+        run: chmod +x dist/confluence/confluence_server
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
@@ -25,15 +75,41 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push architecture image
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: 'apps/confluence/Dockerfile'
+          file: "apps/confluence/Dockerfile.runtime"
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: 'ghcr.io/${{ env.ORG }}/confluence:latest'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: "ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-${{ matrix.tag_suffix }}"
+
+  publish-confluence-manifest:
+    name: Publish Confluence Manifest
+    runs-on: ubuntu-24.04
+    needs: package-confluence-image
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish multi-arch manifest
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ env.ORG }}/confluence:latest \
+            --tag ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }} \
+            ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-amd64 \
+            ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-arm64
+      - name: Inspect published manifest
+        run: docker buildx imagetools inspect ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}
+
   build-web:
     name: Build Outposts Web
     runs-on: ubuntu-latest
@@ -44,6 +120,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run lint
+        run: pnpm lint
+      - name: Check formatting
+        run: pnpm format:check
       - name: Create dotenv
         uses: iamsauravsharma/create-dotenv@v2.0.1
         env:
@@ -53,9 +144,9 @@ jobs:
           OUTPOSTS_WEB_HOST: ${{ vars.OUTPOSTS_WEB_HOST }}
           CONFLUENCE_API_ENDPOINT: ${{ vars.CONFLUENCE_API_ENDPOINT }}
         with:
-          input-prefix: '' # Optional (default: '')
-          file-path: '.env' # Optional (default : '.env')
-          output-prefix: '' # Optional (default: '')
+          input-prefix: "" # Optional (default: '')
+          file-path: ".env" # Optional (default : '.env')
+          output-prefix: "" # Optional (default: '')
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -70,8 +161,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: 'apps/outposts-web/Dockerfile'
+          file: "apps/outposts-web/Dockerfile"
           push: true
-          tags: 'ghcr.io/${{ env.ORG }}/outposts-web:latest'
+          tags: "ghcr.io/${{ env.ORG }}/outposts-web:latest"
           cache-from: type=gha
           cache-to: type=gha,mode=max

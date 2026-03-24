@@ -4,14 +4,10 @@ import { WINDOW } from "@/core/providers/window";
 
 @Injectable({ providedIn: "root" })
 export class PlatformService {
-	private platformId = inject(PLATFORM_ID);
-	private window = inject(WINDOW);
+  private platformId = inject(PLATFORM_ID);
+  private window = inject(WINDOW);
 
-	isBrowser(): boolean {
-		return (
-			isPlatformBrowser(this.platformId) &&
-			this.window !== null &&
-			this.window !== undefined
-		);
-	}
+  isBrowser(): boolean {
+    return isPlatformBrowser(this.platformId) && this.window !== null && this.window !== undefined;
+  }
 }

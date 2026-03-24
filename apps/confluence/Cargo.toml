@@ -1,6 +1,6 @@
 [package]
 name = "confluence"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [lib]
@@ -22,7 +22,6 @@ addr = "0.15"
 anyhow = "1"
 axum = "0.8"
 axum-extra = "0.12"
-biscuit = "0.7"
 chrono = { version = "0.4", features = ["serde"] }
 openidconnect = { version = "4", features = ["reqwest"] }
 base64 = "0.22"
@@ -31,13 +30,14 @@ futures = "0.3"
 itertools = "0.14"
 lazy_static = "1.5"
 reqwest = { version = "0.13", features = ["json"] }
-sea-orm = { version = "2.0.0-rc.30", features = [
+sea-orm = { version = "2.0.0-rc.37", features = [
   "debug-print",
-  "runtime-tokio-native-tls",
+  "mock",
+  "runtime-tokio-rustls",
   "sqlx-postgres",
 ] }
-sea-orm-migration = { version = "2.0.0-rc.30", features = [
-  "runtime-tokio-native-tls",
+sea-orm-migration = { version = "2.0.0-rc.37", features = [
+  "runtime-tokio-rustls",
   "sqlx-postgres",
 ] }
 random_name_generator = "0.3"
@@ -46,15 +46,16 @@ serde-enum-str = "0.5"
 serde_json = "1"
 serde_yaml = "0.9.34-depcreated"
 thiserror = { version = "2", features = [] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "trace", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 ts-rs = "12"
-cron = "0.15"
+cron = "0.16"
 chrono-tz = "0.10"
 tokio-cron-scheduler = "0.15"
 monostate = "1"
 log = "0.4"
 fancy-regex = "0.17"
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }

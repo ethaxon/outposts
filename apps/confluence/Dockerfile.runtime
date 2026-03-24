@@ -1,0 +1,6 @@
+FROM debian:bookworm-slim AS runtime
+
+COPY dist/confluence/confluence_server /usr/local/bin/confluence_server
+RUN chmod +x /usr/local/bin/confluence_server
+
+CMD ["confluence_server"]

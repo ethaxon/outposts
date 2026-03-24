@@ -1,8 +1,160 @@
 {
-	"doc": {
-		"clipboard_copied_toast": {
-			"title": "Success",
-			"detail": "Copied to clipboard!"
-		}
-	}
+  "common": {
+    "actions": {
+      "add": "Add",
+      "cancel": "Cancel",
+      "create": "Create",
+      "mux": "Mux",
+      "preview": "Preview",
+      "reset": "Reset",
+      "save": "Save",
+      "sync": "Sync"
+    },
+    "toast": {
+      "copied": "Copied successfully",
+      "created": "Created successfully",
+      "error": "Error",
+      "removed": "Removed successfully",
+      "saved": "Saved successfully",
+      "success": "Success",
+      "synced": "Synced successfully",
+      "updated": "Updated successfully"
+    }
+  },
+  "topbar": {
+    "language": "Language",
+    "latest": "Latest",
+    "links": {
+      "discord": "Discord",
+      "discussions": "Discussions",
+      "github": "GitHub",
+      "telegram": "Telegram"
+    },
+    "logoAriaLabel": "OUTPOSTS logo",
+    "menu": "Menu",
+    "toggleTheme": "Toggle theme"
+  },
+  "footer": {
+    "builtBy": "OUTPOSTS {{version}} by"
+  },
+  "landing": {
+    "hero": {
+      "description": "Build your personal digital outpost. Streamline side projects and homelabs with essential tools inspired by the spirit of exploration.",
+      "primaryAction": "Get Started",
+      "secondaryAction": "Give a Star",
+      "titleAccent": "Digital OUTPOST",
+      "titlePrefix": "Your Personal",
+      "titleSuffix": "for Side Projects and Homelabs"
+    },
+    "footer": {
+      "confluence": "Confluence",
+      "contactUs": "Contact Us",
+      "discussions": "Discussions",
+      "features": "Features",
+      "general": "General",
+      "getStarted": "Get Started",
+      "resources": "Resources",
+      "sourceCode": "Source Code",
+      "support": "Support"
+    },
+    "meta": {
+      "description": "OUTPOSTS helps you build a personal digital outpost for side projects and homelabs with practical tools and a clean self-hosted workflow.",
+      "title": "OUTPOSTS - Your personal digital outpost"
+    }
+  },
+  "notfound": {
+    "action": "Go to Homepage",
+    "title": "Page Not Found"
+  },
+  "menu": {
+    "badges": {
+      "new": "NEW"
+    },
+    "links": {
+      "changelog": "Changelog",
+      "comingSoon": "Coming Soon",
+      "confluence": "Confluence",
+      "contribution": "Contribution",
+      "dashboard": "Dashboard",
+      "discordServer": "Discord Server",
+      "forum": "Forum",
+      "getStarted": "Get Started",
+      "home": "Home",
+      "konobangu": "Konobangu",
+      "mail": "Mail",
+      "scoop": "Scoop",
+      "securityDept": "Security Dept",
+      "sourceCode": "Source Code",
+      "telegramChannel": "Telegram Channel"
+    },
+    "sections": {
+      "apps": "Apps",
+      "discover": "Discover",
+      "gettingStarted": "Getting Started",
+      "relatedProjects": "Related Projects",
+      "support": "Support"
+    }
+  },
+  "doc": {
+    "clipboardCopiedToast": {
+      "detail": "Copied to clipboard!",
+      "title": "Success"
+    }
+  },
+  "confluence": {
+    "dashboard": {
+      "status": {
+        "active": "Active",
+        "inactive": "Not Active"
+      },
+      "title": "Confluence",
+      "toasts": {
+        "created": "Confluence created successfully",
+        "removed": "Confluence removed successfully"
+      }
+    },
+    "workspace": {
+      "breadcrumb": {
+        "confluence": "Confluence",
+        "workspace": "Workspace"
+      },
+      "cards": {
+        "import": "Import",
+        "newProfilePrefix": "New",
+        "newProfileSuffix": "Profile"
+      },
+      "cronHint": "Supports Unix-style cron expressions with an hourly minimum interval, for example",
+      "dialogs": {
+        "editSubscribeSource": "Edit Subscribe Source",
+        "newSubscribeSource": "New Subscribe Source",
+        "previewMuxContent": "Preview Mux Content",
+        "previewProfileContent": "Preview Profile Content",
+        "previewSubscribeSourceContent": "Preview Subscribe Source Content",
+        "rename": "Rename"
+      },
+      "fields": {
+        "cronExpr": "Cron expression",
+        "id": "ID",
+        "name": "Name",
+        "passive_sync": "Passive sync",
+        "proxy_auth": "Proxy auth",
+        "proxy_server": "Proxy server",
+        "url": "URL",
+        "userAgent": "User-Agent"
+      },
+      "sections": {
+        "profiles": "Profiles",
+        "subscribeSources": "Subscribe Sources",
+        "syncSchedule": "Sync Schedule",
+        "syncUserAgent": "Sync User-Agent",
+        "template": "Template"
+      },
+      "toasts": {
+        "muxed": "Mux completed successfully",
+        "reset": "Template reset successfully"
+      },
+      "updatedAt": "Updated at:",
+      "userAgentPlaceholder": "clash-verge/v2.0.3"
+    }
+  }
 }

@@ -43,6 +43,7 @@ pub fn parse_subscription_userinfo_in_header(header: &HeaderMap) -> Option<HashM
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reqwest::header::HeaderValue;
 
     #[test]
     fn test_parse_subscription_userinfo() {
@@ -76,5 +77,45 @@ mod tests {
         assert_eq!(fields.get("download"), None);
         assert_eq!(fields.get("total"), Some(&1234454555));
         assert_eq!(fields.get("expire"), Some(&123444444));
+    }
+
+    #[test]
+    fn test_parse_subscription_userinfo_in_header() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            SUBSCRIPTION_USERINFO_HEADER,
+            HeaderValue::from_static("upload=1; download=2; total=3; expire=4"),
+        );
+
+        let fields = parse_subscription_userinfo_in_header(&headers)
+            .expect("subscription-userinfo header should parse");
+
+        assert_eq!(fields.get("upload"), Some(&1));
+        assert_eq!(fields.get("download"), Some(&2));
+        assert_eq!(fields.get("total"), Some(&3));
+        assert_eq!(fields.get("expire"), Some(&4));
+    }
+
+    #[test]
+    fn test_parse_subscription_userinfo_in_header_returns_none_when_missing() {
+        let headers = HeaderMap::new();
+
+        assert_eq!(parse_subscription_userinfo_in_header(&headers), None);
+    }
+
+    #[test]
+    fn test_parse_subscription_userinfo_in_header_ignores_invalid_numbers() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            SUBSCRIPTION_USERINFO_HEADER,
+            HeaderValue::from_static("upload=1; total=oops; expire=4"),
+        );
+
+        let fields = parse_subscription_userinfo_in_header(&headers)
+            .expect("subscription-userinfo header should parse partially");
+
+        assert_eq!(fields.get("upload"), Some(&1));
+        assert_eq!(fields.get("total"), None);
+        assert_eq!(fields.get("expire"), Some(&4));
     }
 }

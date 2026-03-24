@@ -1,29 +1,31 @@
-import { afterNextRender, Component } from "@angular/core";
+import { afterNextRender, Component, inject } from "@angular/core";
 import { environment } from "@/environments/environment";
+import { AppI18nService } from "@/core/servces/app-i18n.service";
 
 @Component({
-	selector: "app-root",
-	template: `<router-outlet></router-outlet>`,
-	standalone: false,
+  selector: "app-root",
+  templateUrl: "./app.component.html",
+  standalone: false,
 })
 export class AppComponent {
-	constructor() {
-		afterNextRender(() => {
-			if (environment.production) {
-				this.injectScripts();
-			}
-			setTimeout(() => {
-				document.body.style.visibility = "visible";
-				document.body.style.opacity = "1";
-			});
+  private readonly i18nService = inject(AppI18nService);
 
-			this.bindRouteEvents();
-		});
-	}
+  constructor() {
+    afterNextRender(() => {
+      void this.i18nService;
+      if (environment.production) {
+        this.injectScripts();
+      }
+      setTimeout(() => {
+        document.body.style.visibility = "visible";
+        document.body.style.opacity = "1";
+      });
 
-	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	injectScripts() {}
+      this.bindRouteEvents();
+    });
+  }
 
-	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	bindRouteEvents() {}
+  injectScripts() {}
+
+  bindRouteEvents() {}
 }

@@ -1,0 +1,9 @@
+<aside>
+  <nav>
+    <ol class="layout-menu">
+      @for (item of menu; track item; let i = $index) {
+        <li app-menuitem [item]="item" [root]="true"></li>
+      }
+    </ol>
+  </nav>
+</aside>

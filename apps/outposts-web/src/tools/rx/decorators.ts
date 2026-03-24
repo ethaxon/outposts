@@ -25,34 +25,32 @@ import { __decorate } from "tslib";
  * }
  */
 export function ObservableInput<T>(inputKey: string): PropertyDecorator {
-	return (target: any, key: string | symbol): void => {
-		const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
+  return (target: any, key: string | symbol): void => {
+    const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
 
-		const getSubject = (
-			instance: any,
-		): BehaviorSubject<T | undefined> | undefined => {
-			if (!subjects.has(instance)) {
-				subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
-			}
-			return subjects.get(instance);
-		};
+    const getSubject = (instance: any): BehaviorSubject<T | undefined> | undefined => {
+      if (!subjects.has(instance)) {
+        subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
+      }
+      return subjects.get(instance);
+    };
 
-		Object.defineProperty(target, key, {
-			get(): Observable<T | undefined> | undefined {
-				return getSubject(this);
-			},
-		});
+    Object.defineProperty(target, key, {
+      get(): Observable<T | undefined> | undefined {
+        return getSubject(this);
+      },
+    });
 
-		// Define input property with an observer setter
-		Object.defineProperty(target, inputKey, {
-			set(value: T) {
-				getSubject(this)?.next(value);
-			},
-		});
+    // Define input property with an observer setter
+    Object.defineProperty(target, inputKey, {
+      set(value: T) {
+        getSubject(this)?.next(value);
+      },
+    });
 
-		// Include Input decorator for observed property
-		__decorate([Input(inputKey)], target, inputKey, null);
-	};
+    // Include Input decorator for observed property
+    __decorate([Input(inputKey)], target, inputKey, null);
+  };
 }
 
 /**
@@ -70,27 +68,25 @@ export function ObservableInput<T>(inputKey: string): PropertyDecorator {
  * }
  */
 export function AsObservable<T>(): PropertyDecorator {
-	return (target: any, key: string | symbol): void => {
-		const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
+  return (target: any, key: string | symbol): void => {
+    const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
 
-		const getSubject = (
-			instance: any,
-		): BehaviorSubject<T | undefined> | undefined => {
-			if (!subjects.has(instance)) {
-				subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
-			}
-			return subjects.get(instance);
-		};
+    const getSubject = (instance: any): BehaviorSubject<T | undefined> | undefined => {
+      if (!subjects.has(instance)) {
+        subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
+      }
+      return subjects.get(instance);
+    };
 
-		Object.defineProperty(target, key, {
-			get(): Observable<T | undefined> | undefined {
-				return getSubject(this);
-			},
-			set(instanceNewValue: T) {
-				getSubject(this)?.next(instanceNewValue);
-			},
-		});
-	};
+    Object.defineProperty(target, key, {
+      get(): Observable<T | undefined> | undefined {
+        return getSubject(this);
+      },
+      set(instanceNewValue: T) {
+        getSubject(this)?.next(instanceNewValue);
+      },
+    });
+  };
 }
 
 /**
@@ -111,31 +107,29 @@ export function AsObservable<T>(): PropertyDecorator {
  * }
  */
 export function Observe<T>(observedKey: string): PropertyDecorator {
-	return (target: any, key: string | symbol): void => {
-		const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
+  return (target: any, key: string | symbol): void => {
+    const subjects = new WeakMap<any, BehaviorSubject<T | undefined>>();
 
-		const getSubject = (
-			instance: any,
-		): BehaviorSubject<T | undefined> | undefined => {
-			if (!subjects.has(instance)) {
-				subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
-			}
-			return subjects.get(instance);
-		};
+    const getSubject = (instance: any): BehaviorSubject<T | undefined> | undefined => {
+      if (!subjects.has(instance)) {
+        subjects.set(instance, new BehaviorSubject<T | undefined>(undefined));
+      }
+      return subjects.get(instance);
+    };
 
-		Object.defineProperty(target, key, {
-			get(): Observable<T | undefined> | undefined {
-				return getSubject(this);
-			},
-		});
+    Object.defineProperty(target, key, {
+      get(): Observable<T | undefined> | undefined {
+        return getSubject(this);
+      },
+    });
 
-		Object.defineProperty(target, observedKey, {
-			get(): T | undefined {
-				return getSubject(this)?.getValue();
-			},
-			set(instanceNewValue: T): void {
-				getSubject(this)?.next(instanceNewValue);
-			},
-		});
-	};
+    Object.defineProperty(target, observedKey, {
+      get(): T | undefined {
+        return getSubject(this)?.getValue();
+      },
+      set(instanceNewValue: T): void {
+        getSubject(this)?.next(instanceNewValue);
+      },
+    });
+  };
 }

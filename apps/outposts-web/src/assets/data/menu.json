@@ -1,37 +1,37 @@
 {
 	"data": [
 		{
-			"name": "Getting Started",
+			"name": "menu.sections.gettingStarted",
 			"icon": "pi pi-home",
 			"children": [
 				{
-					"name": "Home",
+					"name": "menu.links.home",
 					"routerLink": "/"
 				},
 				{
-					"name": "Get Started",
+					"name": "menu.links.getStarted",
 					"href": "https://github.com/ethaxon/outposts?tab=readme-ov-file#quick-start"
 				}
 			]
 		},
 		{
-			"name": "Apps",
+			"name": "menu.sections.apps",
 			"icon": "pi pi-compass",
 			"children": [
 				{
-					"name": "Confluence",
+					"name": "menu.links.confluence",
 					"children": [
 						{
-							"name": "Dashboard",
+							"name": "menu.links.dashboard",
 							"routerLink": "/confluence/dashboard"
 						}
 					]
 				},
 				{
-					"name": "Security Dept",
+					"name": "menu.links.securityDept",
 					"children": [
 						{
-							"name": "Coming Soon",
+							"name": "menu.links.comingSoon",
 							"href": "https://github.com/ethaxon/securitydept"
 						}
 					]
@@ -39,57 +39,57 @@
 			]
 		},
 		{
-			"name": "Related Projects",
+			"name": "menu.sections.relatedProjects",
 			"icon": "pi pi-paperclip",
 			"children": [
 				{
-					"name": "Konobangu",
+					"name": "menu.links.konobangu",
 					"href": "https://github.com/dumtruck/konobangu"
 				},
 				{
-					"name": "Scoop",
+					"name": "menu.links.scoop",
 					"href": "https://github.com/dumtruck/scoop-bucket"
 				}
 			]
 		},
 		{
-			"name": "Support",
+			"name": "menu.sections.support",
 			"icon": "pi pi-question",
 			"children": [
 				{
-					"name": "Forum",
+					"name": "menu.links.forum",
 					"href": "https://github.com/ethaxon/outposts/discussions"
 				},
 				{
-					"name": "Telegram Channel",
+					"name": "menu.links.telegramChannel",
 					"href": "https://t.me/outposts_project"
 				},
 				{
-					"name": "Discord Server",
+					"name": "menu.links.discordServer",
 					"href": "https://discord.gg/dj9teD6G"
 				},
 				{
-					"name": "Mail",
+					"name": "menu.links.mail",
 					"href": "mailto:outposts@aitiotekt.com"
 				}
 			]
 		},
 		{
-			"name": "Contribution",
+			"name": "menu.links.contribution",
 			"routerLink": "/contribution",
 			"icon": "pi pi-users",
-			"badge": "NEW"
+			"badge": "menu.badges.new"
 		},
 		{
-			"name": "Discover",
+			"name": "menu.sections.discover",
 			"icon": "pi pi-search",
 			"children": [
 				{
-					"name": "Source Code",
+					"name": "menu.links.sourceCode",
 					"href": "https://github.com/ethaxon/outposts"
 				},
 				{
-					"name": "Changelog",
+					"name": "menu.links.changelog",
 					"href": "https://github.com/ethaxon/outposts/blob/master/CHANGELOG.md"
 				}
 			]

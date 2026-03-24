@@ -2,20 +2,17 @@
   <nav>
     <ul class="doc-section-nav">
       @for (item of tableOfContentsItems(); track item.id) {
-        <li class="doc-section-nav-item"
-            [class.doc-section-nav-item-h1]="item.level === TableOfContentsLevel.H1"
-            [class.doc-section-nav-item-h2]="item.level === TableOfContentsLevel.H2"
-            [class.doc-section-nav-item-h3]="item.level === TableOfContentsLevel.H3"
-            [class.doc-section-nav-item-h4]="item.level === TableOfContentsLevel.H4"
-            [class.doc-section-nav-item-h5]="item.level === TableOfContentsLevel.H5"
-            [class.doc-section-nav-item-h6]="item.level === TableOfContentsLevel.H6"
-            [class.doc-section-nav-item-active]="item.id === activeItemId()"
+        <li
+          class="doc-section-nav-item"
+          [class.doc-section-nav-item-h1]="item.level === TableOfContentsLevel.H1"
+          [class.doc-section-nav-item-h2]="item.level === TableOfContentsLevel.H2"
+          [class.doc-section-nav-item-h3]="item.level === TableOfContentsLevel.H3"
+          [class.doc-section-nav-item-h4]="item.level === TableOfContentsLevel.H4"
+          [class.doc-section-nav-item-h5]="item.level === TableOfContentsLevel.H5"
+          [class.doc-section-nav-item-h6]="item.level === TableOfContentsLevel.H6"
+          [class.doc-section-nav-item-active]="item.id === activeItemId()"
         >
-          <a
-            class="doc-section-nav-item-content"
-            routerLink="."
-            [fragment]="item.id"
-          >
+          <a class="doc-section-nav-item-content" routerLink="." [fragment]="item.id">
             {{ item.title }}
           </a>
         </li>
@@ -23,6 +20,13 @@
     </ul>
   </nav>
   @if (shouldDisplayScrollOnTop()) {
-    <p-button class="doc-top-back" icon="pi pi-arrow-up" [rounded]="true" [text]="true" [raised]="true" (onClick)="scrollToTop()"></p-button>
+    <p-button
+      class="doc-top-back"
+      icon="pi pi-arrow-up"
+      [rounded]="true"
+      [text]="true"
+      [raised]="true"
+      (onClick)="scrollToTop()"
+    ></p-button>
   }
 </aside>

@@ -1,0 +1,9 @@
+FROM rustlang/rust:nightly-bookworm-slim AS builder
+WORKDIR /usr/src/app
+
+COPY . .
+RUN cargo build --locked --release --bin confluence_server
+
+FROM debian:bookworm-slim AS runtime
+COPY --from=builder /usr/src/app/target/release/confluence_server /usr/local/bin/confluence_server
+CMD ["confluence_server"]

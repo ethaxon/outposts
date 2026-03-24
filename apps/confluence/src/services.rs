@@ -37,7 +37,7 @@ use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct JwksConfig {
-    pub jwks_set: Arc<biscuit::jwk::JWKSet<biscuit::Empty>>,
+    pub jwks_set: Arc<jsonwebtoken::jwk::JwkSet>,
     pub jwks_expiry: std::time::Instant,
 }
 

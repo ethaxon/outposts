@@ -1,8 +1,8 @@
 import { NotFoundDemoComponent } from ".";
 
 export default [
-	{
-		path: "",
-		component: NotFoundDemoComponent,
-	},
+  {
+    path: "",
+    component: NotFoundDemoComponent,
+  },
 ];

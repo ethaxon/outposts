@@ -1,7 +1,9 @@
 {
-	"references": [
-		{
-			"path": "./apps/outposts-web/tsconfig.json"
-		}
-	]
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "./apps/outposts-web/tsconfig.json"
+    }
+  ]
 }

@@ -21,4 +21,4 @@ jobs:
             git pull origin main
             cp -f docker-compose.deploy-override.yml docker-compose.override.yml
             docker compose pull confluence outposts-web
-            docker compose up -d --build --remove-orphans
+            docker compose up -d --remove-orphans

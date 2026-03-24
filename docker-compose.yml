@@ -27,7 +27,7 @@ services:
     container_name: confluence
     build:
       context: .
-      dockerfile: ./apps/confluence/Dockerfile
+      dockerfile: ./apps/confluence/Dockerfile.dev
     env_file: .env
     restart: unless-stopped
     ports:

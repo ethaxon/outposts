@@ -1,33 +1,28 @@
-import { Component, DestroyRef, inject, type OnInit } from "@angular/core";
+import { Component, computed, DestroyRef, inject, type OnInit } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import {
-	FormBuilder,
-	type FormControl,
-	type FormGroup,
-	Validators,
-} from "@angular/forms";
+import { FormBuilder, type FormControl, type FormGroup, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { RxwebValidators } from "@rxweb/reactive-form-validators";
-import { pascalCase } from "change-case";
 import { format } from "date-fns";
 import { isEqual } from "es-toolkit";
 import type { editor as MonacoEditor } from "monaco-editor";
 import {
-	BehaviorSubject,
-	catchError,
-	combineLatestWith,
-	distinctUntilChanged,
-	EMPTY,
-	filter,
-	map,
-	shareReplay,
-	skip,
-	switchMap,
-	take,
-	tap,
-	withLatestFrom,
+  BehaviorSubject,
+  catchError,
+  combineLatestWith,
+  distinctUntilChanged,
+  EMPTY,
+  filter,
+  map,
+  shareReplay,
+  skip,
+  switchMap,
+  take,
+  tap,
+  withLatestFrom,
 } from "rxjs";
 import { AppConfigService } from "@/core/servces/app-config.service";
+import { AppI18nService } from "@/core/servces/app-i18n.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { ClipboardService } from "@/tools/clipboard/clipboard.service";
 import { QrcodeService } from "@/tools/qrcode/qrcode.service";
@@ -40,674 +35,580 @@ import { ConfluenceService } from "../confluence.service";
 import { hourPlusLevelCronExprValidator } from "../validators/cron-expr.validators";
 
 @Component({
-	standalone: false,
-	selector: "app-confluence-workspace",
-	templateUrl: "./workspace.component.html",
-	styles: `
-    :host ::ng-deep {
-      .p-breadcrumb {
-        background-color: transparent;
-        border: none;
-      }
-
-      .confluence-subscribe-source-item {
-        min-width: 9em;
-
-        .p-card-content {
-          padding: 0;
-        }
-      }
-
-      .confluence-profile-item {
-        min-width: 9em;
-
-        .p-card-content {
-          padding: 0;
-        }
-      }
-    }
-
-    .confluence-subscribe-source-item {
-      p-button {
-        right: 0;
-        top: 0;
-      }
-    }
-
-    .profile-url {
-      margin-top: 0.5rem;
-      word-break: break-all;
-    }
-  `,
+  standalone: false,
+  selector: "app-confluence-workspace",
+  templateUrl: "./workspace.component.html",
+  styleUrl: "./workspace.component.scss",
 })
 export class WorkspaceComponent implements OnInit {
-	protected readonly confluenceService = inject(ConfluenceService);
-	protected readonly route = inject(ActivatedRoute);
-	protected readonly appConfigService = inject(AppConfigService);
-	protected readonly destoryRef = inject(DestroyRef);
-	protected readonly overlayService = inject(AppOverlayService);
-	protected readonly fb = inject(FormBuilder);
-	protected readonly confluenceId$ = this.route.params.pipe(
-		map((params) => parseInt(params.id, 10)),
-		distinctUntilChanged(),
-		shareReplay(1),
-	);
-	protected readonly clipboardService = inject(ClipboardService);
-	protected readonly qrcodeService = inject(QrcodeService);
+  protected readonly confluenceService = inject(ConfluenceService);
+  protected readonly route = inject(ActivatedRoute);
+  protected readonly appConfigService = inject(AppConfigService);
+  protected readonly i18nService = inject(AppI18nService);
+  protected readonly destoryRef = inject(DestroyRef);
+  protected readonly overlayService = inject(AppOverlayService);
+  protected readonly fb = inject(FormBuilder);
+  protected readonly confluenceId$ = this.route.params.pipe(
+    map((params) => parseInt(params.id, 10)),
+    distinctUntilChanged(),
+    shareReplay(1),
+  );
+  protected readonly clipboardService = inject(ClipboardService);
+  protected readonly qrcodeService = inject(QrcodeService);
 
-	confluence$ = new BehaviorSubject<ConfluenceDto | undefined>(undefined);
-	confluenceName$ = this.confluence$.pipe(
-		map((c) => `${c?.name ?? ""}`.toLocaleUpperCase()),
-	);
-	protected tmplEditorOptions: MonacoEditor.IStandaloneEditorConstructionOptions =
-		{
-			theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
-			language: "yaml",
-			automaticLayout: true,
-		};
-	tmpl = "";
-	profiles: ProfileDto[] = [];
-	subscribeSources: SubscribeSourceDto[] = [];
-	subscribeSourceCreation?: {
-		value: {
-			confluence_id: number;
-		};
-		form: FormGroup<{
-			url: FormControl<string | null>;
-			name: FormControl<string | null>;
-			proxy_server: FormControl<string | null>;
-			proxy_auth: FormControl<string | null>;
-			passive_sync: FormControl<boolean | null>;
-		}>;
-	};
-	subscribeSourceUpdate?: {
-		value: {
-			id: number;
-		};
-		form: FormGroup<{
-			url: FormControl<string | null>;
-			name: FormControl<string | null>;
-			passive_sync: FormControl<boolean | null>;
-			proxy_server: FormControl<string | null>;
-			proxy_auth: FormControl<string | null>;
-		}>;
-	};
-	muxContentPreview?: {
-		content: string;
-	};
-	subscribeSourceContentPreview?: {
-		content: string;
-		id: number;
-	};
-	urlPreview?: {
-		url: string;
-		qrcodeDataUrl?: string;
-	};
-	cronUpdateForm = this.fb.group({
-		cronExpr: this.fb.control("", [hourPlusLevelCronExprValidator]),
-	});
-	uaUpdateForm = this.fb.group({
-		userAgent: this.fb.control("", []),
-	});
-	nameUpdateDialog?: {
-		form: FormGroup<{
-			name: FormControl<string | null>;
-		}>;
-	};
+  confluence$ = new BehaviorSubject<ConfluenceDto | undefined>(undefined);
+  confluenceName$ = this.confluence$.pipe(map((c) => `${c?.name ?? ""}`.toLocaleUpperCase()));
+  protected tmplEditorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
+    theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
+    language: "yaml",
+    automaticLayout: true,
+  };
+  tmpl = "";
+  profiles: ProfileDto[] = [];
+  subscribeSources: SubscribeSourceDto[] = [];
+  subscribeSourceCreation?: {
+    value: {
+      confluence_id: number;
+    };
+    form: FormGroup<{
+      url: FormControl<string | null>;
+      name: FormControl<string | null>;
+      proxy_server: FormControl<string | null>;
+      proxy_auth: FormControl<string | null>;
+      passive_sync: FormControl<boolean | null>;
+    }>;
+  };
+  subscribeSourceUpdate?: {
+    value: {
+      id: number;
+    };
+    form: FormGroup<{
+      url: FormControl<string | null>;
+      name: FormControl<string | null>;
+      passive_sync: FormControl<boolean | null>;
+      proxy_server: FormControl<string | null>;
+      proxy_auth: FormControl<string | null>;
+    }>;
+  };
+  muxContentPreview?: {
+    content: string;
+  };
+  subscribeSourceContentPreview?: {
+    content: string;
+    id: number;
+  };
+  urlPreview?: {
+    url: string;
+    qrcodeDataUrl?: string;
+  };
+  cronUpdateForm = this.fb.group({
+    cronExpr: this.fb.control("", [hourPlusLevelCronExprValidator]),
+  });
+  uaUpdateForm = this.fb.group({
+    userAgent: this.fb.control("", []),
+  });
+  nameUpdateDialog?: {
+    form: FormGroup<{
+      name: FormControl<string | null>;
+    }>;
+  };
 
-	breadcrumb = {
-		items: [
-			{ label: "Confluence", routerLink: ["/confluence"] },
-			{ label: "Workspace" },
-		],
-		home: { icon: "pi pi-home", routerLink: "/" },
-	};
+  breadcrumb = computed(() => {
+    this.i18nService.activeLang();
 
-	ngOnInit() {
-		this.confluenceId$
-			.pipe(
-				switchMap((id) =>
-					this.overlayService
-						.withSuspense(this.confluenceService.getConfluenceById(id))
-						.pipe(catchError((_) => EMPTY)),
-				),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe(this.confluence$);
+    return {
+      items: [
+        {
+          label: this.i18nService.translate("confluence.workspace.breadcrumb.confluence"),
+          routerLink: ["/confluence"],
+        },
+        {
+          label: this.i18nService.translate("confluence.workspace.breadcrumb.workspace"),
+        },
+      ],
+      home: { icon: "pi pi-home", routerLink: "/" },
+    };
+  });
 
-		this.confluence$
-			.pipe(
-				map((c) => c?.template ?? ""),
-				distinctUntilChanged(),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe((tmpl) => {
-				this.tmpl = tmpl;
-			});
+  ngOnInit() {
+    this.confluenceId$
+      .pipe(
+        switchMap((id) =>
+          this.overlayService
+            .withSuspense(this.confluenceService.getConfluenceById(id))
+            .pipe(catchError((_) => EMPTY)),
+        ),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe(this.confluence$);
 
-		this.confluence$
-			.pipe(
-				map((c) => c?.subscribe_sources ?? []),
-				distinctUntilChanged(isEqual),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe((ss) => {
-				this.subscribeSources = ss;
-			});
+    this.confluence$
+      .pipe(
+        map((c) => c?.template ?? ""),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe((tmpl) => {
+        this.tmpl = tmpl;
+      });
 
-		this.confluence$
-			.pipe(
-				map((c) => c?.profiles ?? ""),
-				distinctUntilChanged(isEqual),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe((ps) => {
-				this.profiles = ps;
-			});
+    this.confluence$
+      .pipe(
+        map((c) => c?.subscribe_sources ?? []),
+        distinctUntilChanged(isEqual),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe((ss) => {
+        this.subscribeSources = ss;
+      });
 
-		this.confluence$
-			.pipe(
-				map((c) => c?.cron_expr ?? ""),
-				distinctUntilChanged(),
-				filter((v) => v !== this.cronUpdateForm.value.cronExpr),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe((expr) => {
-				this.cronUpdateForm.patchValue({
-					cronExpr: expr,
-				});
-			});
+    this.confluence$
+      .pipe(
+        map((c) => c?.profiles ?? ""),
+        distinctUntilChanged(isEqual),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe((ps) => {
+        this.profiles = ps;
+      });
 
-		this.confluence$
-			.pipe(
-				map((c) => c?.user_agent ?? ""),
-				distinctUntilChanged(),
-				filter((v) => v !== this.uaUpdateForm.value.userAgent),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe((ua) => {
-				this.uaUpdateForm.patchValue({
-					userAgent: ua,
-				});
-			});
+    this.confluence$
+      .pipe(
+        map((c) => c?.cron_expr ?? ""),
+        distinctUntilChanged(),
+        filter((v) => v !== this.cronUpdateForm.value.cronExpr),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe((expr) => {
+        this.cronUpdateForm.patchValue({
+          cronExpr: expr,
+        });
+      });
 
-		this.appConfigService.theme$
-			.pipe(skip(1), takeUntilDestroyed(this.destoryRef))
-			.subscribe((theme) => {
-				this.tmplEditorOptions = {
-					theme: theme === "dark" ? "vs-dark" : "vs",
-					language: "yaml",
-				};
-			});
-	}
+    this.confluence$
+      .pipe(
+        map((c) => c?.user_agent ?? ""),
+        distinctUntilChanged(),
+        filter((v) => v !== this.uaUpdateForm.value.userAgent),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe((ua) => {
+        this.uaUpdateForm.patchValue({
+          userAgent: ua,
+        });
+      });
 
-	openUpdateNameDialog() {
-		this.nameUpdateDialog = {
-			form: this.fb.group({
-				name: this.fb.control(this.confluence$.getValue()?.name ?? "", [
-					Validators.required,
-				]),
-			}),
-		};
-	}
+    this.appConfigService.theme$
+      .pipe(skip(1), takeUntilDestroyed(this.destoryRef))
+      .subscribe((theme) => {
+        this.tmplEditorOptions = {
+          theme: theme === "dark" ? "vs-dark" : "vs",
+          language: "yaml",
+        };
+      });
+  }
 
-	acceptUpdateNameDialog() {
-		const form = this.nameUpdateDialog?.form;
-		if (!this.nameUpdateDialog || !form) {
-			return;
-		}
-		form.markAllAsTouched();
-		if (!form.valid) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluence$.pipe(
-					take(1),
-					filter((c): c is ConfluenceDto => !!c),
-					switchMap((c) =>
-						this.confluenceService.updateConfluence(c.id, {
-							name: form.value.name ?? undefined,
-						}),
-					),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Saved successfully",
-				});
-			});
-	}
+  openUpdateNameDialog() {
+    this.nameUpdateDialog = {
+      form: this.fb.group({
+        name: this.fb.control(this.confluence$.getValue()?.name ?? "", [Validators.required]),
+      }),
+    };
+  }
 
-	cancelUpdateNameDialog() {
-		this.nameUpdateDialog = undefined;
-	}
+  acceptUpdateNameDialog() {
+    const form = this.nameUpdateDialog?.form;
+    if (!this.nameUpdateDialog || !form) {
+      return;
+    }
+    form.markAllAsTouched();
+    if (!form.valid) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluence$.pipe(
+          take(1),
+          filter((c): c is ConfluenceDto => !!c),
+          switchMap((c) =>
+            this.confluenceService.updateConfluence(c.id, {
+              name: form.value.name ?? undefined,
+            }),
+          ),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.saved");
+      });
+  }
 
-	saveTmpl() {
-		this.overlayService
-			.withSuspense(
-				this.confluence$.pipe(
-					take(1),
-					filter((c): c is ConfluenceDto => !!c),
-					switchMap((c) =>
-						this.confluenceService.updateConfluence(c.id, {
-							template: this.tmpl,
-						}),
-					),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Saved successfully",
-				});
-			});
-	}
+  cancelUpdateNameDialog() {
+    this.nameUpdateDialog = undefined;
+  }
 
-	resetTmpl() {
-		this.tmpl = this.confluence$.getValue()?.template ?? "";
-		this.overlayService.toast({
-			severity: "success",
-			summary: "Success",
-			detail: "Reset Success",
-		});
-	}
+  saveTmpl() {
+    this.overlayService
+      .withSuspense(
+        this.confluence$.pipe(
+          take(1),
+          filter((c): c is ConfluenceDto => !!c),
+          switchMap((c) =>
+            this.confluenceService.updateConfluence(c.id, {
+              template: this.tmpl,
+            }),
+          ),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.saved");
+      });
+  }
 
-	openCreateSubscribeSourceDialog() {
-		this.confluenceId$
-			.pipe(
-				tap((id) => {
-					this.subscribeSourceCreation = {
-						value: {
-							confluence_id: id,
-						},
-						form: this.fb.group({
-							url: ["", [Validators.required, RxwebValidators.url()]],
-							name: ["", Validators.required],
-							passive_sync: [false],
-							proxy_server: [null as string | null],
-							proxy_auth: [null as string | null],
-						}),
-					};
-				}),
-				takeUntilDestroyed(this.destoryRef),
-			)
-			.subscribe();
-	}
+  resetTmpl() {
+    this.tmpl = this.confluence$.getValue()?.template ?? "";
+    this.toastSuccess("confluence.workspace.toasts.reset");
+  }
 
-	cancelCreateSubscribeSourceDialog() {
-		this.subscribeSourceCreation = undefined;
-	}
+  openCreateSubscribeSourceDialog() {
+    this.confluenceId$
+      .pipe(
+        tap((id) => {
+          this.subscribeSourceCreation = {
+            value: {
+              confluence_id: id,
+            },
+            form: this.fb.group({
+              url: ["", [Validators.required, RxwebValidators.url()]],
+              name: ["", Validators.required],
+              passive_sync: [false],
+              proxy_server: [null as string | null],
+              proxy_auth: [null as string | null],
+            }),
+          };
+        }),
+        takeUntilDestroyed(this.destoryRef),
+      )
+      .subscribe();
+  }
 
-	acceptCreateSubscribeSourceDialog() {
-		const form = this.subscribeSourceCreation?.form;
-		if (!this.subscribeSourceCreation || !form) {
-			return;
-		}
-		form.markAllAsTouched();
-		if (!form.valid) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluenceService
-					.addSubscribeSource({
-						...this.subscribeSourceCreation.value,
-						...(form.value as RecursiveNonNullable<typeof form.value>),
-					})
-					.pipe(
-						combineLatestWith(this.confluenceId$),
-						switchMap(([_, id]) =>
-							this.confluenceService.getConfluenceById(id),
-						),
-						takeUntilDestroyed(this.destoryRef),
-					),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.subscribeSourceCreation = undefined;
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Saved successfully",
-				});
-			});
-	}
+  cancelCreateSubscribeSourceDialog() {
+    this.subscribeSourceCreation = undefined;
+  }
 
-	openUpdateSubscribeSourceDialog(item: SubscribeSourceDto) {
-		this.subscribeSourceUpdate = {
-			value: {
-				id: item.id,
-			},
-			form: this.fb.group({
-				url: [item.url, [Validators.required, RxwebValidators.url()]],
-				name: [item.name, Validators.required],
-				passive_sync: [!!item.passive_sync],
-				proxy_server: [item.proxy_server],
-				proxy_auth: [item.proxy_auth],
-			}),
-		};
-	}
+  acceptCreateSubscribeSourceDialog() {
+    const form = this.subscribeSourceCreation?.form;
+    if (!this.subscribeSourceCreation || !form) {
+      return;
+    }
+    form.markAllAsTouched();
+    if (!form.valid) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceService
+          .addSubscribeSource({
+            ...this.subscribeSourceCreation.value,
+            ...(form.value as RecursiveNonNullable<typeof form.value>),
+          })
+          .pipe(
+            combineLatestWith(this.confluenceId$),
+            switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+            takeUntilDestroyed(this.destoryRef),
+          ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.subscribeSourceCreation = undefined;
+        this.toastSuccess("common.toast.saved");
+      });
+  }
 
-	cancelUpdateSubscribeSourceDialog() {
-		this.subscribeSourceUpdate = undefined;
-	}
+  openUpdateSubscribeSourceDialog(item: SubscribeSourceDto) {
+    this.subscribeSourceUpdate = {
+      value: {
+        id: item.id,
+      },
+      form: this.fb.group({
+        url: [item.url, [Validators.required, RxwebValidators.url()]],
+        name: [item.name, Validators.required],
+        passive_sync: [!!item.passive_sync],
+        proxy_server: [item.proxy_server],
+        proxy_auth: [item.proxy_auth],
+      }),
+    };
+  }
 
-	acceptUpdateSubscribeSourceContentDialog() {
-		if (!this.subscribeSourceContentPreview) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluenceService
-					.updateSubscribeSource(this.subscribeSourceContentPreview.id, {
-						content: this.subscribeSourceContentPreview.content,
-					} as RecursiveNonNullable<SubscribeSourceUpdateDto>)
-					.pipe(
-						combineLatestWith(this.confluenceId$),
-						switchMap(([_, id]) =>
-							this.confluenceService.getConfluenceById(id),
-						),
-						takeUntilDestroyed(this.destoryRef),
-					),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.subscribeSourceUpdate = undefined;
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Updated successfully",
-				});
-			});
-	}
+  cancelUpdateSubscribeSourceDialog() {
+    this.subscribeSourceUpdate = undefined;
+  }
 
-	acceptUpdateSubscribeSourceDialog() {
-		const form = this.subscribeSourceUpdate?.form;
-		if (!this.subscribeSourceUpdate || !form) {
-			return;
-		}
-		form.markAllAsTouched();
-		if (!form.valid) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluenceService
-					.updateSubscribeSource(
-						this.subscribeSourceUpdate.value.id,
-						form.value as RecursiveNonNullable<SubscribeSourceUpdateDto>,
-					)
-					.pipe(
-						combineLatestWith(this.confluenceId$),
-						switchMap(([_, id]) =>
-							this.confluenceService.getConfluenceById(id),
-						),
-						takeUntilDestroyed(this.destoryRef),
-					),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.subscribeSourceUpdate = undefined;
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Updated successfully",
-				});
-			});
-	}
+  acceptUpdateSubscribeSourceContentDialog() {
+    if (!this.subscribeSourceContentPreview) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceService
+          .updateSubscribeSource(this.subscribeSourceContentPreview.id, {
+            content: this.subscribeSourceContentPreview.content,
+          } as RecursiveNonNullable<SubscribeSourceUpdateDto>)
+          .pipe(
+            combineLatestWith(this.confluenceId$),
+            switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+            takeUntilDestroyed(this.destoryRef),
+          ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.subscribeSourceUpdate = undefined;
+        this.toastSuccess("common.toast.updated");
+      });
+  }
 
-	removeSubscribeSource(id: number) {
-		this.overlayService
-			.withSuspense(
-				this.confluenceService.removeSubscribeSource(id).pipe(
-					combineLatestWith(this.confluenceId$),
-					switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.subscribeSourceCreation = undefined;
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Remove successfully",
-				});
-			});
-	}
+  acceptUpdateSubscribeSourceDialog() {
+    const form = this.subscribeSourceUpdate?.form;
+    if (!this.subscribeSourceUpdate || !form) {
+      return;
+    }
+    form.markAllAsTouched();
+    if (!form.valid) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceService
+          .updateSubscribeSource(
+            this.subscribeSourceUpdate.value.id,
+            form.value as RecursiveNonNullable<SubscribeSourceUpdateDto>,
+          )
+          .pipe(
+            combineLatestWith(this.confluenceId$),
+            switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+            takeUntilDestroyed(this.destoryRef),
+          ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.subscribeSourceUpdate = undefined;
+        this.toastSuccess("common.toast.updated");
+      });
+  }
 
-	syncConfluence() {
-		this.overlayService
-			.withSuspense(
-				this.confluenceId$.pipe(
-					take(1),
-					switchMap((id) => this.confluenceService.syncConfluence(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Sync successfully",
-				});
-			});
-	}
+  removeSubscribeSource(id: number) {
+    this.overlayService
+      .withSuspense(
+        this.confluenceService.removeSubscribeSource(id).pipe(
+          combineLatestWith(this.confluenceId$),
+          switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.subscribeSourceCreation = undefined;
+        this.toastSuccess("common.toast.removed");
+      });
+  }
 
-	syncSubscribeSource(id: number) {
-		this.overlayService
-			.withSuspense(
-				this.confluenceService.syncSubscribeSource(id).pipe(
-					withLatestFrom(this.confluenceId$),
-					switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Sync successfully",
-				});
-			});
-	}
+  syncConfluence() {
+    this.overlayService
+      .withSuspense(
+        this.confluenceId$.pipe(
+          take(1),
+          switchMap((id) => this.confluenceService.syncConfluence(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.synced");
+      });
+  }
 
-	openPreviewSubscribeSourceContentDialog(item: SubscribeSourceDto) {
-		this.subscribeSourceContentPreview = {
-			...item,
-		};
-	}
+  syncSubscribeSource(id: number) {
+    this.overlayService
+      .withSuspense(
+        this.confluenceService.syncSubscribeSource(id).pipe(
+          withLatestFrom(this.confluenceId$),
+          switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.synced");
+      });
+  }
 
-	cancelPreviewSubscribeSourceContentDialog() {
-		this.subscribeSourceContentPreview = undefined;
-	}
+  openPreviewSubscribeSourceContentDialog(item: SubscribeSourceDto) {
+    this.subscribeSourceContentPreview = {
+      ...item,
+    };
+  }
 
-	muxConfluence() {
-		this.overlayService
-			.withSuspense(
-				this.confluenceId$.pipe(
-					take(1),
-					switchMap((id) => this.confluenceService.muxConfluence(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Mux successfully",
-				});
-			});
-	}
+  cancelPreviewSubscribeSourceContentDialog() {
+    this.subscribeSourceContentPreview = undefined;
+  }
 
-	openPreviewMuxContentDialog() {
-		this.muxContentPreview = {
-			content: this.confluence$.getValue()?.mux_content ?? "",
-		};
-	}
+  muxConfluence() {
+    this.overlayService
+      .withSuspense(
+        this.confluenceId$.pipe(
+          take(1),
+          switchMap((id) => this.confluenceService.muxConfluence(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("confluence.workspace.toasts.muxed");
+      });
+  }
 
-	cancelPreviewMuxContentDialog() {
-		this.muxContentPreview = undefined;
-	}
+  openPreviewMuxContentDialog() {
+    this.muxContentPreview = {
+      content: this.confluence$.getValue()?.mux_content ?? "",
+    };
+  }
 
-	formatTime = format;
+  cancelPreviewMuxContentDialog() {
+    this.muxContentPreview = undefined;
+  }
 
-	createProfile() {
-		this.overlayService
-			.withSuspense(
-				this.confluenceId$.pipe(
-					take(1),
-					switchMap((id) =>
-						this.confluenceService.addProfile({ confluence_id: id }),
-					),
-					combineLatestWith(this.confluenceId$),
-					switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Remove successfully",
-				});
-			});
-	}
+  formatTime = format;
 
-	removeProfile(id: number) {
-		this.overlayService
-			.withSuspense(
-				this.confluenceService.removeProfile(id).pipe(
-					combineLatestWith(this.confluenceId$),
-					switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.subscribeSourceCreation = undefined;
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Remove successfully",
-				});
-			});
-	}
+  createProfile() {
+    this.overlayService
+      .withSuspense(
+        this.confluenceId$.pipe(
+          take(1),
+          switchMap((id) => this.confluenceService.addProfile({ confluence_id: id })),
+          combineLatestWith(this.confluenceId$),
+          switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.created");
+      });
+  }
 
-	saveCron() {
-		const form = this.cronUpdateForm;
-		form.markAllAsTouched();
-		if (!form.valid) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluenceId$.pipe(
-					take(1),
-					switchMap((id) =>
-						this.confluenceService
-							.updateConfluenceCron(id, {
-								cron_expr: form.value.cronExpr as Exclude<
-									typeof form.value.cronExpr,
-									null | undefined
-								>,
-								cron_expr_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-							})
-							.pipe(map(() => id)),
-					),
-					switchMap((id) => this.confluenceService.getConfluenceById(id)),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Saved successfully",
-				});
-			});
-	}
+  removeProfile(id: number) {
+    this.overlayService
+      .withSuspense(
+        this.confluenceService.removeProfile(id).pipe(
+          combineLatestWith(this.confluenceId$),
+          switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.subscribeSourceCreation = undefined;
+        this.toastSuccess("common.toast.removed");
+      });
+  }
 
-	saveUA() {
-		const form = this.uaUpdateForm;
-		form.markAllAsTouched();
-		if (!form.valid) {
-			return;
-		}
-		this.overlayService
-			.withSuspense(
-				this.confluenceId$.pipe(
-					take(1),
-					switchMap((id) =>
-						this.confluenceService.updateConfluence(id, {
-							user_agent: form.value.userAgent as Exclude<
-								typeof form.value.userAgent,
-								null | undefined
-							>,
-						}),
-					),
-					takeUntilDestroyed(this.destoryRef),
-				),
-			)
-			.subscribe((c) => {
-				this.confluence$.next(c);
-				this.overlayService.toast({
-					severity: "success",
-					summary: "Success",
-					detail: "Saved successfully",
-				});
-			});
-	}
+  saveCron() {
+    const form = this.cronUpdateForm;
+    form.markAllAsTouched();
+    if (!form.valid) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceId$.pipe(
+          take(1),
+          switchMap((id) =>
+            this.confluenceService
+              .updateConfluenceCron(id, {
+                cron_expr: form.value.cronExpr as Exclude<
+                  typeof form.value.cronExpr,
+                  null | undefined
+                >,
+                cron_expr_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              })
+              .pipe(map(() => id)),
+          ),
+          switchMap((id) => this.confluenceService.getConfluenceById(id)),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.saved");
+      });
+  }
 
-	async copyProfileUrl(item: ProfileDto) {
-		const profileUrl = this.confluenceService.getProfileUrl(
-			item.resource_token,
-		);
-		const qrcodeDataUrl = await this.qrcodeService.toDataURL(profileUrl);
-		this.urlPreview = {
-			url: profileUrl,
-			qrcodeDataUrl: qrcodeDataUrl,
-		};
-		await this.copyUrl(profileUrl);
-	}
+  saveUA() {
+    const form = this.uaUpdateForm;
+    form.markAllAsTouched();
+    if (!form.valid) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceId$.pipe(
+          take(1),
+          switchMap((id) =>
+            this.confluenceService.updateConfluence(id, {
+              user_agent: form.value.userAgent as Exclude<
+                typeof form.value.userAgent,
+                null | undefined
+              >,
+            }),
+          ),
+          takeUntilDestroyed(this.destoryRef),
+        ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.toastSuccess("common.toast.saved");
+      });
+  }
 
-	async copyUrl(url: string) {
-		try {
-			await this.clipboardService.copyText(url);
-			this.overlayService.toast({
-				severity: "success",
-				summary: "Success",
-				detail: "Copy successfully",
-			});
-		} catch (err: unknown) {
-			this.overlayService.toast({
-				severity: "error",
-				summary: "Error",
-				detail: (<Error>err)?.message,
-			});
-		}
-	}
+  async copyProfileUrl(item: ProfileDto) {
+    const profileUrl = this.confluenceService.getProfileUrl(item.resource_token);
+    const qrcodeDataUrl = await this.qrcodeService.toDataURL(profileUrl);
+    this.urlPreview = {
+      url: profileUrl,
+      qrcodeDataUrl: qrcodeDataUrl,
+    };
+    await this.copyUrl(profileUrl);
+  }
 
-	cancelUrlPreviewDialog() {
-		this.urlPreview = undefined;
-	}
+  async copyUrl(url: string) {
+    try {
+      await this.clipboardService.copyText(url);
+      this.toastSuccess("common.toast.copied");
+    } catch (err: unknown) {
+      this.toastError((<Error>err)?.message);
+    }
+  }
 
-	pascalCase(text: string) {
-		return pascalCase(text, {
-			delimiter: " ",
-		});
-	}
+  cancelUrlPreviewDialog() {
+    this.urlPreview = undefined;
+  }
+
+  private toastSuccess(detailKey: string) {
+    this.overlayService.toast({
+      severity: "success",
+      summary: this.i18nService.translate("common.toast.success"),
+      detail: this.i18nService.translate(detailKey),
+    });
+  }
+
+  private toastError(detail?: string) {
+    this.overlayService.toast({
+      severity: "error",
+      summary: this.i18nService.translate("common.toast.error"),
+      detail,
+    });
+  }
 }

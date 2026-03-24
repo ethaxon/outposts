@@ -1,129 +1,129 @@
 import { isPlatformBrowser } from "@angular/common";
-import {
-	computed,
-	DOCUMENT,
-	effect,
-	Injectable,
-	inject,
-	PLATFORM_ID,
-	signal,
-} from "@angular/core";
+import { computed, DOCUMENT, effect, Injectable, inject, PLATFORM_ID, signal } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
+import { DEFAULT_LANG } from "@/app/transloco-config";
 import type { AppState } from "@/core/defs/app-state";
 
 @Injectable({
-	providedIn: "root",
+  providedIn: "root",
 })
 export class AppConfigService {
-	private readonly STORAGE_KEY = "app-config-state";
+  private readonly STORAGE_KEY = "app-config-state";
 
-	appState = signal<AppState>(null as any);
+  appState = signal<AppState>(null as any);
 
-	newsActive = signal(false);
+  newsActive = signal(false);
 
-	document = inject(DOCUMENT);
+  document = inject(DOCUMENT);
 
-	platformId = inject(PLATFORM_ID);
+  platformId = inject(PLATFORM_ID);
 
-	theme = computed(() => (this.appState()?.darkTheme ? "dark" : "light"));
+  theme = computed(() => (this.appState()?.darkTheme ? "dark" : "light"));
 
-	theme$ = toObservable(this.theme);
+  theme$ = toObservable(this.theme);
 
-	transitionComplete = signal<boolean>(false);
+  transitionComplete = signal<boolean>(false);
 
-	private initialized = false;
+  private initialized = false;
+  private lastDarkTheme?: boolean;
 
-	constructor() {
-		this.appState.set({ ...this.loadAppState() });
+  constructor() {
+    this.appState.set({ ...this.loadAppState() });
+    this.lastDarkTheme = this.appState()?.darkTheme;
 
-		effect(() => {
-			const state = this.appState();
+    effect(() => {
+      const state = this.appState();
 
-			if (!this.initialized || !state) {
-				this.initialized = true;
-				return;
-			}
-			this.saveAppState(state);
-			this.handleDarkModeTransition(state);
-		});
-	}
+      if (!this.initialized || !state) {
+        this.initialized = true;
+        return;
+      }
+      this.saveAppState(state);
 
-	private handleDarkModeTransition(state: AppState): void {
-		if (isPlatformBrowser(this.platformId)) {
-			if ((document as any).startViewTransition) {
-				this.startViewTransition(state);
-			} else {
-				this.toggleDarkMode(state);
-				this.onTransitionEnd();
-			}
-		}
-	}
+      if (state.darkTheme !== this.lastDarkTheme) {
+        this.lastDarkTheme = state.darkTheme;
+        this.handleDarkModeTransition(state);
+      }
+    });
+  }
 
-	private startViewTransition(state: AppState): void {
-		const transition = (document as any).startViewTransition(() => {
-			this.toggleDarkMode(state);
-		});
+  private handleDarkModeTransition(state: AppState): void {
+    if (isPlatformBrowser(this.platformId)) {
+      if ((document as any).startViewTransition) {
+        this.startViewTransition(state);
+      } else {
+        this.toggleDarkMode(state);
+        this.onTransitionEnd();
+      }
+    }
+  }
 
-		transition.ready.then(() => this.onTransitionEnd());
-	}
+  private startViewTransition(state: AppState): void {
+    const transition = (document as any).startViewTransition(() => {
+      this.toggleDarkMode(state);
+    });
 
-	private toggleDarkMode(state: AppState): void {
-		if (state.darkTheme) {
-			this.document.documentElement.classList.add("p-dark");
-		} else {
-			this.document.documentElement.classList.remove("p-dark");
-		}
-	}
+    transition.ready.then(() => this.onTransitionEnd());
+  }
 
-	private onTransitionEnd() {
-		this.transitionComplete.set(true);
-		setTimeout(() => {
-			this.transitionComplete.set(false);
-		});
-	}
+  private toggleDarkMode(state: AppState): void {
+    if (state.darkTheme) {
+      this.document.documentElement.classList.add("p-dark");
+    } else {
+      this.document.documentElement.classList.remove("p-dark");
+    }
+  }
 
-	hideMenu() {
-		this.appState.update((state) => ({
-			...state,
-			menuActive: false,
-		}));
-	}
+  private onTransitionEnd() {
+    this.transitionComplete.set(true);
+    setTimeout(() => {
+      this.transitionComplete.set(false);
+    });
+  }
 
-	showMenu() {
-		this.appState.update((state) => ({
-			...state,
-			menuActive: true,
-		}));
-	}
+  hideMenu() {
+    this.appState.update((state) => ({
+      ...state,
+      menuActive: false,
+    }));
+  }
 
-	hideNews() {
-		this.newsActive.set(false);
-	}
+  showMenu() {
+    this.appState.update((state) => ({
+      ...state,
+      menuActive: true,
+    }));
+  }
 
-	showNews() {
-		this.newsActive.set(true);
-	}
+  hideNews() {
+    this.newsActive.set(false);
+  }
 
-	private loadAppState(): any {
-		if (isPlatformBrowser(this.platformId)) {
-			const storedState = localStorage.getItem(this.STORAGE_KEY);
-			if (storedState) {
-				return JSON.parse(storedState);
-			}
-		}
-		return {
-			preset: "Aura",
-			primary: "noir",
-			surface: null,
-			darkTheme: false,
-			menuActive: false,
-			RTL: false,
-		};
-	}
+  showNews() {
+    this.newsActive.set(true);
+  }
 
-	private saveAppState(state: any): void {
-		if (isPlatformBrowser(this.platformId)) {
-			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
-		}
-	}
+  private loadAppState(): any {
+    if (isPlatformBrowser(this.platformId)) {
+      const storedState = localStorage.getItem(this.STORAGE_KEY);
+      if (storedState) {
+        return JSON.parse(storedState);
+      }
+    }
+    return {
+      preset: "Aura",
+      primary: "noir",
+      surface: null,
+      darkTheme: false,
+      menuActive: false,
+      lang: DEFAULT_LANG,
+      RTL: false,
+    };
+  }
+
+  private saveAppState(state: any): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+    }
+  }
 }

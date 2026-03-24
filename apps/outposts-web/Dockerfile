@@ -1,5 +1,5 @@
 FROM node:22-slim AS builder
-RUN npm install -g pnpm@10.28.2
+RUN npm install -g pnpm@10.32.1
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 WORKDIR /usr/src/app

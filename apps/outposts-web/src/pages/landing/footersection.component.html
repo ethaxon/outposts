@@ -1,76 +1,106 @@
 <section class="landing-footer pt-20 px-20 lg:px-20">
-    <div class="landing-footer-container">
-        <div class="flex flex-wrap z-10">
-            <div class="w-6/12 lg:w-3/12 flex">
-                <ul class="list-none p-0 m-0">
-                    <li class="font-bold mb-20">General</li>
-                    <li class="mb-12">
-                        <a href="https://github.com/ethaxon/outposts?tab=readme-ov-file#quick-start"
-                            class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded transition-all duration-300">
-                            Get Started </a>
-                    </li>
-                </ul>
-            </div>
-            <div class="w-6/12 lg:w-3/12 flex">
-                <ul class="list-none p-0 m-0">
-                    <li class="font-bold mb-20">Support</li>
-                    <li class="mb-12">
-                        <a href="https://github.com/ethaxon/outposts/discussions" target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded transition-all duration-300">Discussions</a>
-                    </li>
-                    <li class="mb-12">
-                        <a href="mailto:outposts@aitiotekt.com" target="_blank" rel="noopener noreferrer"
-                            class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded transition-all duration-300">Contact
-                            Us</a>
-                    </li>
-                </ul>
-            </div>
-            <div class="w-6/12 lg:w-3/12 flex">
-                <ul class="list-none p-0 m-0">
-                    <li class="font-bold mt-20 lg:mt-0 mb-20">Features</li>
-                    <li class="mb-12">
-                        <a [routerLink]="['confluence']"
-                            class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded transition-all duration-300">Confluence</a>
-                    </li>
-                </ul>
-            </div>
-            <div class="w-6/12 lg:w-3/12 flex">
-                <ul class="list-none p-0 m-0">
-                    <li class="font-bold mt-20 lg:mt-0 mb-20">Resources</li>
-                    <li class="mb-12">
-                        <a href="https://github.com/ethaxon/outposts" target="_blank" rel="noopener noreferrer"
-                            class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded transition-all duration-300">Source
-                            Code</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <hr class="section-divider" />
-
-        <div class="flex flex-wrap justify-between py-12 gap-20">
-            <img src="/image/logo-512-w.png" style="height: 30px;" alt="outposts-logo" />
-            <div class="flex items-center gap-2">
-                <a href="https://github.com/ethaxon/outposts" target="_blank" rel="noopener noreferrer"
-                    class="linkbox linkbox-icon">
-                    <i class="pi pi-github"></i>
-                </a>
-                <a href="https://t.me/outposts_project" target="_blank" rel="noopener noreferrer"
-                    class="linkbox linkbox-icon">
-                    <i class="pi pi-telegram"></i>
-                </a>
-                <a href="https://discord.gg/dj9teD6G" target="_blank" rel="noopener noreferrer"
-                    class="linkbox linkbox-icon">
-                    <i class="pi pi-discord"></i>
-                </a>
-                <a href="mailto:outposts@aitiotekt.com" class="linkbox linkbox-icon">
-                    <i class="pi pi-envelope"></i>
-                </a>
-                <a href="https://github.com/ethaxon/outposts/discussions" class="linkbox linkbox-icon">
-                    <i class="pi pi-comments"></i>
-                </a>
-            </div>
-        </div>
+  <div class="landing-footer-container">
+    <div class="flex flex-wrap z-10">
+      <div class="w-6/12 lg:w-3/12 flex">
+        <ul class="list-none p-0 m-0">
+          <li class="font-bold mb-20">{{ "landing.footer.general" | transloco }}</li>
+          <li class="mb-12">
+            <a
+              href="https://github.com/ethaxon/outposts?tab=readme-ov-file#quick-start"
+              class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded-sm transition-all duration-300"
+            >
+              {{ "landing.footer.getStarted" | transloco }}
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="w-6/12 lg:w-3/12 flex">
+        <ul class="list-none p-0 m-0">
+          <li class="font-bold mb-20">{{ "landing.footer.support" | transloco }}</li>
+          <li class="mb-12">
+            <a
+              href="https://github.com/ethaxon/outposts/discussions"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded-sm transition-all duration-300"
+              >{{ "landing.footer.discussions" | transloco }}</a
+            >
+          </li>
+          <li class="mb-12">
+            <a
+              href="mailto:outposts@aitiotekt.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded-sm transition-all duration-300"
+              >{{ "landing.footer.contactUs" | transloco }}</a
+            >
+          </li>
+        </ul>
+      </div>
+      <div class="w-6/12 lg:w-3/12 flex">
+        <ul class="list-none p-0 m-0">
+          <li class="font-bold mt-20 lg:mt-0 mb-20">{{ "landing.footer.features" | transloco }}</li>
+          <li class="mb-12">
+            <a
+              [routerLink]="['confluence']"
+              class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded-sm transition-all duration-300"
+              >{{ "landing.footer.confluence" | transloco }}</a
+            >
+          </li>
+        </ul>
+      </div>
+      <div class="w-6/12 lg:w-3/12 flex">
+        <ul class="list-none p-0 m-0">
+          <li class="font-bold mt-20 lg:mt-0 mb-20">{{ "landing.footer.resources" | transloco }}</li>
+          <li class="mb-12">
+            <a
+              href="https://github.com/ethaxon/outposts"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-surface-500 dark:text-surface-400 font-medium hover:text-primary rounded-sm transition-all duration-300"
+              >{{ "landing.footer.sourceCode" | transloco }}</a
+            >
+          </li>
+        </ul>
+      </div>
     </div>
+
+    <hr class="section-divider" />
+
+    <div class="flex flex-wrap justify-between py-12 gap-20">
+      <img src="/image/logo-512-w.png" style="height: 30px" alt="outposts-logo" />
+      <div class="flex items-center gap-2">
+        <a
+          href="https://github.com/ethaxon/outposts"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="linkbox linkbox-icon"
+        >
+          <i class="pi pi-github"></i>
+        </a>
+        <a
+          href="https://t.me/outposts_project"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="linkbox linkbox-icon"
+        >
+          <i class="pi pi-telegram"></i>
+        </a>
+        <a
+          href="https://discord.gg/dj9teD6G"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="linkbox linkbox-icon"
+        >
+          <i class="pi pi-discord"></i>
+        </a>
+        <a href="mailto:outposts@aitiotekt.com" class="linkbox linkbox-icon">
+          <i class="pi pi-envelope"></i>
+        </a>
+        <a href="https://github.com/ethaxon/outposts/discussions" class="linkbox linkbox-icon">
+          <i class="pi pi-comments"></i>
+        </a>
+      </div>
+    </div>
+  </div>
 </section>

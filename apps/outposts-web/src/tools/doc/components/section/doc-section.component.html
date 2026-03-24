@@ -1,71 +1,71 @@
 @if (isResourceReady$ | async) {
-<markdown
-  [data]="data$ | async"
-  clipboard
-  [lineNumbers]="lineNumbers"
-  [katex]="!!(isKatexRequired$ | async)"
-  [katexOptions]="katexOptions"
-  [mermaid]="!!(isMermaidRequired$ | async)"
-  [clipboardButtonComponent]="ClipboardButtonComponent"
-  class="doc-markdown"
->
-</markdown>
+  <markdown
+    [data]="data$ | async"
+    clipboard
+    [lineNumbers]="lineNumbers"
+    [katex]="!!(isKatexRequired$ | async)"
+    [katexOptions]="katexOptions"
+    [mermaid]="!!(isMermaidRequired$ | async)"
+    [clipboardButtonComponent]="ClipboardButtonComponent"
+    class="doc-markdown"
+  >
+  </markdown>
 } @else if (!skeleton) {
-<div class="doc-skeleton">
-  <p-skeleton width="50%" height="3em" class="mb-4" />
-  <br />
-  <br />
-  <p-skeleton width="100%" height="1.5em" class="mb-2" />
-  <p-skeleton width="100%" height="1.5em" class="mb-2" />
-  <p-skeleton width="75%" height="1.5em" class="mb-2" />
-  <br />
-  <br />
-  <p-skeleton width="100%" height="250px"></p-skeleton>
-  <br />
-  <br />
-  <p-skeleton width="90%" height="1.5em" class="mb-2" />
-  <p-skeleton width="100%" height="1.5em" class="mb-2" />
-  <p-skeleton width="50%" height="1.5em" class="mb-2" />
-  <br />
-  <br />
-  <ul class="m-0 p-0 list-none">
-    <li class="mb-1">
-      <div class="flex items-center">
-        <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
-        <div style="flex: 1">
-          <p-skeleton width="50%" class="mb-1"></p-skeleton>
+  <div class="doc-skeleton">
+    <p-skeleton width="50%" height="3em" class="mb-4" />
+    <br />
+    <br />
+    <p-skeleton width="100%" height="1.5em" class="mb-2" />
+    <p-skeleton width="100%" height="1.5em" class="mb-2" />
+    <p-skeleton width="75%" height="1.5em" class="mb-2" />
+    <br />
+    <br />
+    <p-skeleton width="100%" height="250px"></p-skeleton>
+    <br />
+    <br />
+    <p-skeleton width="90%" height="1.5em" class="mb-2" />
+    <p-skeleton width="100%" height="1.5em" class="mb-2" />
+    <p-skeleton width="50%" height="1.5em" class="mb-2" />
+    <br />
+    <br />
+    <ul class="m-0 p-0 list-none">
+      <li class="mb-1">
+        <div class="flex items-center">
+          <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
+          <div style="flex: 1">
+            <p-skeleton width="50%" class="mb-1"></p-skeleton>
+          </div>
         </div>
-      </div>
-    </li>
-    <li class="mb-1">
-      <div class="flex items-center">
-        <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
-        <div style="flex: 1">
-          <p-skeleton width="30%" class="mb-1"></p-skeleton>
+      </li>
+      <li class="mb-1">
+        <div class="flex items-center">
+          <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
+          <div style="flex: 1">
+            <p-skeleton width="30%" class="mb-1"></p-skeleton>
+          </div>
         </div>
-      </div>
-    </li>
-    <li class="mb-1">
-      <div class="flex items-center">
-        <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
-        <div style="flex: 1">
-          <p-skeleton width="60%" class="mb-1"></p-skeleton>
+      </li>
+      <li class="mb-1">
+        <div class="flex items-center">
+          <p-skeleton shape="circle" size="0.5rem" class="mr-1"></p-skeleton>
+          <div style="flex: 1">
+            <p-skeleton width="60%" class="mb-1"></p-skeleton>
+          </div>
         </div>
-      </div>
-    </li>
-  </ul>
-  <br />
-  <br />
-  <p-skeleton width="70%" height="2em" class="mb-2" />
-  <br />
-  <br />
-  <p-skeleton width="100%" height="1.5em" class="mb-2" />
-  <p-skeleton width="75%" height="1.5em" class="mb-2" />
-  <br />
-  <div class="flex justify-between items-center gap-6">
-    <p-skeleton class="flex-1" height="100px" />
-    <p-skeleton class="flex-1" height="100px" />
-    <p-skeleton class="flex-1" height="100px" />
+      </li>
+    </ul>
+    <br />
+    <br />
+    <p-skeleton width="70%" height="2em" class="mb-2" />
+    <br />
+    <br />
+    <p-skeleton width="100%" height="1.5em" class="mb-2" />
+    <p-skeleton width="75%" height="1.5em" class="mb-2" />
+    <br />
+    <div class="flex justify-between items-center gap-6">
+      <p-skeleton class="flex-1" height="100px" />
+      <p-skeleton class="flex-1" height="100px" />
+      <p-skeleton class="flex-1" height="100px" />
+    </div>
   </div>
-</div>
 }

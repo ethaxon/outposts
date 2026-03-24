@@ -1,29 +1,24 @@
 {
-	"extends": "../../tsconfig.base.json",
-	"angularCompilerOptions": {
-		"enableI18nLegacyMessageIdFormat": false,
-		"strictInjectionParameters": true,
-		"strictInputAccessModifiers": true,
-		"strictTemplates": true
-	},
-	"compilerOptions": {
-		"types": ["node"],
-		"typeRoots": [
-			"./node_modules",
-			"./node_modules/@types",
-			"../../node_modules",
-			"../../node_modules/@types"
-		],
-		"paths": {
-			"@/*": ["./apps/outposts-web/src/*"]
-		}
-	},
-	"include": ["src/**/*.ts"],
-	"exclude": [
-		"vite.config.mts",
-		"vitest.config.mts",
-		"src/**/*.spec.tsx",
-		"src/**/*.spec.ts",
-		"src/test-setup.ts"
-	]
+  "extends": "../../tsconfig.base.json",
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/apps/outposts-web/app",
+    "types": ["node"],
+    "typeRoots": [
+      "./node_modules",
+      "./node_modules/@types",
+      "../../node_modules",
+      "../../node_modules/@types"
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.json"],
+  "exclude": ["src/**/*.server.ts", "src/server.ts"]
 }

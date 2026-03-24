@@ -171,6 +171,10 @@ mod tests {
     use crate::clash::ClashConfig;
     use crate::mux::mux_configs;
 
+    fn parse_config(yaml: &str) -> ClashConfig {
+        serde_yaml::from_str(yaml).expect("config yaml should be valid")
+    }
+
     #[test]
     fn test_mux_slot() -> anyhow::Result<()> {
         let rules1 = include_str!("../tests/profile1.yaml");
@@ -249,5 +253,75 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_mux_generates_direct_rules_for_domain_and_ip_sources() -> anyhow::Result<()> {
+        let template = parse_config(
+            r#"
+port: 7890
+proxies:
+  - { name: "Template", type: "ss", server: "template.example.com", port: 443 }
+proxy-groups:
+  - { name: "PROXY", type: "select", proxies: ["<mux>"] }
+rules:
+  - "MATCH,PROXY"
+"#,
+        );
+        let source_one = parse_config(
+            r#"
+proxies:
+  - { name: "IPv4", type: "ss", server: "1.1.1.1", port: 443 }
+proxy-groups: []
+rules: []
+"#,
+        );
+        let source_two = parse_config(
+            r#"
+proxies:
+  - { name: "IPv6", type: "ss", server: "2001:db8::1", port: 443 }
+proxy-groups: []
+rules: []
+"#,
+        );
+
+        let result = mux_configs(
+            "template",
+            &template,
+            &[("source-one", source_one), ("source-two", source_two)],
+        )?;
+        let rule_set = result.rules.iter().map(|rule| rule.0.as_str()).collect::<Vec<_>>();
+
+        assert!(rule_set.contains(&"DOMAIN-SUFFIX,example.com,DIRECT"));
+        assert!(rule_set.contains(&"IP-CIDR,1.1.1.1/32,DIRECT"));
+        assert!(rule_set.contains(&"IP-CIDR6,2001:db8::1/128,DIRECT"));
+        assert!(rule_set.contains(&"MATCH,PROXY"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mux_rejects_invalid_proxy_regex_slot() {
+        let template = parse_config(
+            r#"
+proxies: []
+proxy-groups:
+  - { name: "PROXY", type: "select", proxies: ["<proxy-regex:(invalid>"] }
+rules: []
+"#,
+        );
+        let source = parse_config(
+            r#"
+proxies:
+  - { name: "A", type: "ss", server: "a.example.com", port: 443 }
+proxy-groups: []
+rules: []
+"#,
+        );
+
+        assert!(
+            mux_configs("template", &template, &[("source", source)]).is_err(),
+            "invalid regex should return an error"
+        );
     }
 }

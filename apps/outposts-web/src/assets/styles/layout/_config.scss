@@ -1,6 +1,6 @@
 .layout-config {
     backdrop-filter: blur(20px);
-    background-color: var(--mobile-menu-bg);
+    background-color: var(--mobile-menu-background);
 
     .p-selectbutton {
         .p-button {
@@ -21,7 +21,7 @@
     button {
         &:focus-visible {
             outline: 0 none;
-            border-color: var(--surface-500) !important;
+            border-color: var(--p-surface-500) !important;
         }
     }
 
@@ -45,13 +45,13 @@
 
 .layout-light {
     .layout-config {
-        background: var(--surface-overlay);
+        background: var(--overlay-background);
     }
 }
 
 .layout-dark {
     .layout-config {
-        background: var(rgba(0,0,0,.3));
+        background: rgba(0, 0, 0, 0.3);
         border: 0 none;
     }
 }

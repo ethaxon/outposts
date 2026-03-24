@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/apps/outposts-web/scripts",
+    "types": ["node"]
+  },
+  "include": ["plugins/**/*.ts", "package.json"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
+}
