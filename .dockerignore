@@ -15,6 +15,4 @@ node_modules
 postgres/data
 .vscode
 dist
-!dist/confluence/
-!dist/confluence/confluence_server
 .angular
