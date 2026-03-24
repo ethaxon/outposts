@@ -1,5 +1,6 @@
 import { DOCUMENT } from "@angular/common";
 import { computed, effect, Injectable, inject } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { TranslocoService } from "@jsverse/transloco";
 import { AVAILABLE_LANGS, DEFAULT_LANG, type AppLang } from "@/app/transloco-config";
 import { AppConfigService } from "@/core/servces/app-config.service";
@@ -42,6 +43,10 @@ export class AppI18nService {
 
   translate(key: string, params?: Record<string, string | number>) {
     return this.translocoService.translate(key, params);
+  }
+
+  translateSignal(key: string, params?: Record<string, string | number>) {
+    return toSignal(this.translocoService.selectTranslate(key, params), { initialValue: "" });
   }
 
   private normalizeLang(lang?: string): AppLang {

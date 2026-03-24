@@ -113,17 +113,22 @@ export class WorkspaceComponent implements OnInit {
     }>;
   };
 
-  breadcrumb = computed(() => {
-    this.i18nService.activeLang();
+  confluenceCrumbLabel = this.i18nService.translateSignal(
+    "confluence.workspace.breadcrumb.confluence",
+  );
+  workspaceCrumbLabel = this.i18nService.translateSignal(
+    "confluence.workspace.breadcrumb.workspace",
+  );
 
+  breadcrumb = computed(() => {
     return {
       items: [
         {
-          label: this.i18nService.translate("confluence.workspace.breadcrumb.confluence"),
+          label: this.confluenceCrumbLabel(),
           routerLink: ["/confluence"],
         },
         {
-          label: this.i18nService.translate("confluence.workspace.breadcrumb.workspace"),
+          label: this.workspaceCrumbLabel(),
         },
       ],
       home: { icon: "pi pi-home", routerLink: "/" },
