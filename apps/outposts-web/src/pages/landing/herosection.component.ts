@@ -1,37 +1,36 @@
-import { AppConfigService } from '@/core/servces/app-config.service';
-
-import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { AvatarModule } from 'primeng/avatar';
-import { BadgeModule } from 'primeng/badge';
-import { ButtonModule } from 'primeng/button';
-import { ChartModule } from 'primeng/chart';
-import { DividerModule } from 'primeng/divider';
-import { DrawerModule } from 'primeng/drawer';
-import { KnobModule } from 'primeng/knob';
-import { OverlayBadgeModule } from 'primeng/overlaybadge';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { TooltipModule } from 'primeng/tooltip';
+import { Component, inject } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
+import { AvatarModule } from "primeng/avatar";
+import { BadgeModule } from "primeng/badge";
+import { ButtonModule } from "primeng/button";
+import { ChartModule } from "primeng/chart";
+import { DividerModule } from "primeng/divider";
+import { DrawerModule } from "primeng/drawer";
+import { KnobModule } from "primeng/knob";
+import { OverlayBadgeModule } from "primeng/overlaybadge";
+import { ToggleSwitchModule } from "primeng/toggleswitch";
+import { TooltipModule } from "primeng/tooltip";
+import { AppConfigService } from "@/core/servces/app-config.service";
 
 @Component({
-  selector: 'app-hero-section',
-  standalone: true,
-  imports: [
-    RouterModule,
-    ChartModule,
-    ToggleSwitchModule,
-    BadgeModule,
-    FormsModule,
-    DividerModule,
-    AvatarModule,
-    TooltipModule,
-    DrawerModule,
-    OverlayBadgeModule,
-    KnobModule,
-    ButtonModule
-  ],
-  template: `
+	selector: "app-hero-section",
+	standalone: true,
+	imports: [
+		RouterModule,
+		ChartModule,
+		ToggleSwitchModule,
+		BadgeModule,
+		FormsModule,
+		DividerModule,
+		AvatarModule,
+		TooltipModule,
+		DrawerModule,
+		OverlayBadgeModule,
+		KnobModule,
+		ButtonModule,
+	],
+	template: `
         <section class="landing-hero py-20 px-20 lg:px-20">
             <div class="flex flex-col items-center">
                 <h1 class="text-5xl font-bold text-center xl:text-left leading-tight">Your Personal <span class="font-bold text-primary">Digital OUTPOST</span> for Side Projects and Homelabs </h1>
@@ -50,12 +49,12 @@ import { TooltipModule } from 'primeng/tooltip';
                 </div>
             </div>
         </section>
-    `
+    `,
 })
 export class HeroSectionComponent {
-  private configService = inject(AppConfigService);
+	private configService = inject(AppConfigService);
 
-  get isDarkMode(): boolean {
-    return !!this.configService.appState().darkTheme;
-  }
+	get isDarkMode(): boolean {
+		return !!this.configService.appState().darkTheme;
+	}
 }

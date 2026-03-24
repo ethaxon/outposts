@@ -181,7 +181,9 @@ export class WorkspaceComponent implements OnInit {
 				distinctUntilChanged(),
 				takeUntilDestroyed(this.destoryRef),
 			)
-			.subscribe((tmpl) => { this.tmpl = tmpl; });
+			.subscribe((tmpl) => {
+				this.tmpl = tmpl;
+			});
 
 		this.confluence$
 			.pipe(
@@ -189,7 +191,9 @@ export class WorkspaceComponent implements OnInit {
 				distinctUntilChanged(isEqual),
 				takeUntilDestroyed(this.destoryRef),
 			)
-			.subscribe((ss) => { this.subscribeSources = ss; });
+			.subscribe((ss) => {
+				this.subscribeSources = ss;
+			});
 
 		this.confluence$
 			.pipe(
@@ -197,7 +201,9 @@ export class WorkspaceComponent implements OnInit {
 				distinctUntilChanged(isEqual),
 				takeUntilDestroyed(this.destoryRef),
 			)
-			.subscribe((ps) => { this.profiles = ps; });
+			.subscribe((ps) => {
+				this.profiles = ps;
+			});
 
 		this.confluence$
 			.pipe(

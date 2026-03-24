@@ -1,0 +1,36 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noTsIgnore": "off",
+				"noExplicitAny": "off"
+			},
+			"complexity": {
+				"noImportantStyles": "off",
+				"useLiteralKeys": "off"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"files": {
+		"includes": [
+			"**",
+			"!**/*.component.html",
+			"!node_modules",
+			"!**/node_modules",
+			"!target",
+			"!**/target",
+			"!dist",
+			"!assets",
+			"!.angular",
+			"!.idea",
+			"!.nx",
+			"!.git"
+		]
+	}
+}

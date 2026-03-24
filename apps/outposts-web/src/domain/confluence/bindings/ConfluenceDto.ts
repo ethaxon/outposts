@@ -2,4 +2,24 @@
 import type { ProfileDto } from "./ProfileDto";
 import type { SubscribeSourceDto } from "./SubscribeSourceDto";
 
-export type ConfluenceDto = { id: number, template: string, creator: string, created_at: number, updated_at: number, mux_content: string, subscribe_sources: Array<SubscribeSourceDto>, profiles: Array<ProfileDto>, name: string, sub_upload?: number, sub_download?: number, sub_total?: number, sub_expire?: number, cron_expr?: string, cron_expr_tz?: string, cron_prev_at?: number, cron_err?: string, cron_next_at?: number, user_agent: string, };
+export type ConfluenceDto = {
+	id: number;
+	template: string;
+	creator: string;
+	created_at: number;
+	updated_at: number;
+	mux_content: string;
+	subscribe_sources: Array<SubscribeSourceDto>;
+	profiles: Array<ProfileDto>;
+	name: string;
+	sub_upload?: number;
+	sub_download?: number;
+	sub_total?: number;
+	sub_expire?: number;
+	cron_expr?: string;
+	cron_expr_tz?: string;
+	cron_prev_at?: number;
+	cron_err?: string;
+	cron_next_at?: number;
+	user_agent: string;
+};

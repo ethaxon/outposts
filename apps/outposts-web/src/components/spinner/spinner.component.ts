@@ -1,12 +1,12 @@
-import { Component, inject } from '@angular/core';
-import { AppOverlayService } from '../../core/servces/app-overlay.service';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { CommonModule } from '@angular/common';
+import { CommonModule } from "@angular/common";
+import { Component, inject } from "@angular/core";
+import { ProgressSpinnerModule } from "primeng/progressspinner";
+import { AppOverlayService } from "../../core/servces/app-overlay.service";
 
 @Component({
-  selector: 'app-spinner',
-  standalone: true,
-  template: `
+	selector: "app-spinner",
+	standalone: true,
+	template: `
     @if (overlayService.loading$$ | async) {
     <div
       class="fullscreen-spinner flex justify-center items-center"
@@ -21,7 +21,7 @@ import { CommonModule } from '@angular/common';
     </div>
     }
   `,
-  styles: `
+	styles: `
 .fullscreen-spinner {
   position: fixed;
   width: 100%;
@@ -34,8 +34,8 @@ import { CommonModule } from '@angular/common';
   z-index: 9999;
 }
   `,
-  imports: [CommonModule, ProgressSpinnerModule],
+	imports: [CommonModule, ProgressSpinnerModule],
 })
 export class SpinnerComponent {
-  readonly overlayService = inject(AppOverlayService);
+	readonly overlayService = inject(AppOverlayService);
 }

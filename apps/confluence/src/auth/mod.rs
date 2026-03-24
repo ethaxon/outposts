@@ -9,7 +9,7 @@ use axum::{
 };
 use base64::{Engine as _, engine::general_purpose};
 use biscuit::{JWT, Validation, ValidationOptions, jwk};
-use openidconnect::{IssuerUrl, core::CoreProviderMetadata, reqwest::async_http_client};
+use openidconnect::{IssuerUrl, core::CoreProviderMetadata};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -38,7 +38,17 @@ pub async fn get_jwks_from_oidc_discovery(
         let issuer_url = IssuerUrl::new(issuer.to_string())
             .map_err(|e| AppError::unauthorized(anyhow::anyhow!("Invalid issuer URL: {}", e)))?;
 
-        let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
+        let http_client = openidconnect::reqwest::ClientBuilder::new()
+            .redirect(openidconnect::reqwest::redirect::Policy::none())
+            .build()
+            .map_err(|e| {
+                AppError::unauthorized(anyhow::anyhow!(
+                    "Failed to build OIDC discovery HTTP client: {}",
+                    e
+                ))
+            })?;
+
+        let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, &http_client)
             .await
             .map_err(|e| {
                 AppError::unauthorized(anyhow::anyhow!("Failed to discover OIDC provider: {}", e))

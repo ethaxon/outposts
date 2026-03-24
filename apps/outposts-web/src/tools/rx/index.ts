@@ -1,2 +1,2 @@
-export { AsObservable, Observe, ObservableInput } from './decorators';
-export { switchMapWithSuspense, withSuspense } from './operators';
+export { AsObservable, ObservableInput, Observe } from "./decorators";
+export { switchMapWithSuspense, withSuspense } from "./operators";

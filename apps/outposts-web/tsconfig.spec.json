@@ -1,29 +1,35 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
-    "types": [
-      "vitest/globals",
-      "vitest/importMeta",
-      "vite/client",
-      "node",
-      "vitest"
-    ]
-  },
-  "include": [
-    "vite.config.ts",
-    "vite.config.mts",
-    "vitest.config.ts",
-    "vitest.config.mts",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "src/**/*.test.jsx",
-    "src/**/*.spec.jsx",
-    "src/**/*.d.ts"
-  ],
-  "files": ["src/test-setup.ts"]
+	"extends": "../../tsconfig.base.json",
+	"angularCompilerOptions": {
+		"enableI18nLegacyMessageIdFormat": false,
+		"strictInjectionParameters": true,
+		"strictInputAccessModifiers": true,
+		"strictTemplates": true
+	},
+	"compilerOptions": {
+		"emitDeclarationOnly": true,
+		"typeRoots": [
+			"./node_modules",
+			"./node_modules/@types",
+			"../../node_modules",
+			"../../node_modules/@types"
+		],
+		"types": ["vitest/globals", "vitest/importMeta", "vite/client", "node"],
+		"paths": {
+			"@/*": ["./apps/outposts-web/src/*"]
+		}
+	},
+	"include": [
+		"vite.config.mts",
+		"vitest.config.mts",
+		"src/**/*.spec.tsx",
+		"src/**/*.spec.ts",
+		"src/test-setup.ts"
+	],
+	"files": ["src/test-setup.ts"],
+	"references": [
+		{
+			"path": "./tsconfig.app.json"
+		}
+	]
 }

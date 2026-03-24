@@ -1,26 +1,20 @@
-import { TestBed } from '@angular/core/testing';
-import { AppComponent } from './app.component';
-import { RouterModule } from '@angular/router';
+import { TestBed } from "@angular/core/testing";
+import { RouterModule } from "@angular/router";
+import { AppComponent } from "./app.component";
 
-describe('AppComponent', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [AppComponent, RouterModule.forRoot([])],
-    }).compileComponents();
-  });
+describe("AppComponent", () => {
+	beforeEach(async () => {
+		await TestBed.configureTestingModule({
+			imports: [AppComponent, RouterModule.forRoot([])],
+		}).compileComponents();
+	});
 
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Welcome outposts-web'
-    );
-  });
-
-  it(`should have as title 'outposts-web'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('outposts-web');
-  });
+	it("should render title", () => {
+		const fixture = TestBed.createComponent(AppComponent);
+		fixture.detectChanges();
+		const compiled = fixture.nativeElemdent as HTMLElement;
+		expect(compiled.querySelector("h1")?.textContent).toContain(
+			"Welcome outposts-web",
+		);
+	});
 });

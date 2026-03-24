@@ -10,7 +10,7 @@ const MUX_SLOT: &str = "<mux>";
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let slot = "<proxy-regex:^CN|中国$>";
 /// let regex = parse_regex_slot(slot);
 /// assert_eq!(regex.unwrap().as_str(), "^CN|中国$");

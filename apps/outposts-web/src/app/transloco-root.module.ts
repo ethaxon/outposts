@@ -1,15 +1,9 @@
-import {
-  provideTransloco,
-  TranslocoModule
-} from '@jsverse/transloco';
-import { NgModule } from '@angular/core';
-import { TranslocoConfig } from '@/app/transloco-config';
+import { NgModule } from "@angular/core";
+import { provideTransloco, TranslocoModule } from "@jsverse/transloco";
+import { TranslocoConfig } from "@/app/transloco-config";
 
 @NgModule({
-  exports: [TranslocoModule],
-  providers: [
-    provideTransloco(TranslocoConfig),
-  ],
+	exports: [TranslocoModule],
+	providers: [provideTransloco(TranslocoConfig)],
 })
-export class TranslocoRootModule {
-}
+export class TranslocoRootModule {}
