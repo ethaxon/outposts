@@ -42,7 +42,7 @@ services:
     container_name: outposts-web
     build:
       context: .
-      dockerfile: ./apps/outposts-web/Dockerfile
+      dockerfile: ./apps/outposts-web/Dockerfile.dev
     env_file: .env
     restart: unless-stopped
     ports:

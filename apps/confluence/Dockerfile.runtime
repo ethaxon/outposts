@@ -1,5 +1,7 @@
 FROM debian:trixie-slim AS runtime
 
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 COPY dist/confluence/confluence_server /usr/local/bin/confluence_server
 RUN chmod +x /usr/local/bin/confluence_server
 
