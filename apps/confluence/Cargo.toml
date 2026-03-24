@@ -19,7 +19,6 @@ uuid = { version = "1", features = [
   "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ] }
 addr = "0.15"
-anyhow = "1"
 axum = "0.8"
 axum-extra = "0.12"
 chrono = { version = "0.4", features = ["serde"] }
@@ -45,7 +44,7 @@ serde = { version = "1", features = ["derive"] }
 serde-enum-str = "0.5"
 serde_json = "1"
 serde_yaml = "0.9.34-depcreated"
-thiserror = { version = "2", features = [] }
+snafu = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "trace", "cors"] }

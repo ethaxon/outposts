@@ -39,13 +39,13 @@ pub async fn get_jwks_from_oidc_discovery(
     let jwks_uri = if should_discover {
         // Discover OIDC provider configuration
         let issuer_url = IssuerUrl::new(issuer.to_string())
-            .map_err(|e| AppError::unauthorized(anyhow::anyhow!("Invalid issuer URL: {}", e)))?;
+            .map_err(|e| AppError::unauthorized(format!("Invalid issuer URL: {}", e)))?;
 
         let http_client = openidconnect::reqwest::ClientBuilder::new()
             .redirect(openidconnect::reqwest::redirect::Policy::none())
             .build()
             .map_err(|e| {
-                AppError::unauthorized(anyhow::anyhow!(
+                AppError::unauthorized(format!(
                     "Failed to build OIDC discovery HTTP client: {}",
                     e
                 ))
@@ -54,7 +54,7 @@ pub async fn get_jwks_from_oidc_discovery(
         let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, &http_client)
             .await
             .map_err(|e| {
-                AppError::unauthorized(anyhow::anyhow!("Failed to discover OIDC provider: {}", e))
+                AppError::unauthorized(format!("Failed to discover OIDC provider: {}", e))
             })?;
 
         let jwks_uri = provider_metadata.jwks_uri().url().to_string();
@@ -107,7 +107,7 @@ pub async fn get_jwks_from_oidc_discovery(
     *jwks = Some(JwksConfig {
         jwks_expiry: std::time::Instant::now()
             .checked_add(std::time::Duration::from_secs(300)) // Cache for 5 minutes
-            .ok_or_else(|| anyhow::anyhow!("get_jwks_cached failed to add 5 mins"))?,
+            .ok_or_else(|| AppError::internal_str("get_jwks_cached failed to add 5 mins"))?,
         jwks_set: jwk_set.clone(),
     });
 

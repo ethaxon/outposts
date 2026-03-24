@@ -153,7 +153,7 @@ mod tests {
     use std::assert_matches;
 
     #[test]
-    fn test_model() -> anyhow::Result<()> {
+    fn test_model() -> Result<(), Box<dyn std::error::Error>> {
         let tmpl = include_str!("../tests/tmpl.yaml");
         let config: ClashConfig = serde_yaml::from_str(tmpl)?;
 

@@ -26,11 +26,13 @@ fn parse_regex_slot(slot: &str) -> Option<fancy_regex::Result<Regex>> {
     }
 }
 
+use crate::error::ConfigError;
+
 pub fn mux_configs(
     template_name: &str,
     template: &ClashConfig,
     sources: &[(&str, ClashConfig)],
-) -> anyhow::Result<ClashConfig> {
+) -> Result<ClashConfig, ConfigError> {
     let others = &template.others;
     let rules = &template.rules;
     let proxy_groups = &template.proxy_groups;
@@ -123,7 +125,7 @@ pub fn mux_configs(
             let mut index_and_regex_proxies: Option<(usize, Vec<String>)> = None;
             for (i, p) in pg.proxies.iter().enumerate() {
                 if let Some(regex) = parse_regex_slot(p) {
-                    let regex = regex?;
+                    let regex = regex.map_err(|e| ConfigError::Other { message: e.to_string() })?;
                     let filtered_proxies = mux_proxie_names
                         .iter()
                         .filter(|pn| regex.is_match(pn as &str).is_ok_and(|b| b))
@@ -176,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mux_slot() -> anyhow::Result<()> {
+    fn test_mux_slot() -> Result<(), Box<dyn std::error::Error>> {
         let rules1 = include_str!("../tests/profile1.yaml");
 
         let rules2 = include_str!("../tests/profile2.yaml");
@@ -216,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proxy_regex_slot() -> anyhow::Result<()> {
+    fn test_proxy_regex_slot() -> Result<(), Box<dyn std::error::Error>> {
         let rules1 = include_str!("../tests/profile1.yaml");
 
         let rules2 = include_str!("../tests/profile2.yaml");
@@ -256,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mux_generates_direct_rules_for_domain_and_ip_sources() -> anyhow::Result<()> {
+    fn test_mux_generates_direct_rules_for_domain_and_ip_sources() -> Result<(), Box<dyn std::error::Error>> {
         let template = parse_config(
             r#"
 port: 7890

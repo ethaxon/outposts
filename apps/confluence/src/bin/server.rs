@@ -27,11 +27,7 @@ use tracing_subscriber::EnvFilter;
 async fn main() -> Result<(), AppError> {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            if cfg!(debug_assertions) || cfg!(test) {
-                EnvFilter::new("debug")
-            } else {
-                EnvFilter::new("info")
-            }
+            EnvFilter::new("warn")
         }))
         .init();
 
@@ -45,7 +41,7 @@ async fn main() -> Result<(), AppError> {
         .max_connections(100)
         .min_connections(5)
         .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Debug);
+        .sqlx_logging_level(log::LevelFilter::Warn);
 
     let conn = Database::connect(opt)
         .await
@@ -65,6 +61,7 @@ async fn main() -> Result<(), AppError> {
             database_url: db_url,
             auth: match &auth_type as &str {
                 "BASIC" => {
+                    tracing::info!("using basic authentication");
                     let username = env::var("AUTH_BASIC_USERNAME")
                         .expect("AUTH_BASIC_USERNAME is not set in env");
                     let password = env::var("AUTH_BASIC_PASSWORD")
@@ -72,6 +69,7 @@ async fn main() -> Result<(), AppError> {
                     AuthConfig::BASIC { username, password }
                 }
                 "OIDC" => {
+                    tracing::info!("using OIDC authentication");
                     let issuer = env::var("AUTH_ISSUER").expect("AUTH_ISSUER is not set in env");
                     let audience = env::var("CONFLUENCE_API_ENDPOINT")
                         .expect("CONFLUENCE_API_ENDPOINT is not set in env");
@@ -91,6 +89,8 @@ async fn main() -> Result<(), AppError> {
     init_backend_jobs(&mut job_scheduler, state.clone())
         .await
         .unwrap();
+
+    tracing::info!("backend tasks initialized successfully");
 
     tokio::join!(serve(handle_confluence(state.clone()), state));
     Ok(())

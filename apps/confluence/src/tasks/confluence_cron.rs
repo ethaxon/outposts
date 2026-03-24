@@ -20,7 +20,7 @@ pub struct ConfluenceCronTask {
 }
 
 impl ConfluenceCronTask {
-    async fn run_one_confluence_cron(&self, cm: confluence::Model) -> Result<(), AppError> {
+    async fn run_one_confluence_cron(&self, cm: &confluence::Model) -> Result<(), AppError> {
         let db = &self.state.conn;
         let (pms, sms) = find_certain_confluence_profiles_and_subscribe_sources(db, cm.id).await?;
 
@@ -32,7 +32,7 @@ impl ConfluenceCronTask {
         )
         .await?;
 
-        mux_one_confluence_impl(db, cm, sms, pms).await?;
+        mux_one_confluence_impl(db, cm.clone(), sms, pms).await?;
         Ok(())
     }
 
@@ -47,25 +47,31 @@ impl ConfluenceCronTask {
             let id = cm.id;
             let cron_next_at =
                 if let (Some(cron_expr), Some(cron_expr_tz)) = (&cm.cron_expr, &cm.cron_expr_tz) {
-                    if let (Ok(cron), Ok(tz)) =
-                        (Schedule::from_str(cron_expr), cron_expr_tz.parse::<Tz>())
-                    {
-                        cron.upcoming(tz).next().map(|t| t.naive_utc())
-                    } else {
-                        None
+                    match (Schedule::from_str(cron_expr), cron_expr_tz.parse::<Tz>()) {
+                        (Ok(cron), Ok(tz)) => cron.upcoming(tz).next().map(|t| t.naive_utc()),
+                        (Err(e), _) => {
+                            tracing::warn!("failed to parse cron expr '{}' for confluence {}: {}", cron_expr, id, e);
+                            None
+                        }
+                        (_, Err(e)) => {
+                            tracing::warn!("failed to parse tz '{}' for confluence {}: {}", cron_expr_tz, id, e);
+                            None
+                        }
                     }
                 } else {
                     None
                 };
             let err_msg = self
-                .run_one_confluence_cron(cm)
+                .run_one_confluence_cron(&cm)
                 .await
                 .err()
-                .map(|e| e.to_string());
+                .map(|e| format!("{:?}", e));
 
             if let Some(err_msg) = &err_msg {
-                tracing::error!("run confluence {} cron failed: {}", id, err_msg);
-            };
+                tracing::warn!("run confluence {} cron failed: {}", id, err_msg);
+            } else {
+                tracing::info!("run confluence {} cron success", id);
+            }
 
             let _ = confluence::Entity::update(confluence::ActiveModel {
                 id: Unchanged(id),

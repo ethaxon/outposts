@@ -71,7 +71,7 @@ pub async fn find_one_confluence_in_db(
         .filter(confluence::Column::Creator.eq(&current_user.user_id))
         .one(db)
         .await?
-        .ok_or_else(|| AppError::DbNotFound(format!("cannot find post id = {} for you", id)))
+        .ok_or_else(|| AppError::DbNotFound { message: format!("cannot find post id = {} for you", id) })
 }
 
 pub async fn find_certain_confluence_profiles_and_subscribe_sources(
@@ -248,7 +248,7 @@ pub async fn update_one_confluence_cron(
     let mut cm = cm.into_active_model();
 
     let schedule = Schedule::from_str(&confluence_update_cron_dto.cron_expr)
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| AppError::internal_str(e.to_string()))?;
     let tz = confluence_update_cron_dto
         .cron_expr_tz
         .parse::<Tz>()
@@ -262,12 +262,12 @@ pub async fn update_one_confluence_cron(
         cm.cron_next_at = Set(Some(
             chrono::DateTime::from_timestamp_millis(next_time.timestamp_millis())
                 .map(|d| d.naive_utc())
-                .ok_or_else(|| anyhow::anyhow!("failed to get next upcoming time"))?,
+                .ok_or_else(|| AppError::internal_str("failed to get next upcoming time"))?,
         ));
         cm.cron_prev_at = Set(None);
         cm.cron_err = Set(None);
     } else {
-        return Err(anyhow::anyhow!("failed to get next upcoming time").into());
+        return Err(AppError::internal_str("failed to get next upcoming time"));
     }
 
     cm.update(db).await?;
@@ -407,7 +407,7 @@ pub async fn find_one_profile_as_subscription_by_token(
         .await?;
     if let Some((_, mut cms)) = pms.pop() {
         let cm = cms.pop().ok_or_else(|| {
-            AppError::DbNotFound(format!("cannot find profile token = {}", token))
+            AppError::DbNotFound { message: format!("cannot find profile token = {}", token) }
         })?;
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -455,17 +455,17 @@ pub async fn find_one_profile_as_subscription_by_token(
                             .intersperse(String::from("; "))
                             .collect::<String>(),
                     )
-                    .map_err(|err| AppError::Other(err.into()))?,
+                    .map_err(|err| AppError::internal_str(err.to_string()))?,
                 );
             }
         };
         let mux_content = cm.mux_content;
         Ok((headers, mux_content))
     } else {
-        Err(AppError::DbNotFound(format!(
+        Err(AppError::DbNotFound { message: format!(
             "cannot find profile token = {}",
             token
-        )))
+        ) })
     }
 }
 
@@ -503,10 +503,10 @@ pub async fn delete_one_profile(
         pam.delete(db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound(format!(
+        Err(AppError::DbNotFound { message: format!(
             "cannot find profile id = {}",
             id
-        )))
+        ) })
     }
 }
 
@@ -569,10 +569,10 @@ pub async fn update_one_subscribe_source(
         let pm = pam.try_into_model()?;
         Ok(Json(pm.into()))
     } else {
-        Err(AppError::DbNotFound(format!(
+        Err(AppError::DbNotFound { message: format!(
             "cannot find subscribe source id = {}",
             id
-        )))
+        ) })
     }
 }
 
@@ -593,10 +593,10 @@ pub async fn delete_one_subscribe_source(
         pam.delete(db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound(format!(
+        Err(AppError::DbNotFound { message: format!(
             "cannot find subscribe source id = {}",
             id
-        )))
+        ) })
     }
 }
 
@@ -618,9 +618,9 @@ pub async fn sync_one_subscribe_source(
         sync_one_subscribe_source_with_url(sm, &cm.user_agent, db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound(format!(
+        Err(AppError::DbNotFound { message: format!(
             "cannot find subscribe source id = {}",
             id
-        )))
+        ) })
     }
 }

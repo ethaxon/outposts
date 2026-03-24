@@ -1,69 +1,112 @@
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use reqwest::Error as FetchError;
 use sea_orm::DbErr;
+use snafu::Snafu;
 use std::fmt::Debug;
 use std::net::AddrParseError;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
+#[snafu(visibility(pub(crate)))]
 pub enum ConfigError {
-    #[error("invalid server format {server} from source config {config_name}, caused by {source_kind:?}")]
+    #[snafu(display(
+        "invalid server format {server} from source config {config_name}, caused by {source_kind:?}"
+    ))]
     ProxyServerInvalid {
         config_name: String,
         server: String,
         source_kind: addr::error::Kind,
     },
-    #[error(
-        "invalid server format {server} from source config {config_name}, caused by {source:?}"
-    )]
+    #[snafu(display(
+        "invalid server format {server} from source config {config_name}, caused by {source}"
+    ))]
     ProxyServerIpInvalid {
         config_name: String,
         server: String,
         source: AddrParseError,
     },
-    #[error(transparent)]
-    Format(#[from] serde_yaml::Error),
-    #[error("subscribe source {subscribe_source_name} empty or not sync, please sync first")]
+    #[snafu(display("format error: {source}"))]
+    Format { source: serde_yaml::Error },
+    #[snafu(display(
+        "subscribe source {subscribe_source_name} empty or not sync, please sync first"
+    ))]
     NotSync { subscribe_source_name: String },
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    #[snafu(display("other config error: {message}"))]
+    Other { message: String },
 }
 
-#[derive(Error, Debug)]
+impl From<serde_yaml::Error> for ConfigError {
+    fn from(source: serde_yaml::Error) -> Self {
+        Self::Format { source }
+    }
+}
+
+#[derive(Snafu, Debug)]
+#[snafu(visibility(pub(crate)))]
 pub enum AppError {
-    #[error(transparent)]
-    Db(#[from] DbErr),
-    #[error("{0}")]
-    DbNotFound(String),
-    #[error(transparent)]
-    Config(#[from] ConfigError),
-    #[error(transparent)]
-    Fetch(#[from] FetchError),
-    #[error("UNAUTHORIZED: caused by {0:#?}")]
-    Unauthorized(anyhow::Error),
-    #[error("{message}")]
+    #[snafu(display("database error: {source}"))]
+    Db { source: DbErr },
+    #[snafu(display("{message}"))]
+    DbNotFound { message: String },
+    #[snafu(display("config error: {source}"))]
+    Config { source: ConfigError },
+    #[snafu(display("fetch error: {source}"))]
+    Fetch { source: FetchError },
+    #[snafu(display("UNAUTHORIZED: caused by {message}"))]
+    Unauthorized { message: String },
+    #[snafu(display("{message}"))]
     BadRequest { message: String },
-    #[error("Invalid proxy auth header")]
+    #[snafu(display("Invalid proxy auth header"))]
     InvalidProxyAuthHeader,
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    #[snafu(display("internal error: {message}"))]
+    Internal { message: String },
+}
+
+impl From<DbErr> for AppError {
+    fn from(source: DbErr) -> Self {
+        Self::Db { source }
+    }
+}
+
+impl From<ConfigError> for AppError {
+    fn from(source: ConfigError) -> Self {
+        Self::Config { source }
+    }
+}
+
+impl From<FetchError> for AppError {
+    fn from(source: FetchError) -> Self {
+        Self::Fetch { source }
+    }
 }
 
 impl AppError {
     pub fn unauthorized<E>(source: E) -> Self
     where
-        E: Into<anyhow::Error>,
+        E: std::fmt::Display,
     {
-        Self::Unauthorized(source.into())
+        Self::Unauthorized {
+            message: source.to_string(),
+        }
     }
 
     pub fn unauthorized_str<E>(source: E) -> Self
     where
         E: Into<String>,
     {
-        Self::Unauthorized(anyhow::anyhow!(source.into()))
+        Self::Unauthorized {
+            message: source.into(),
+        }
+    }
+
+    pub fn internal_str<E>(source: E) -> Self
+    where
+        E: Into<String>,
+    {
+        Self::Internal {
+            message: source.into(),
+        }
     }
 }
 
@@ -71,16 +114,23 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let error_code = match &self {
-            Self::Db(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::DbNotFound(_) => StatusCode::NOT_FOUND,
-            Self::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            Self::Fetch(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Db { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::DbNotFound { .. } => StatusCode::NOT_FOUND,
+            Self::Config { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
+            Self::Fetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Self::BadRequest { .. } => StatusCode::BAD_REQUEST,
             Self::InvalidProxyAuthHeader => StatusCode::BAD_REQUEST,
         };
         let error_msg = self.to_string();
+        
+        if error_code.is_server_error() {
+            tracing::error!("Internal server error response: {:?}", self);
+        } else if error_code.is_client_error() {
+            tracing::warn!("Client error response: {:?}", self);
+        }
+
         let error_body = serde_json::json!({ "error_msg": error_msg });
         (error_code, Json(error_body)).into_response()
     }
