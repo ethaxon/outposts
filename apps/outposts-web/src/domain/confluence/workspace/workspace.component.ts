@@ -240,7 +240,6 @@ export class WorkspaceComponent implements OnInit {
               name: form.value.name ?? undefined,
             }),
           ),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -264,7 +263,6 @@ export class WorkspaceComponent implements OnInit {
               template: this.tmpl,
             }),
           ),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -323,7 +321,6 @@ export class WorkspaceComponent implements OnInit {
           .pipe(
             combineLatestWith(this.confluenceId$),
             switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-            takeUntilDestroyed(this.destoryRef),
           ),
       )
       .subscribe((c) => {
@@ -365,7 +362,6 @@ export class WorkspaceComponent implements OnInit {
           .pipe(
             combineLatestWith(this.confluenceId$),
             switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-            takeUntilDestroyed(this.destoryRef),
           ),
       )
       .subscribe((c) => {
@@ -394,7 +390,6 @@ export class WorkspaceComponent implements OnInit {
           .pipe(
             combineLatestWith(this.confluenceId$),
             switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-            takeUntilDestroyed(this.destoryRef),
           ),
       )
       .subscribe((c) => {
@@ -410,7 +405,6 @@ export class WorkspaceComponent implements OnInit {
         this.confluenceService.removeSubscribeSource(id).pipe(
           combineLatestWith(this.confluenceId$),
           switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -426,7 +420,6 @@ export class WorkspaceComponent implements OnInit {
         this.confluenceId$.pipe(
           take(1),
           switchMap((id) => this.confluenceService.syncConfluence(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -441,7 +434,6 @@ export class WorkspaceComponent implements OnInit {
         this.confluenceService.syncSubscribeSource(id).pipe(
           withLatestFrom(this.confluenceId$),
           switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -466,7 +458,6 @@ export class WorkspaceComponent implements OnInit {
         this.confluenceId$.pipe(
           take(1),
           switchMap((id) => this.confluenceService.muxConfluence(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -495,7 +486,6 @@ export class WorkspaceComponent implements OnInit {
           switchMap((id) => this.confluenceService.addProfile({ confluence_id: id })),
           combineLatestWith(this.confluenceId$),
           switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -510,7 +500,6 @@ export class WorkspaceComponent implements OnInit {
         this.confluenceService.removeProfile(id).pipe(
           combineLatestWith(this.confluenceId$),
           switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -542,7 +531,6 @@ export class WorkspaceComponent implements OnInit {
               .pipe(map(() => id)),
           ),
           switchMap((id) => this.confluenceService.getConfluenceById(id)),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {
@@ -569,7 +557,6 @@ export class WorkspaceComponent implements OnInit {
               >,
             }),
           ),
-          takeUntilDestroyed(this.destoryRef),
         ),
       )
       .subscribe((c) => {

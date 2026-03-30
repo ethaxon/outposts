@@ -23,6 +23,7 @@ use std::env;
 use std::sync::Arc;
 use tokio_cron_scheduler::JobScheduler;
 use tower_http::cors::{Any, CorsLayer};
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -37,7 +38,7 @@ fn oidc_well_known_url(issuer: &str) -> String {
 async fn main() -> Result<(), AppError> {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
 
@@ -48,10 +49,10 @@ async fn main() -> Result<(), AppError> {
 
     let mut opt = ConnectOptions::new(db_url.clone());
     opt.set_schema_search_path("public")
-        .max_connections(100)
-        .min_connections(5)
+        .max_connections(20)
+        .min_connections(2)
         .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Info);
+        .sqlx_logging_level(log::LevelFilter::Debug);
 
     let conn = Database::connect(opt)
         .await
@@ -195,11 +196,10 @@ async fn serve(app: Router, state: Arc<AppState>) {
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     let cors = CorsLayer::new()
-        // allow `GET` and `POST` when accessing the resource
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-        // allow requests from any origin
         .allow_origin(Any)
-        .allow_headers(Any);
+        // '*' wildcard does not cover Authorization per CORS spec; list it explicitly.
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]);
 
     axum::serve(listener, app.layer(cors).layer(TraceLayer::new_for_http()))
         .await
