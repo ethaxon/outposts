@@ -1,6 +1,7 @@
 {
   "recommendations": [
-    "ms-playwright.playwright",
-    "dbaeumer.vscode-eslint"
+    "oxc.oxc-vscode",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg"
   ]
 }

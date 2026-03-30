@@ -12,7 +12,7 @@
 - **配置混流**: 将多个订阅源合并为单个 Clash 配置
 - **用户信息提取**: 从 HTTP 头解析 Clash 订阅用户信息（上传/总量/下载/过期）
 - **JWT 认证**: 通过 biscuit JWT/JWK 验证令牌，缓存 JWKS
-- **OIDC SSO**: 集成 Logto 进行认证
+- **OIDC SSO**: 基于标准 OIDC / Authentik-first contract 进行认证
 
 ### API 端点
 
@@ -29,11 +29,11 @@
 - `PUT /api/profiles/:id` — 更新 profile
 - `DELETE /api/profiles/:id` — 删除 profile
 
-## SSO (基于 Logto 的 OIDC)
+## SSO / OIDC
 
-- 集成自托管 Logto 实例
-- JWT 令牌验证
-- JWKS 密钥轮换支持
+- 当前后端按标准 OIDC discovery + JWKS + JWT 校验工作
+- 前端认证层当前以标准 OIDC driver 作为单 `confluence` 主链路基线，并继续朝 provider-neutral auth boundary 演进
+- 近期目标是支持第三方 OIDC provider（如 Authentik），而不是继续绑定单一 IdP SDK
 
 ## Outposts-web (前端门户)
 

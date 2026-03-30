@@ -58,3 +58,4 @@ monostate = "1"
 log = "0.4"
 fancy-regex = "0.17"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+securitydept-core = { workspace = true, features = ["oauth-resource-server", "creds"] }

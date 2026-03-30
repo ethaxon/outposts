@@ -2,10 +2,11 @@ import dotenv from "dotenv";
 import { version } from "../package.json";
 
 const REQUIRED_ENV_NAMES = [
-  "AUTH_TYPE",
   "OUTPOSTS_WEB_HOST",
   "CONFLUENCE_API_ENDPOINT",
-  "AUTH_ENDPOINT",
+  "CONFLUENCE_OIDC_SCOPES",
+  "OIDC_ISSUER",
+  "OUTPOSTS_WEB_OIDC_CLIENT_ID",
 ];
 
 const envVarPlugin = {
@@ -29,11 +30,11 @@ const envVarPlugin = {
 
     options.define["process.env"] = JSON.stringify({
       APP_VERSION: version,
-      AUTH_TYPE: process.env.AUTH_TYPE,
-      AUTH_ENDPOINT: process.env.AUTH_ENDPOINT,
+      OIDC_ISSUER: process.env.OIDC_ISSUER,
       OUTPOSTS_WEB_HOST: process.env.OUTPOSTS_WEB_HOST,
-      OUTPOSTS_WEB_AUTH_APPID: process.env.OUTPOSTS_WEB_AUTH_APPID,
+      OUTPOSTS_WEB_OIDC_CLIENT_ID: process.env.OUTPOSTS_WEB_OIDC_CLIENT_ID,
       CONFLUENCE_API_ENDPOINT: process.env.CONFLUENCE_API_ENDPOINT,
+      CONFLUENCE_OIDC_SCOPES: process.env.CONFLUENCE_OIDC_SCOPES,
     });
   },
 };

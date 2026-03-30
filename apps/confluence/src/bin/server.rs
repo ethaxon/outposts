@@ -3,7 +3,7 @@ use axum::{
     routing::delete, routing::get, routing::post, routing::put,
 };
 use confluence::auth::auth;
-use confluence::config::{AppConfig, AuthConfig};
+use confluence::config::{AppConfig, AuthConfig, parse_scopes};
 use confluence::error::AppError;
 use confluence::migrations;
 use confluence::services::{
@@ -16,6 +16,9 @@ use confluence::services::{
 use confluence::tasks::init_backend_jobs;
 use sea_orm::{ConnectOptions, Database};
 use sea_orm_migration::MigratorTrait;
+use securitydept_core::oauth_resource_server::{
+    OAuthResourceServerConfig, OAuthResourceServerVerifier,
+};
 use std::env;
 use std::sync::Arc;
 use tokio_cron_scheduler::JobScheduler;
@@ -23,12 +26,19 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
+fn oidc_well_known_url(issuer: &str) -> String {
+    format!(
+        "{}/.well-known/openid-configuration",
+        issuer.trim_end_matches('/')
+    )
+}
+
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     tracing_subscriber::fmt::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("warn")
-        }))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+        )
         .init();
 
     dotenvy::dotenv().ok();
@@ -54,32 +64,61 @@ async fn main() -> Result<(), AppError> {
         migrations::Migrator::up(&conn, None).await?;
     }
 
+    let (auth, oidc_verifier) = match &auth_type as &str {
+        "BASIC" => {
+            tracing::info!("using basic authentication");
+            let username =
+                env::var("AUTH_BASIC_USERNAME").expect("AUTH_BASIC_USERNAME is not set in env");
+            let password =
+                env::var("AUTH_BASIC_PASSWORD").expect("AUTH_BASIC_PASSWORD is not set in env");
+            (AuthConfig::BASIC { username, password }, None)
+        }
+        "OIDC" => {
+            tracing::info!("using OIDC authentication");
+            let issuer = env::var("OIDC_ISSUER").expect("OIDC_ISSUER is not set in env");
+            let audience = env::var("CONFLUENCE_OIDC_AUDIENCE")
+                .expect("CONFLUENCE_OIDC_AUDIENCE is not set in env");
+            let required_scopes = parse_scopes(
+                &env::var("CONFLUENCE_OIDC_SCOPES")
+                    .expect("CONFLUENCE_OIDC_SCOPES is not set in env"),
+            );
+            let user_claim =
+                env::var("CONFLUENCE_OIDC_USER_CLAIM").unwrap_or_else(|_| "sub".to_string());
+
+            let mut verifier_config = OAuthResourceServerConfig::default();
+            verifier_config.remote.well_known_url = Some(oidc_well_known_url(&issuer));
+            verifier_config.audiences = vec![audience.clone()];
+            verifier_config.required_scopes = required_scopes.clone();
+
+            let verifier = Arc::new(
+                OAuthResourceServerVerifier::from_config(verifier_config)
+                    .await
+                    .map_err(AppError::from)?,
+            );
+
+            (
+                AuthConfig::OIDC {
+                    issuer,
+                    audience,
+                    required_scopes,
+                    user_claim,
+                },
+                Some(verifier),
+            )
+        }
+        auth_type => {
+            panic!("unsupported auth type {}", auth_type)
+        }
+    };
+
     let state = Arc::new(AppState::new(
         conn,
         AppConfig {
             listen,
             database_url: db_url,
-            auth: match &auth_type as &str {
-                "BASIC" => {
-                    tracing::info!("using basic authentication");
-                    let username = env::var("AUTH_BASIC_USERNAME")
-                        .expect("AUTH_BASIC_USERNAME is not set in env");
-                    let password = env::var("AUTH_BASIC_PASSWORD")
-                        .expect("AUTH_BASIC_PASSWORD is not set in env");
-                    AuthConfig::BASIC { username, password }
-                }
-                "OIDC" => {
-                    tracing::info!("using OIDC authentication");
-                    let issuer = env::var("AUTH_ISSUER").expect("AUTH_ISSUER is not set in env");
-                    let audience = env::var("CONFLUENCE_API_ENDPOINT")
-                        .expect("CONFLUENCE_API_ENDPOINT is not set in env");
-                    AuthConfig::OIDC { issuer, audience }
-                }
-                auth_type => {
-                    panic!("unsupported auth type {}", auth_type)
-                }
-            },
+            auth,
         },
+        oidc_verifier,
     ));
 
     let mut job_scheduler = JobScheduler::new()

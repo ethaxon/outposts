@@ -7,7 +7,7 @@ Outposts is a personal **Digital Outpost** for managing side projects and homela
 | Code | Description | Status |
 |------|-------------|--------|
 | **Confluence** | Clash subscription mux and manager | Implemented |
-| **SSO** | OIDC SSO via Logto | Implemented |
+| **SSO** | OIDC SSO baseline for Authentik or any standard OIDC provider | Implemented |
 | **Outposts-web** | Angular 20 portal | Implemented |
 | **SecurityDept** | MFA checkpoint for L4 services | Planned |
 | **CelestialGates** | Service web portal / teleportation | Planned |

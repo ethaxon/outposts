@@ -1,9 +1,6 @@
-import { Location } from "@angular/common";
-import { DestroyRef, DOCUMENT, Injectable, inject } from "@angular/core";
+import { DestroyRef, Injectable, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { type ActivatedRouteSnapshot, Router, type RouterStateSnapshot } from "@angular/router";
-import LogtoClient from "@logto/browser";
-import type { AccessTokenClaims } from "@logto/js";
 import {
   catchError,
   distinctUntilChanged,
@@ -24,10 +21,10 @@ import {
 } from "rxjs";
 import { WINDOW } from "@/core/providers/window";
 import { environment } from "../../environments/environment";
+import { AUTH_DRIVER, type AuthAccessTokenClaims } from "./auth.driver";
 import {
   AUTH_CALLBACK_ORIGIN_URI_KEY,
   AUTH_CALLBACK_PATH,
-  AUTH_RESOURCE_CONFIGS,
   type AuthResourceConfig,
   type AuthUserState,
   type SignInOptions,
@@ -39,16 +36,9 @@ import { parseScope } from "./auth.utils";
   providedIn: "root",
 })
 export class AuthService {
-  protected readonly logtoClient: LogtoClient = new LogtoClient({
-    endpoint: environment.AUTH_ENDPOINT,
-    appId: environment.AUTH_APPID,
-    resources: AUTH_RESOURCE_CONFIGS.map((r) => r.resource),
-    scopes: AUTH_RESOURCE_CONFIGS.flatMap((r) => r.scopes),
-  });
+  protected readonly authDriver = inject(AUTH_DRIVER);
   protected readonly destoryRef = inject(DestroyRef);
   protected readonly window = inject(WINDOW);
-  protected readonly location = inject(Location);
-  protected readonly document = inject(DOCUMENT);
   protected readonly router = inject(Router);
 
   protected readonly initSubject$ = new Subject<void>();
@@ -63,7 +53,7 @@ export class AuthService {
 
   constructor() {
     const isAuthenticated$ = this.authSyncTrigger$.pipe(
-      switchMap(() => this.logtoClient.isAuthenticated()),
+      switchMap(() => this.authDriver.isAuthenticated()),
       catchError((error) => {
         this.error = error;
         return of(false);
@@ -71,9 +61,7 @@ export class AuthService {
     );
 
     this.userInfo$ = isAuthenticated$.pipe(
-      switchMap((isAuthenticated) =>
-        isAuthenticated ? this.logtoClient.fetchUserInfo() : of(null),
-      ),
+      switchMap((isAuthenticated) => (isAuthenticated ? this.authDriver.getUserInfo() : of(null))),
       catchError((error) => {
         this.error = error;
         return of(null);
@@ -113,7 +101,7 @@ export class AuthService {
 
   signIn(options: SignInOptions): Observable<void> {
     if (options.signInType === "redirect") {
-      return from(this.logtoClient.signIn(options.redirectUrl));
+      return from(this.authDriver.signInRedirect(options.redirectUrl));
     }
     /**
      * @TODO FIXME HERE
@@ -123,7 +111,7 @@ export class AuthService {
 
   signOut(options: SignOutOptions): Observable<void> {
     if (options.signOutType === "redirect") {
-      return from(this.logtoClient.signOut(options.redirectUrl));
+      return from(this.authDriver.signOutRedirect(options.redirectUrl));
     }
     /**
      * @TODO FIXME HERE
@@ -132,8 +120,8 @@ export class AuthService {
   }
 
   handleSignInCallback(callbackUrl: string): Observable<boolean> {
-    return from(this.logtoClient.handleSignInCallback(callbackUrl)).pipe(
-      switchMap(() => this.logtoClient.isAuthenticated()),
+    return from(this.authDriver.handleRedirectCallback(callbackUrl)).pipe(
+      switchMap(() => this.authDriver.isAuthenticated()),
       tap((signInCallbackResult) => {
         let authCallbackOriginUri = "/";
         try {
@@ -157,7 +145,7 @@ export class AuthService {
   }
 
   protected shouldHandleCallback(): Observable<boolean> {
-    return from(this.logtoClient.isSignInRedirected(this.window.location.href)).pipe(
+    return from(this.authDriver.isRedirectCallback(this.window.location.href)).pipe(
       catchError((error) => {
         this.error = error;
         return of(false);
@@ -166,7 +154,7 @@ export class AuthService {
   }
 
   getResourceToken(resource: string): Observable<string | null> {
-    return from(this.logtoClient.getAccessToken(resource)).pipe(
+    return from(this.authDriver.getAccessToken(resource)).pipe(
       catchError((error) => {
         this.error = error;
         return of(null);
@@ -176,7 +164,7 @@ export class AuthService {
 
   getResourcesClaims(resourcesConfigs: AuthResourceConfig[]): Observable<{
     configs: AuthResourceConfig[];
-    resources: AccessTokenClaims[];
+    resources: Array<AuthAccessTokenClaims | null>;
   } | null> {
     return this.isAuthenticated$.pipe(
       switchMap((isAuth) => {
@@ -185,10 +173,10 @@ export class AuthService {
         }
         return forkJoin(
           resourcesConfigs.map((r) =>
-            from(this.logtoClient.getAccessTokenClaims(r.resource)).pipe(
+            from(this.authDriver.getAccessTokenClaims(r.resource)).pipe(
               catchError((error) => {
                 this.error = error;
-                return of({} as AccessTokenClaims);
+                return of(null);
               }),
             ),
           ),
@@ -230,12 +218,10 @@ export class AuthService {
             console.error("Failed to store origin URL in local storage.", e);
           }
 
-          return from(
-            this.signIn({
-              redirectUrl: redirectUrl.toString(),
-              signInType: "redirect",
-            }),
-          ).pipe(switchMap(() => EMPTY));
+          return this.signIn({
+            redirectUrl: redirectUrl.toString(),
+            signInType: "redirect",
+          }).pipe(switchMap(() => EMPTY));
         }),
         switchMap((_isAuth) => {
           return this.getResourcesClaims(resourcesConfigs).pipe(

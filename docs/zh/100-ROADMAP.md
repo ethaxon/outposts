@@ -5,7 +5,7 @@
 | 组件 | 状态 |
 |------|------|
 | Confluence | 核心功能完成 |
-| SSO (Logto OIDC) | 已集成 |
+| SSO（标准 OIDC / Authentik-first） | 已集成 |
 | Outposts-web | Angular 门户运行中 |
 
 ## 阶段一：Confluence 增强

@@ -19,7 +19,7 @@ docker compose up
 ## Roadmap
 
 - [x] Confluence: A clash subscriber source muxer and manage service.
-- [x] SSO: A OIDC SSO service, currently use open source self-hosted service [logto](https://github.com/logto-io/logto). 
+- [x] SSO: A standard OIDC SSO baseline for Authentik or any compatible provider.
 - [ ] SecurtyDept: MFA checkpoint for any service, like a Security Dept, especially L4 services like rdp etc. 
 - [ ] CelestialGates: Web portal or teleportation for services.
 - [ ] Yü-shih / Yü-shih T’ai: System monitor client and center service. 

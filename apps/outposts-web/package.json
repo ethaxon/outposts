@@ -3,8 +3,5 @@
   "version": "0.2.0",
   "exports": {
     "./env-var-plugin": "./plugins/env-var-plugin.ts"
-  },
-  "dependencies": {
-    "tailwindcss": "^4.2.2"
   }
 }

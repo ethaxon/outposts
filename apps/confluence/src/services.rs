@@ -1,4 +1,4 @@
-use crate::auth::{CurrentUser, OidcProviderConfig};
+use crate::auth::CurrentUser;
 use crate::clash::http::{
     SUB_DOWNLOAD, SUB_EXPIRE, SUB_TOTAL, SUB_UPLOAD, SUBSCRIPTION_USERINFO_HEADER,
 };
@@ -31,33 +31,29 @@ use itertools::izip;
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect, TryIntoModel};
+use securitydept_core::oauth_resource_server::OAuthResourceServerVerifier;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-
-#[derive(Clone)]
-pub struct JwksConfig {
-    pub jwks_set: Arc<jsonwebtoken::jwk::JwkSet>,
-    pub jwks_expiry: std::time::Instant,
-}
 
 #[derive(Clone)]
 pub struct AppState {
     pub conn: DatabaseConnection,
     pub config: AppConfig,
     pub names_generator: Arc<rnglib::RNG>,
-    pub jwks: Arc<RwLock<Option<JwksConfig>>>,
-    pub oidc_provider: Arc<RwLock<Option<OidcProviderConfig>>>,
+    pub oidc_verifier: Option<Arc<OAuthResourceServerVerifier>>,
 }
 
 impl AppState {
-    pub fn new(conn: DatabaseConnection, config: AppConfig) -> Self {
+    pub fn new(
+        conn: DatabaseConnection,
+        config: AppConfig,
+        oidc_verifier: Option<Arc<OAuthResourceServerVerifier>>,
+    ) -> Self {
         Self {
             conn,
             config,
             names_generator: Arc::new(rnglib::RNG::from(&rnglib::Language::Elven)),
-            jwks: Arc::new(RwLock::new(None)),
-            oidc_provider: Arc::new(RwLock::new(None)),
+            oidc_verifier,
         }
     }
 }

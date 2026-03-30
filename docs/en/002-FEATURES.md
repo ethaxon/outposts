@@ -12,7 +12,7 @@
 - **Config Muxing**: Merge multiple subscription sources into single Clash config
 - **Userinfo Extraction**: Parse Clash subscription userinfo from HTTP headers (upload/total/download/expiry)
 - **JWT Auth**: Validate tokens via biscuit JWT/JWK with JWKS caching
-- **OIDC SSO**: Integrate with Logto for authentication
+- **OIDC SSO**: Authenticate through the standard OIDC / Authentik-first contract
 
 ### API Endpoints
 
@@ -29,11 +29,11 @@
 - `PUT /api/profiles/:id` — Update profile
 - `DELETE /api/profiles/:id` — Delete profile
 
-## SSO (OIDC via Logto)
+## SSO / OIDC
 
-- Integration with self-hosted Logto instance
-- JWT token validation
-- JWKS key rotation support
+- The backend already follows standard OIDC discovery + JWKS + JWT validation
+- The frontend auth layer now uses a standard OIDC driver as the single-`confluence` baseline and keeps moving toward a provider-neutral boundary
+- The near-term target is supporting third-party OIDC providers such as Authentik without remaining coupled to one IdP SDK
 
 ## Outposts-web (Frontend Portal)
 

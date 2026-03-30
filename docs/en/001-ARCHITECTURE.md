@@ -6,7 +6,7 @@
 |-------|-------|
 | Frontend | Angular 20, Nx, PrimeNG, TailwindCSS, `@jsverse/transloco` |
 | Backend | Rust, Axum, Sea-ORM, PostgreSQL, tokio |
-| Auth | OIDC via Logto, biscuit (JWT/JWK) |
+| Auth | Standard OIDC / Authentik-first, biscuit (JWT/JWK) |
 | Container | Docker Compose |
 | Tools | mise, pnpm, cargo, just |
 

@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use reqwest::Error as FetchError;
 use sea_orm::DbErr;
+use securitydept_core::oauth_resource_server::OAuthResourceServerError;
 use snafu::Snafu;
 use std::fmt::Debug;
 use std::net::AddrParseError;
@@ -81,6 +82,30 @@ impl From<FetchError> for AppError {
     }
 }
 
+impl From<OAuthResourceServerError> for AppError {
+    fn from(source: OAuthResourceServerError) -> Self {
+        match source {
+            OAuthResourceServerError::InvalidConfig { message }
+            | OAuthResourceServerError::Metadata { message }
+            | OAuthResourceServerError::HttpClient { message } => Self::Internal { message },
+            OAuthResourceServerError::Introspection { message }
+            | OAuthResourceServerError::PolicyViolation { message } => {
+                Self::Unauthorized { message }
+            }
+            OAuthResourceServerError::TokenValidation { source } => Self::Unauthorized {
+                message: source.to_string(),
+            },
+            OAuthResourceServerError::UnsupportedTokenFormat { token_format } => {
+                Self::Unauthorized {
+                    message: format!(
+                        "OAuth resource server does not support {token_format:?} access tokens in this verifier"
+                    ),
+                }
+            }
+        }
+    }
+}
+
 impl AppError {
     pub fn unauthorized<E>(source: E) -> Self
     where
@@ -124,7 +149,7 @@ impl IntoResponse for AppError {
             Self::InvalidProxyAuthHeader => StatusCode::BAD_REQUEST,
         };
         let error_msg = self.to_string();
-        
+
         if error_code.is_server_error() {
             tracing::error!("Internal server error response: {:?}", self);
         } else if error_code.is_client_error() {

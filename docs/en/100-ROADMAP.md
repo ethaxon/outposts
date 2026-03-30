@@ -5,7 +5,7 @@
 | Component | Status |
 |-----------|--------|
 | Confluence | Core functionality complete |
-| SSO (Logto OIDC) | Integrated |
+| SSO (standard OIDC / Authentik-first) | Integrated |
 | Outposts-web | Angular portal working |
 
 ## Phase 1: Confluence Enhancements

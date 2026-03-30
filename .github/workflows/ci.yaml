@@ -138,11 +138,11 @@ jobs:
       - name: Create dotenv
         uses: iamsauravsharma/create-dotenv@v4.0.0
         env:
-          AUTH_ENDPOINT: ${{ vars.AUTH_ENDPOINT }}
-          AUTH_TYPE: ${{ vars.AUTH_TYPE }}
-          OUTPOSTS_WEB_AUTH_APPID: ${{ vars.OUTPOSTS_WEB_AUTH_APPID }}
+          OIDC_ISSUER: ${{ vars.OIDC_ISSUER }}
+          OUTPOSTS_WEB_OIDC_CLIENT_ID: ${{ vars.OUTPOSTS_WEB_OIDC_CLIENT_ID }}
           OUTPOSTS_WEB_HOST: ${{ vars.OUTPOSTS_WEB_HOST }}
           CONFLUENCE_API_ENDPOINT: ${{ vars.CONFLUENCE_API_ENDPOINT }}
+          CONFLUENCE_OIDC_SCOPES: ${{ vars.CONFLUENCE_OIDC_SCOPES }}
         with:
           input-prefix: "" # Optional (default: '')
           file-path: ".env" # Optional (default : '.env')

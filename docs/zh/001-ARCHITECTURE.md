@@ -6,7 +6,7 @@
 |------|------|
 | 前端 | Angular 20, Nx, PrimeNG, TailwindCSS, `@jsverse/transloco` |
 | 后端 | Rust, Axum, Sea-ORM, PostgreSQL, tokio |
-| 认证 | 基于 Logto 的 OIDC, biscuit (JWT/JWK) |
+| 认证 | 标准 OIDC / Authentik-first, biscuit (JWT/JWK) |
 | 容器 | Docker Compose |
 | 工具 | mise, pnpm, cargo, just |
 
