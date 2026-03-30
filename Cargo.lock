@@ -761,7 +761,7 @@ dependencies = [
 
 [[package]]
 name = "confluence"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "addr",
  "axum",
@@ -788,7 +788,7 @@ dependencies = [
  "serde-enum-str",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.9",
+ "snafu",
  "tokio",
  "tokio-cron-scheduler",
  "tower",
@@ -3748,6 +3748,7 @@ dependencies = [
 [[package]]
 name = "securitydept-core"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "jsonwebtoken",
  "oauth2",
@@ -3761,6 +3762,7 @@ dependencies = [
 [[package]]
 name = "securitydept-creds"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -3774,7 +3776,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2",
- "snafu 0.9.0",
+ "snafu",
  "tokio",
  "tracing",
 ]
@@ -3782,6 +3784,7 @@ dependencies = [
 [[package]]
 name = "securitydept-oauth-provider"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "humantime-serde",
  "oauth2",
@@ -3790,13 +3793,14 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "snafu 0.9.0",
+ "snafu",
  "tokio",
 ]
 
 [[package]]
 name = "securitydept-oauth-resource-server"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "chrono",
  "http",
@@ -3809,7 +3813,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "snafu 0.9.0",
+ "snafu",
  "tokio",
  "tracing",
 ]
@@ -3817,6 +3821,7 @@ dependencies = [
 [[package]]
 name = "securitydept-utils"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "http",
  "iri-string",
@@ -3826,7 +3831,7 @@ dependencies = [
  "serde_json",
  "serde_regex",
  "serde_with",
- "snafu 0.9.0",
+ "snafu",
  "typed-builder",
  "url",
 ]
@@ -4094,32 +4099,11 @@ dependencies = [
 
 [[package]]
 name = "snafu"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e84b3f4eacbf3a1ce05eac6763b4d629d60cbc94d632e4092c54ade71f1e1a2"
-dependencies = [
- "snafu-derive 0.8.9",
-]
-
-[[package]]
-name = "snafu"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1d4bced6a69f90b2056c03dcff2c4737f98d6fb9e0853493996e1d253ca29c6"
 dependencies = [
- "snafu-derive 0.9.0",
-]
-
-[[package]]
-name = "snafu-derive"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
-dependencies = [
- "heck 0.5.0",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
+ "snafu-derive",
 ]
 
 [[package]]

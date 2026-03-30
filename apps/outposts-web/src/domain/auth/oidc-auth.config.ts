@@ -16,13 +16,8 @@ function resolveScope(): string {
     .join(" ");
 }
 
-function resolveTargetResource(): string | undefined {
-  return AUTH_RESOURCE_CONFIGS[0]?.resource;
-}
-
 export function createOidcAuthConfig(): PassedInitialConfig {
   const appOrigin = resolveAppOrigin();
-  const targetResource = resolveTargetResource();
 
   return {
     config: {
@@ -36,19 +31,6 @@ export function createOidcAuthConfig(): PassedInitialConfig {
       useRefreshToken: true,
       autoUserInfo: true,
       renewUserInfoAfterTokenRenew: true,
-      ...(targetResource
-        ? {
-            customParamsAuthRequest: {
-              resource: targetResource,
-            },
-            customParamsCodeRequest: {
-              resource: targetResource,
-            },
-            customParamsRefreshTokenRequest: {
-              resource: targetResource,
-            },
-          }
-        : {}),
     },
   };
 }

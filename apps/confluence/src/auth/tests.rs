@@ -21,7 +21,9 @@ struct ScopedClaims {
     exp: usize,
     iat: usize,
     jti: String,
-    client_id: String,
+    // client_id is optional per real-world providers (e.g. Authentik)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    client_id: Option<String>,
     scope: String,
 }
 
@@ -65,10 +67,11 @@ fn issued_at() -> usize {
         .as_secs() as usize
 }
 
+/// Build an OIDC verifier state. When `audience` is `None`, audience validation is disabled.
 async fn oidc_state(
     jwks_json: &str,
     issuer: &str,
-    audience: &str,
+    audience: Option<&str>,
     required_scopes: &[&str],
 ) -> Arc<AppState> {
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -94,7 +97,9 @@ async fn oidc_state(
     let mut verifier_config = OAuthResourceServerConfig::default();
     verifier_config.remote.issuer_url = Some(issuer.to_string());
     verifier_config.remote.jwks_uri = Some(jwks_uri);
-    verifier_config.audiences = vec![audience.to_string()];
+    if let Some(aud) = audience {
+        verifier_config.audiences = vec![aud.to_string()];
+    }
     verifier_config.required_scopes = required_scopes
         .iter()
         .map(|scope| scope.to_string())
@@ -108,7 +113,7 @@ async fn oidc_state(
     mock_state(
         AuthConfig::OIDC {
             issuer: issuer.to_string(),
-            audience: audience.to_string(),
+            audience: audience.unwrap_or_default().to_string(),
             required_scopes: required_scopes
                 .iter()
                 .map(|scope| scope.to_string())
@@ -162,7 +167,7 @@ async fn authorize_current_user_accepts_oidc_token_via_oauth_resource_server() {
     let audience = "demo-api";
     let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
     let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
-    let state = oidc_state(jwks_json, issuer, audience, &required_scopes).await;
+    let state = oidc_state(jwks_json, issuer, Some(audience), &required_scopes).await;
 
     let mut header = Header::new(Algorithm::HS256);
     header.kid = Some("test-key".to_string());
@@ -175,7 +180,7 @@ async fn authorize_current_user_accepts_oidc_token_via_oauth_resource_server() {
             exp: future_exp(),
             iat: issued_at(),
             jti: "token-accept".to_string(),
-            client_id: "outposts-web".to_string(),
+            client_id: Some("outposts-web".to_string()),
             scope: required_scopes.join(" "),
         },
         &EncodingKey::from_secret(b"super-secret"),
@@ -191,12 +196,83 @@ async fn authorize_current_user_accepts_oidc_token_via_oauth_resource_server() {
 }
 
 #[tokio::test]
+async fn authorize_current_user_accepts_oidc_token_without_client_id() {
+    // Some OIDC providers (e.g. Authentik) do not include client_id in the access token.
+    // The verifier must accept such tokens after rfc9068.rs made client_id optional.
+    let issuer = "https://issuer.example.test";
+    let audience = "demo-api";
+    let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
+    let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
+    let state = oidc_state(jwks_json, issuer, Some(audience), &required_scopes).await;
+
+    let mut header = Header::new(Algorithm::HS256);
+    header.kid = Some("test-key".to_string());
+    let token = encode(
+        &header,
+        &ScopedClaims {
+            sub: "user-no-client-id".to_string(),
+            iss: issuer.to_string(),
+            aud: vec![audience.to_string()],
+            exp: future_exp(),
+            iat: issued_at(),
+            jti: "token-no-client-id".to_string(),
+            client_id: None,
+            scope: required_scopes.join(" "),
+        },
+        &EncodingKey::from_secret(b"super-secret"),
+    )
+    .expect("token should be created");
+    let auth_header = bearer_header(&token);
+
+    let current_user = authorize_current_user(Some(&auth_header), state)
+        .await
+        .expect("token without client_id should be accepted");
+
+    assert_eq!(current_user.user_id, "user-no-client-id");
+}
+
+#[tokio::test]
+async fn authorize_current_user_accepts_oidc_token_when_audience_validation_disabled() {
+    // When CONFLUENCE_OIDC_AUDIENCE is absent, audiences is empty and validation is skipped.
+    // Tokens with any (or no) aud claim should be accepted as long as scopes match.
+    let issuer = "https://issuer.example.test";
+    let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
+    let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
+    let state = oidc_state(jwks_json, issuer, None, &required_scopes).await;
+
+    let mut header = Header::new(Algorithm::HS256);
+    header.kid = Some("test-key".to_string());
+    let token = encode(
+        &header,
+        &ScopedClaims {
+            sub: "user-any-aud".to_string(),
+            iss: issuer.to_string(),
+            aud: vec!["some-other-resource".to_string()],
+            exp: future_exp(),
+            iat: issued_at(),
+            jti: "token-no-aud-check".to_string(),
+            client_id: None,
+            scope: required_scopes.join(" "),
+        },
+        &EncodingKey::from_secret(b"super-secret"),
+    )
+    .expect("token should be created");
+    let auth_header = bearer_header(&token);
+
+    let current_user = authorize_current_user(Some(&auth_header), state)
+        .await
+        .expect("token should be accepted when audience validation is disabled");
+
+    assert_eq!(current_user.user_id, "user-any-aud");
+}
+
+#[tokio::test]
 async fn authorize_current_user_rejects_oidc_audience_mismatch() {
     let issuer = "https://issuer.example.test";
     let audience = "demo-api";
     let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
     let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
-    let state = oidc_state(jwks_json, issuer, audience, &required_scopes).await;
+    let state = oidc_state(jwks_json, issuer, Some(audience), &required_scopes).await;
 
     let mut header = Header::new(Algorithm::HS256);
     header.kid = Some("test-key".to_string());
@@ -209,7 +285,7 @@ async fn authorize_current_user_rejects_oidc_audience_mismatch() {
             exp: future_exp(),
             iat: issued_at(),
             jti: "token-audience-mismatch".to_string(),
-            client_id: "outposts-web".to_string(),
+            client_id: Some("outposts-web".to_string()),
             scope: required_scopes.join(" "),
         },
         &EncodingKey::from_secret(b"super-secret"),
@@ -231,7 +307,7 @@ async fn authorize_current_user_rejects_missing_oidc_scope() {
     let audience = "demo-api";
     let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
     let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
-    let state = oidc_state(jwks_json, issuer, audience, &required_scopes).await;
+    let state = oidc_state(jwks_json, issuer, Some(audience), &required_scopes).await;
 
     let mut header = Header::new(Algorithm::HS256);
     header.kid = Some("test-key".to_string());
@@ -244,7 +320,7 @@ async fn authorize_current_user_rejects_missing_oidc_scope() {
             exp: future_exp(),
             iat: issued_at(),
             jti: "token-missing-scope".to_string(),
-            client_id: "outposts-web".to_string(),
+            client_id: Some("outposts-web".to_string()),
             scope: "openid profile confluence".to_string(),
         },
         &EncodingKey::from_secret(b"super-secret"),

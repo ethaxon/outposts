@@ -44,4 +44,7 @@ container-deploy:
   docker compose up -d
 
 dev-deps:
-  docker compose -f docker-compose.dev-deps.yml up -d
+  docker compose -f docker-compose.dev-deps.yml up -d --remove-orphans
+
+dev-deps-down:
+  docker compose -f docker-compose.dev-deps.yml down

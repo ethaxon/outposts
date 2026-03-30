@@ -55,6 +55,7 @@ pub async fn authorize_current_user(
             let principal =
                 VerifiedToken::from(verifier.verify_rfc9068_access_token(auth_token).await?)
                     .to_resource_token_principal();
+            println!("principal: {:#?}", principal);
             let user_id = if user_claim == "sub" {
                 principal
                     .subject

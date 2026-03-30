@@ -26,7 +26,6 @@ function createDriver(oidcSecurityService = createOidcSecurityServiceStub()) {
     driver: createOidcAuthDriver(oidcSecurityService, {
       redirectUrl: "https://outposts.example/auth/callback",
       postLogoutRedirectUri: "https://outposts.example/",
-      targetResource: "https://confluence.example/api",
     }),
     oidcSecurityService,
   };
@@ -54,22 +53,25 @@ describe("createOidcAuthDriver", () => {
     ).resolves.toBe(false);
   });
 
-  it("returns an access token only for the configured target resource", async () => {
+  it("returns an access token for any resource string", async () => {
     const { driver, oidcSecurityService } = createDriver();
 
-    await expect(driver.getAccessToken("https://other.example/api")).resolves.toBeNull();
+    // Without RFC 8707, a single token covers all resources in the scope
+    await expect(driver.getAccessToken("https://other.example/api")).resolves.toBe("access-token");
     await expect(driver.getAccessToken("https://confluence.example/api")).resolves.toBe(
       "access-token",
     );
 
     expect(oidcSecurityService.checkAuth).toHaveBeenCalledTimes(1);
-    expect(oidcSecurityService.getAccessToken).toHaveBeenCalledTimes(1);
+    expect(oidcSecurityService.getAccessToken).toHaveBeenCalledTimes(2);
   });
 
-  it("returns access token claims only for the configured target resource", async () => {
+  it("returns access token claims for any resource string", async () => {
     const { driver, oidcSecurityService } = createDriver();
 
-    await expect(driver.getAccessTokenClaims("https://other.example/api")).resolves.toBeNull();
+    await expect(driver.getAccessTokenClaims("https://other.example/api")).resolves.toEqual({
+      scope: "confluence:read confluence:write",
+    });
     await expect(driver.getAccessTokenClaims("https://confluence.example/api")).resolves.toEqual({
       scope: "confluence:read confluence:write",
     });

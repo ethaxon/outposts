@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe("createOidcAuthConfig", () => {
-  it("builds the Authentik-first single confluence OIDC contract with configured scopes and target resource params", async () => {
+  it("builds the single confluence OIDC config with configured scopes (no resource params sent to provider)", async () => {
     setWindowOrigin("https://browser.outposts.example");
     const { createOidcAuthConfig } = await loadConfigModule({
       appHost: "ignored.example",
@@ -71,25 +71,20 @@ describe("createOidcAuthConfig", () => {
     expect(oidcConfig.clientId).toBe("outposts-web");
     expect(oidcConfig.redirectUrl).toBe("https://browser.outposts.example/auth/callback");
     expect(oidcConfig.postLogoutRedirectUri).toBe("https://browser.outposts.example/");
-    expect(oidcConfig.scope.split(" ")).toEqual([
+    expect(oidcConfig.scope?.split(" ")).toEqual([
       "openid",
       "profile",
       "email",
       "confluence",
       "offline_access",
     ]);
-    expect(oidcConfig.customParamsAuthRequest).toEqual({
-      resource: "https://confluence.example/api",
-    });
-    expect(oidcConfig.customParamsCodeRequest).toEqual({
-      resource: "https://confluence.example/api",
-    });
-    expect(oidcConfig.customParamsRefreshTokenRequest).toEqual({
-      resource: "https://confluence.example/api",
-    });
+    // RFC 8707 resource params are NOT sent — Authentik does not support resource indicators
+    expect(oidcConfig.customParamsAuthRequest).toBeUndefined();
+    expect(oidcConfig.customParamsCodeRequest).toBeUndefined();
+    expect(oidcConfig.customParamsRefreshTokenRequest).toBeUndefined();
   });
 
-  it("falls back to APP_HOST and omits resource params when no target resource exists", async () => {
+  it("falls back to APP_HOST when no window.location is available", async () => {
     const { createOidcAuthConfig } = await loadConfigModule({
       appHost: "app.outposts.example",
       resourceConfigs: [],

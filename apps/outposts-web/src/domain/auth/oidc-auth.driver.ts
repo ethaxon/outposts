@@ -6,7 +6,6 @@ import type { AuthUserState } from "./auth.defs";
 export interface OidcAuthDriverConfig {
   redirectUrl: string;
   postLogoutRedirectUri: string;
-  targetResource?: string;
 }
 
 function isOidcCallbackUrl(currentUrl: string, redirectUrl: string): boolean {
@@ -35,9 +34,6 @@ export function createOidcAuthDriver(
 
     return authCheck;
   };
-
-  const matchesTargetResource = (resource: string): boolean =>
-    !config.targetResource || resource === config.targetResource;
 
   return {
     signInRedirect(redirectUrl: string): Promise<void> {
@@ -79,16 +75,10 @@ export function createOidcAuthDriver(
       return (await firstValueFrom(oidcSecurityService.getUserData())) as AuthUserState | null;
     },
     async getAccessToken(_resource: string): Promise<string | null> {
-      if (!matchesTargetResource(_resource)) {
-        return null;
-      }
       await ensureChecked();
       return (await firstValueFrom(oidcSecurityService.getAccessToken())) || null;
     },
     async getAccessTokenClaims(_resource: string): Promise<AuthAccessTokenClaims | null> {
-      if (!matchesTargetResource(_resource)) {
-        return null;
-      }
       await ensureChecked();
       return (await firstValueFrom(
         oidcSecurityService.getPayloadFromAccessToken(false),

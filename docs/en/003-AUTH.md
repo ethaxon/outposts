@@ -85,7 +85,13 @@ In practice:
 - `outposts-web` uses that scope set to build the OIDC authorize / code / refresh request scope
 - `confluence` uses the same scope set as the required-scope policy inside `securitydept-oauth-resource-server`
 
-In the current deployment, `CONFLUENCE_API_ENDPOINT` and `CONFLUENCE_OIDC_AUDIENCE` may use the same value, but their meanings are now explicitly separated so that the browser request URL and JWT audience are no longer conflated.
+Regarding `CONFLUENCE_OIDC_AUDIENCE`:
+
+- The field is **optional**: when absent, `oauth-resource-server` skips audience validation entirely
+- When set, only JWTs whose `aud` claim includes that value are accepted
+- Whether to enable it depends on what the actual token from Authentik contains
+
+**Note**: the frontend no longer sends the [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) `resource` parameter to the OIDC provider. RFC 8707 is an IETF standard extension, but Authentik does not support Resource Indicators — the parameter would be silently ignored. `CONFLUENCE_API_ENDPOINT` is now only used as a URL-prefix key by the frontend HTTP interceptor, no longer tied to any OIDC authorization parameter.
 
 ## Multi-Backend / Multi-OIDC-Client Scenario
 
@@ -179,7 +185,9 @@ Goal:
 
 - the current single-`confluence` flow is already on the standard OIDC driver
 - frontend config naming is narrowed to `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests lock callback / redirect / target-resource contract
+- focused tests lock callback / redirect contract
+- removed the RFC 8707 `resource` parameter from provider requests (Authentik does not support Resource Indicators)
+- `CONFLUENCE_OIDC_AUDIENCE` is now optional; when absent, audience validation is skipped
 
 ### Stage 2: align backend issuer / audience / scope
 
@@ -209,18 +217,24 @@ Goal:
 
 ## Local Workspace Dependency Rules
 
-During this refactor, do not optimize around published package versions first.
-
 ### Rust
 
-Keep using workspace `path` dependencies, for example:
+Production releases (CI pipeline) pin a specific git ref; local iteration overrides with a `[patch]` block pointing to the local path. The two modes are easy to switch:
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { path = "../securitydept/packages/core" }
+securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "<commit-hash>" }
+
+# Uncomment for local iteration:
+# [patch.'https://github.com/ethaxon/securitydept']
+# securitydept-core = { path = "../securitydept/packages/core" }
 ```
 
-If `confluence` needs more local crates later, keep using the same `path` approach.
+Rules:
+
+- before pushing to CI, make sure the `[patch]` block is commented out and `rev` points to the target commit
+- for local debugging, uncomment `[patch]` — no need to touch `[workspace.dependencies]`
+- follow the same git ref + patch pattern when adding new crates
 
 ### Node / pnpm
 

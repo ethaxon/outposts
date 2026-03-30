@@ -2,7 +2,6 @@ import { APP_INITIALIZER, type Provider } from "@angular/core";
 import { OidcSecurityService } from "angular-auth-oidc-client";
 import { take } from "rxjs";
 import { WINDOW } from "@/core/providers/window";
-import { AUTH_RESOURCE_CONFIGS } from "./auth.defs";
 import { AUTH_DRIVER } from "./auth.driver";
 import { authInterceptor } from "./auth.interceptor";
 import { createOidcAuthConfig } from "./oidc-auth.config";
@@ -20,7 +19,6 @@ export const AUTH_PROVIDERS: Provider[] = [
         redirectUrl: singleOidcConfig?.redirectUrl || `${window.location.origin}/`,
         postLogoutRedirectUri:
           singleOidcConfig?.postLogoutRedirectUri || `${window.location.origin}/`,
-        targetResource: AUTH_RESOURCE_CONFIGS[0]?.resource,
       });
     },
     deps: [OidcSecurityService, WINDOW],

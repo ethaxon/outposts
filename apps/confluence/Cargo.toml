@@ -1,6 +1,6 @@
 [package]
 name = "confluence"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 [lib]
@@ -44,8 +44,13 @@ serde = { version = "1", features = ["derive"] }
 serde-enum-str = "0.5"
 serde_json = "1"
 serde_yaml = "0.9.34-depcreated"
-snafu = "0.8"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync"] }
+snafu = "0.9"
+tokio = { version = "1", features = [
+  "macros",
+  "rt-multi-thread",
+  "net",
+  "sync",
+] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "trace", "cors"] }
 tracing = "0.1"
@@ -58,4 +63,7 @@ monostate = "1"
 log = "0.4"
 fancy-regex = "0.17"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
-securitydept-core = { workspace = true, features = ["oauth-resource-server", "creds"] }
+securitydept-core = { workspace = true, features = [
+  "oauth-resource-server",
+  "creds",
+] }

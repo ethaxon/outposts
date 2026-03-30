@@ -51,7 +51,7 @@ async fn main() -> Result<(), AppError> {
         .max_connections(100)
         .min_connections(5)
         .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Warn);
+        .sqlx_logging_level(log::LevelFilter::Info);
 
     let conn = Database::connect(opt)
         .await
@@ -76,8 +76,8 @@ async fn main() -> Result<(), AppError> {
         "OIDC" => {
             tracing::info!("using OIDC authentication");
             let issuer = env::var("OIDC_ISSUER").expect("OIDC_ISSUER is not set in env");
-            let audience = env::var("CONFLUENCE_OIDC_AUDIENCE")
-                .expect("CONFLUENCE_OIDC_AUDIENCE is not set in env");
+            // Audience is optional: when absent, audience validation is skipped in the verifier.
+            let audience = env::var("CONFLUENCE_OIDC_AUDIENCE").ok();
             let required_scopes = parse_scopes(
                 &env::var("CONFLUENCE_OIDC_SCOPES")
                     .expect("CONFLUENCE_OIDC_SCOPES is not set in env"),
@@ -87,7 +87,9 @@ async fn main() -> Result<(), AppError> {
 
             let mut verifier_config = OAuthResourceServerConfig::default();
             verifier_config.remote.well_known_url = Some(oidc_well_known_url(&issuer));
-            verifier_config.audiences = vec![audience.clone()];
+            if let Some(aud) = audience.clone() {
+                verifier_config.audiences = vec![aud];
+            }
             verifier_config.required_scopes = required_scopes.clone();
 
             let verifier = Arc::new(
@@ -99,7 +101,7 @@ async fn main() -> Result<(), AppError> {
             (
                 AuthConfig::OIDC {
                     issuer,
-                    audience,
+                    audience: audience.unwrap_or_default(),
                     required_scopes,
                     user_claim,
                 },

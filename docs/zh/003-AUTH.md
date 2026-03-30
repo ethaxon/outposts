@@ -85,7 +85,14 @@
 - `outposts-web` 用这组 scopes 生成 OIDC authorize / code / refresh 请求所依赖的 scope 参数
 - `confluence` 通过 `securitydept-oauth-resource-server` 用同一组 scopes 做 required scopes 校验
 
-在当前部署里，`CONFLUENCE_API_ENDPOINT` 与 `CONFLUENCE_OIDC_AUDIENCE` 可以取同一个值；但语义上两者已经被明确拆开，避免继续把“浏览器请求地址”和“JWT audience”混成一个字段。
+关于 `CONFLUENCE_OIDC_AUDIENCE`：
+
+- 该字段**可选**：未设置时，`oauth-resource-server` 跳过 audience 校验
+- 设置时，只接受 `aud` claim 包含该值的 JWT
+- 当前 Authentik 配置可以根据实际颁发的 token 结构决定是否启用
+
+**注意**：前端不再向 OIDC Provider 发送 [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) `resource` 参数。RFC 8707 是 IETF 标准扩展，但 Authentik 不支持 Resource Indicators，发送会被忽略。`CONFLUENCE_API_ENDPOINT` 仅作为前端 interceptor 的请求 URL 前缀匹配键，不再与 OIDC 授权参数挂钩。
+
 
 ## 多后端 / 多 OIDC client 场景
 
@@ -179,7 +186,9 @@
 
 - 当前单 `confluence` 主链路已切到标准 OIDC driver
 - 前端配置命名已收口到 `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests 已锁住 callback / redirect / target-resource contract
+- focused tests 已锁住 callback / redirect contract
+- 移除向 Provider 发送的 RFC 8707 `resource` 参数（Authentik 不支持）
+- `CONFLUENCE_OIDC_AUDIENCE` 改为可选，缺失时跳过 audience 校验
 
 ### 阶段 2：后端对齐 issuer / audience / scope
 
@@ -209,18 +218,24 @@
 
 ## 本地工作区依赖规则
 
-在这个重构阶段，禁止优先依赖已发布包版本。
-
 ### Rust
 
-继续使用 workspace `path` 依赖，例如：
+生产发布（流水线）使用 git ref 固定版本；本地迭代通过 `[patch]` 覆盖到本地路径，两者可以快速切换：
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { path = "../securitydept/packages/core" }
+securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "<commit-hash>" }
+
+# 本地迭代时取消注释：
+# [patch.'https://github.com/ethaxon/securitydept']
+# securitydept-core = { path = "../securitydept/packages/core" }
 ```
 
-如果未来 `confluence` 还需要更多本地 crate，也继续走同样的 `path` 方式。
+规则：
+
+- 推送流水线前，确保 `[patch]` 部分已注释掉，`rev` 指向目标 commit
+- 本地调试时取消 `[patch]` 注释，无需改动 `[workspace.dependencies]` 声明
+- 新增 crate 时也遵循同样的 git ref + patch 模式
 
 ### Node / pnpm
 
