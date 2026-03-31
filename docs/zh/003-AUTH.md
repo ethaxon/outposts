@@ -176,6 +176,29 @@
 - `outposts` 应先在应用层验证这套调度模型
 - 真正稳定的部分，后续再反哺到 `securitydept` SDK
 
+## 对 `securitydept` 前端 SDK 抽象的直接反馈
+
+当前这条 `outposts-web -> confluence` 单链路没有接入 `token-set-context-client`，但它反而暴露出一个更清晰的 SDK 规划方向：
+
+1. **通用 token orchestration 层**
+   - 管 `access_token` / `id_token` / `refresh_token` 的组合状态
+   - 管 restore / persistence / refresh / transport projection
+   - 不需要感知 token 来源是：
+     - 标准前端 OIDC
+     - 标准后端 OIDC + resource server
+     - token-set sealed + metadata 组合流程
+
+2. **token-set sealed + metadata 特定 adapter**
+   - 管 callback fragment / sealed payload
+   - 管 metadata redemption
+   - 管 token-set 特定的 redirect recovery / flow-state 存储
+
+这意味着，后续不应再把 `token-set-context-client` 继续读成“既是通用 token 管理层，又是 token-set 特定 browser flow 层”的单体包。
+更合理的方向是：
+
+- 把通用 token orchestration 尽量从 token-set 特定流程里剥离出来
+- 再让 token-set sealed + metadata 逻辑收口到更窄的 adapter / subpath
+
 ## 近期实施阶段
 
 近期建议按下面的顺序推进，而不是一次性大迁移。
@@ -214,6 +237,7 @@
 目标：
 
 - 把真正稳定的 requirement model / scheduler 抽象回 `securitydept`
+- 把“通用 token orchestration”与“token-set sealed + metadata adapter”两层边界明确写进 SDK 规划
 - 保留 chooser UI、router glue 在 `outposts` 侧
 
 ## 本地工作区依赖规则

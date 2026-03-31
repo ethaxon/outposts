@@ -175,6 +175,29 @@ In other words:
 - `outposts` should validate this orchestration model at the app layer first
 - only the stable parts should later move back into `securitydept`
 
+## Direct Feedback For `securitydept` Frontend SDK Design
+
+The current `outposts-web -> confluence` path does not use `token-set-context-client`, but that makes one SDK-planning direction clearer:
+
+1. **generic token orchestration layer**
+   - owns combined `access_token` / `id_token` / `refresh_token` state
+   - owns restore / persistence / refresh / transport projection
+   - does not need to care whether the token source is:
+     - standard frontend OIDC
+     - standard backend OIDC + resource server
+     - the token-set sealed + metadata flow
+
+2. **token-set sealed + metadata specific adapter**
+   - owns callback fragments / sealed payloads
+   - owns metadata redemption
+   - owns token-set-specific redirect recovery / flow-state storage
+
+That means `token-set-context-client` should no longer be read as a permanent monolith that is simultaneously the generic token-management layer and the token-set-specific browser-flow layer.
+The more appropriate direction is:
+
+- peel generic token orchestration away from token-set-specific flow concerns
+- then narrow token-set sealed + metadata logic into a smaller adapter / subpath
+
 ## Near-Term Delivery Stages
 
 The near-term work should proceed in this order instead of one large migration.
@@ -213,6 +236,7 @@ Goal:
 Goal:
 
 - promote only the stable requirement model / scheduler abstractions into `securitydept`
+- write the split between “generic token orchestration” and “token-set sealed + metadata adapter” into the SDK plan explicitly
 - keep chooser UI and router glue in `outposts`
 
 ## Local Workspace Dependency Rules
