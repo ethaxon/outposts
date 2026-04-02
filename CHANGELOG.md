@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- **Fix: OIDC silent renew token stale cache** — `oidc-auth.driver` now subscribes to `PublicEventsService#NewAuthenticationResult` events; the internal `authCheck` promise is invalidated on every refresh-token grant or silent renew, ensuring `getAccessToken()` always returns the current non-expired token.
+
 ## 0.3.0
 
 - **Auth: Authentik-first OIDC hardening** — removed RFC 8707 `resource` indicator parameters from frontend OIDC requests (Authentik does not support Resource Indicators); driver no longer filters tokens by target resource URL.

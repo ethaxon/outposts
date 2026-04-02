@@ -1,11 +1,18 @@
-import type { OidcSecurityService } from "angular-auth-oidc-client";
-import { firstValueFrom } from "rxjs";
+import type { OidcSecurityService, PublicEventsService } from "angular-auth-oidc-client";
+import { filter, firstValueFrom } from "rxjs";
 import type { AuthAccessTokenClaims, AuthDriver } from "./auth.driver";
 import type { AuthUserState } from "./auth.defs";
+
+// EventTypes.NewAuthenticationResult = 9. Using the raw number avoids a runtime
+// import of angular-auth-oidc-client which has side-effects that require the
+// Angular JIT compiler (breaks vitest in node mode).
+const EVENT_NEW_AUTH_RESULT = 9;
 
 export interface OidcAuthDriverConfig {
   redirectUrl: string;
   postLogoutRedirectUri: string;
+  /** Inject PublicEventsService to enable automatic token-refresh cache invalidation. */
+  publicEventsService?: PublicEventsService;
 }
 
 function isOidcCallbackUrl(currentUrl: string, redirectUrl: string): boolean {
@@ -23,6 +30,9 @@ export function createOidcAuthDriver(
   oidcSecurityService: OidcSecurityService,
   config: OidcAuthDriverConfig,
 ): AuthDriver {
+  // Cached promise for the initial checkAuth call. Reset on sign-in, sign-out,
+  // and — critically — whenever the library completes a silent token renewal so
+  // that getAccessToken always returns the current, non-expired token.
   let authCheck: Promise<boolean> | null = null;
 
   const ensureChecked = async (): Promise<boolean> => {
@@ -34,6 +44,18 @@ export function createOidcAuthDriver(
 
     return authCheck;
   };
+
+  // Invalidate the cached auth check whenever the OIDC library publishes a new
+  // authentication result (covers both the initial code exchange and every
+  // subsequent silent renew / refresh-token grant).
+  if (config.publicEventsService) {
+    config.publicEventsService
+      .registerForEvents()
+      .pipe(filter((e) => e.type === EVENT_NEW_AUTH_RESULT))
+      .subscribe(() => {
+        authCheck = null;
+      });
+  }
 
   return {
     signInRedirect(redirectUrl: string): Promise<void> {
