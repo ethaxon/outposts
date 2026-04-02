@@ -1,7 +1,11 @@
-import type { OidcSecurityService } from "angular-auth-oidc-client";
-import { of } from "rxjs";
+import type { OidcSecurityService, PublicEventsService } from "angular-auth-oidc-client";
+import { of, Subject } from "rxjs";
 import { describe, expect, it, vi } from "vitest";
 import { createOidcAuthDriver } from "./oidc-auth.driver";
+
+// EventTypes.NewAuthenticationResult = 9 (raw value avoids runtime import of angular-auth-oidc-client
+// which pulls in Angular's PlatformLocation and breaks vitest in node mode).
+const EVENT_NEW_AUTH_RESULT = 9;
 
 function createOidcSecurityServiceStub() {
   return {
@@ -21,11 +25,25 @@ function createOidcSecurityServiceStub() {
   };
 }
 
-function createDriver(oidcSecurityService = createOidcSecurityServiceStub()) {
+function createPublicEventsServiceStub() {
+  const subject$ = new Subject<{ type: number }>();
+  return {
+    stub: {
+      registerForEvents: vi.fn(() => subject$.asObservable()),
+    } as unknown as PublicEventsService,
+    emit: (type: number) => subject$.next({ type }),
+  };
+}
+
+function createDriver(
+  oidcSecurityService = createOidcSecurityServiceStub(),
+  publicEventsService?: PublicEventsService,
+) {
   return {
     driver: createOidcAuthDriver(oidcSecurityService, {
       redirectUrl: "https://outposts.example/auth/callback",
       postLogoutRedirectUri: "https://outposts.example/",
+      publicEventsService,
     }),
     oidcSecurityService,
   };
@@ -78,6 +96,23 @@ describe("createOidcAuthDriver", () => {
 
     expect(oidcSecurityService.checkAuth).toHaveBeenCalledTimes(1);
     expect(oidcSecurityService.getPayloadFromAccessToken).toHaveBeenCalledWith(false);
+  });
+
+  it("invalidates the auth cache when a NewAuthenticationResult event fires (silent renew)", async () => {
+    const oidcService = createOidcSecurityServiceStub();
+    const eventsHelper = createPublicEventsServiceStub();
+    const { driver } = createDriver(oidcService, eventsHelper.stub);
+
+    // First call caches the checkAuth result
+    await driver.getAccessToken("https://confluence.example/api");
+    expect(oidcService.checkAuth).toHaveBeenCalledTimes(1);
+
+    // Simulate silent token renewal completing
+    eventsHelper.emit(EVENT_NEW_AUTH_RESULT);
+
+    // Next call must re-invoke checkAuth because the cache was invalidated
+    await driver.getAccessToken("https://confluence.example/api");
+    expect(oidcService.checkAuth).toHaveBeenCalledTimes(2);
   });
 
   it("uses the existing redirect contract for sign-in and callback handling", async () => {

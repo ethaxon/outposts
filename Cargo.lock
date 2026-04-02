@@ -761,7 +761,7 @@ dependencies = [
 
 [[package]]
 name = "confluence"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "addr",
  "axum",
@@ -3748,6 +3748,7 @@ dependencies = [
 [[package]]
 name = "securitydept-core"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "jsonwebtoken",
  "oauth2",
@@ -3761,6 +3762,7 @@ dependencies = [
 [[package]]
 name = "securitydept-creds"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -3782,6 +3784,7 @@ dependencies = [
 [[package]]
 name = "securitydept-oauth-provider"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "humantime-serde",
  "oauth2",
@@ -3797,6 +3800,7 @@ dependencies = [
 [[package]]
 name = "securitydept-oauth-resource-server"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "chrono",
  "http",
@@ -3817,6 +3821,7 @@ dependencies = [
 [[package]]
 name = "securitydept-utils"
 version = "0.2.0-alpha.3"
+source = "git+https://github.com/ethaxon/securitydept?rev=5e73f77#5e73f77c6082389c1b32025a382f7c896b70c1bb"
 dependencies = [
  "http",
  "iri-string",
