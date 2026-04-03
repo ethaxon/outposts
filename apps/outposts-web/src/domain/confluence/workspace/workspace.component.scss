@@ -4,6 +4,20 @@
     border: none;
   }
 
+  // PrimeNG's p-panel wraps content in .p-panel-content-wrapper which defaults
+  // to display:block with no min-width constraint. Inside a flex container this
+  // prevents the panel from shrinking, causing overflow. Setting min-width: 0
+  // restores normal flex shrink behaviour.
+  .p-panel {
+    min-width: 0;
+    width: 100%;
+
+    .p-panel-content-wrapper {
+      min-width: 0;
+      width: 100%;
+    }
+  }
+
   .confluence-subscribe-source-item {
     min-width: 9em;
 
