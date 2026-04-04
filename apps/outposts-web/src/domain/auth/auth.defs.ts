@@ -32,9 +32,6 @@ export interface RedirectSignInOptions {
   redirectUrl: string;
 }
 
-/**
- * @unimplemented
- */
 export interface PopupSignInOptions {
   signInType: "popup";
 }

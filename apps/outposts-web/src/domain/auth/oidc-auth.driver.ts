@@ -1,18 +1,11 @@
-import type { OidcSecurityService, PublicEventsService } from "angular-auth-oidc-client";
-import { filter, firstValueFrom } from "rxjs";
+import type { OidcSecurityService } from "angular-auth-oidc-client";
+import { firstValueFrom } from "rxjs";
 import type { AuthAccessTokenClaims, AuthDriver } from "./auth.driver";
 import type { AuthUserState } from "./auth.defs";
-
-// EventTypes.NewAuthenticationResult = 9. Using the raw number avoids a runtime
-// import of angular-auth-oidc-client which has side-effects that require the
-// Angular JIT compiler (breaks vitest in node mode).
-const EVENT_NEW_AUTH_RESULT = 9;
 
 export interface OidcAuthDriverConfig {
   redirectUrl: string;
   postLogoutRedirectUri: string;
-  /** Inject PublicEventsService to enable automatic token-refresh cache invalidation. */
-  publicEventsService?: PublicEventsService;
 }
 
 function isOidcCallbackUrl(currentUrl: string, redirectUrl: string): boolean {
@@ -30,9 +23,11 @@ export function createOidcAuthDriver(
   oidcSecurityService: OidcSecurityService,
   config: OidcAuthDriverConfig,
 ): AuthDriver {
-  // Cached promise for the initial checkAuth call. Reset on sign-in, sign-out,
-  // and — critically — whenever the library completes a silent token renewal so
-  // that getAccessToken always returns the current, non-expired token.
+  // Protects against concurrent or repeated calls to checkAuth() on startup.
+  // checkAuth() is designed to be invoked exactly once. After that, the library
+  // manages its own internal state (token storage, renewal timers) autonomously.
+  // OidcSecurityService.getAccessToken() always reads the live token directly from
+  // library storage and does not depend on this promise.
   let authCheck: Promise<boolean> | null = null;
 
   const ensureChecked = async (): Promise<boolean> => {
@@ -45,23 +40,17 @@ export function createOidcAuthDriver(
     return authCheck;
   };
 
-  // Invalidate the cached auth check whenever the OIDC library publishes a new
-  // authentication result (covers both the initial code exchange and every
-  // subsequent silent renew / refresh-token grant).
-  if (config.publicEventsService) {
-    config.publicEventsService
-      .registerForEvents()
-      .pipe(filter((e) => e.type === EVENT_NEW_AUTH_RESULT))
-      .subscribe(() => {
-        authCheck = null;
-      });
-  }
-
   return {
     signInRedirect(redirectUrl: string): Promise<void> {
       authCheck = null;
       oidcSecurityService.authorize(undefined, { redirectUrl });
       return Promise.resolve();
+    },
+    async signInPopup(): Promise<void> {
+      authCheck = null;
+      // authorizeWithPopUp opens the IdP in a popup window, handles the OAuth
+      // callback inside it, and emits a LoginResponse when the popup closes.
+      await firstValueFrom(oidcSecurityService.authorizeWithPopUp());
     },
     async signOutRedirect(redirectUrl: string): Promise<void> {
       authCheck = null;

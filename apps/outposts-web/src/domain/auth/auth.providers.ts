@@ -1,5 +1,5 @@
 import { APP_INITIALIZER, type Provider } from "@angular/core";
-import { OidcSecurityService, PublicEventsService } from "angular-auth-oidc-client";
+import { OidcSecurityService } from "angular-auth-oidc-client";
 import { take } from "rxjs";
 import { WINDOW } from "@/core/providers/window";
 import { AUTH_DRIVER } from "./auth.driver";
@@ -11,11 +11,7 @@ import { AuthService } from "./auth.service";
 export const AUTH_PROVIDERS: Provider[] = [
   {
     provide: AUTH_DRIVER,
-    useFactory: (
-      oidcSecurityService: OidcSecurityService,
-      publicEventsService: PublicEventsService,
-      window: Window,
-    ) => {
+    useFactory: (oidcSecurityService: OidcSecurityService, window: Window) => {
       const oidcConfig = createOidcAuthConfig().config;
       const singleOidcConfig = Array.isArray(oidcConfig) ? undefined : oidcConfig;
 
@@ -23,10 +19,9 @@ export const AUTH_PROVIDERS: Provider[] = [
         redirectUrl: singleOidcConfig?.redirectUrl || `${window.location.origin}/`,
         postLogoutRedirectUri:
           singleOidcConfig?.postLogoutRedirectUri || `${window.location.origin}/`,
-        publicEventsService,
       });
     },
-    deps: [OidcSecurityService, PublicEventsService, WINDOW],
+    deps: [OidcSecurityService, WINDOW],
   },
   authInterceptor,
   {

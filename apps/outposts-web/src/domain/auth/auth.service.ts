@@ -1,6 +1,8 @@
 import { DestroyRef, Injectable, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { type ActivatedRouteSnapshot, Router, type RouterStateSnapshot } from "@angular/router";
+import { PublicEventsService } from "angular-auth-oidc-client";
+import { subscribeToOidcEvents } from "./auth-oidc-events";
 import {
   catchError,
   distinctUntilChanged,
@@ -16,6 +18,7 @@ import {
   Subject,
   shareReplay,
   switchMap,
+  take,
   tap,
   throwError,
 } from "rxjs";
@@ -52,6 +55,8 @@ export class AuthService {
   public readonly userInfo$: Observable<AuthUserState | null>;
 
   constructor() {
+    const publicEventsService = inject(PublicEventsService);
+
     const isAuthenticated$ = this.authSyncTrigger$.pipe(
       switchMap(() => this.authDriver.isAuthenticated()),
       catchError((error) => {
@@ -89,6 +94,28 @@ export class AuthService {
     this.error$.pipe(takeUntilDestroyed(this.destoryRef)).subscribe((error) => {
       console.error("Auth error:", error);
     });
+
+    // React to OIDC library lifecycle events (silent renew success / failure).
+    // The heavy lifting lives in subscribeToOidcEvents() which is a pure
+    // function tested independently.
+    const oidcEvents$ = publicEventsService
+      .registerForEvents()
+      .pipe(takeUntilDestroyed(this.destoryRef));
+
+    subscribeToOidcEvents(oidcEvents$, {
+      onRenewSuccess: () => this.refresh(),
+      onRenewFailure: () => {
+        const redirectUrl = new URL(
+          `${this.window.location.protocol}//${environment.APP_HOST}${AUTH_CALLBACK_PATH}`,
+        );
+        try {
+          localStorage.setItem(AUTH_CALLBACK_ORIGIN_URI_KEY, this.router.url);
+        } catch (e) {
+          console.error("Failed to store origin URL in local storage.", e);
+        }
+        this.signIn({ signInType: "redirect", redirectUrl: redirectUrl.toString() }).subscribe();
+      },
+    });
   }
 
   public refresh(): void {
@@ -103,10 +130,12 @@ export class AuthService {
     if (options.signInType === "redirect") {
       return from(this.authDriver.signInRedirect(options.redirectUrl));
     }
-    /**
-     * @TODO FIXME HERE
-     */
-    return throwError(() => new Error("not implemented"));
+    // Popup: open the IdP in a popup, await completion, then refresh auth state
+    // so isAuthenticated$ / userInfo$ reflect the new session.
+    return from(this.authDriver.signInPopup()).pipe(
+      tap(() => this.refresh()),
+      map(() => undefined),
+    );
   }
 
   signOut(options: SignOutOptions): Observable<void> {
@@ -196,34 +225,40 @@ export class AuthService {
     resourcesConfigs: AuthResourceConfig[],
     {
       originUrlToBase,
+      signInType = "popup",
     }: {
       originUrlToBase?: string;
+      signInType?: SignInOptions["signInType"];
     } = {},
   ): (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => Observable<boolean> {
     return (_route, state) => {
       const originUrl = originUrlToBase ?? state.url;
       return this.isAuthenticated$.pipe(
+        take(1),
         switchMap((isAuth) => {
           if (isAuth) {
             return of(true);
           }
 
-          const redirectUrl = new URL(
-            `${this.window.location.protocol}//${environment.APP_HOST}${AUTH_CALLBACK_PATH}`,
-          );
-
-          try {
-            localStorage.setItem(AUTH_CALLBACK_ORIGIN_URI_KEY, originUrl);
-          } catch (e) {
-            console.error("Failed to store origin URL in local storage.", e);
+          if (signInType === "popup") {
+            // Popup: stays on the same page. After signIn() resolves isAuthenticated$
+            // is updated via refresh(), so we switchMap back into a fresh auth check.
+            return this.signIn({ signInType: "popup" }).pipe(
+              switchMap(() => this.isAuthenticated$),
+              take(1),
+              catchError(() => {
+                // Popup blocked or failed — fall back to redirect flow
+                return this._signInRedirectAndBlock(originUrl);
+              }),
+            );
           }
 
-          return this.signIn({
-            redirectUrl: redirectUrl.toString(),
-            signInType: "redirect",
-          }).pipe(switchMap(() => EMPTY));
+          return this._signInRedirectAndBlock(originUrl);
         }),
-        switchMap((_isAuth) => {
+        switchMap((isAuth) => {
+          if (!isAuth) {
+            return of(false);
+          }
           return this.getResourcesClaims(resourcesConfigs).pipe(
             map((clms) => {
               const expectedScopes = resourcesConfigs.flatMap((c) => c.scopes);
@@ -238,5 +273,21 @@ export class AuthService {
         }),
       );
     };
+  }
+
+  /** Redirect to IdP for sign-in and block the route (emits EMPTY while navigating). */
+  private _signInRedirectAndBlock(originUrl: string): Observable<never> {
+    const redirectUrl = new URL(
+      `${this.window.location.protocol}//${environment.APP_HOST}${AUTH_CALLBACK_PATH}`,
+    );
+    try {
+      localStorage.setItem(AUTH_CALLBACK_ORIGIN_URI_KEY, originUrl);
+    } catch (e) {
+      console.error("Failed to store origin URL in local storage.", e);
+    }
+    return this.signIn({
+      redirectUrl: redirectUrl.toString(),
+      signInType: "redirect",
+    }).pipe(switchMap(() => EMPTY));
   }
 }

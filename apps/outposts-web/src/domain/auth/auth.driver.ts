@@ -7,6 +7,7 @@ export type AuthAccessTokenClaims = Record<string, unknown> & {
 
 export interface AuthDriver {
   signInRedirect(redirectUrl: string): Promise<void>;
+  signInPopup(): Promise<void>;
   signOutRedirect(redirectUrl: string): Promise<void>;
   handleRedirectCallback(callbackUrl: string): Promise<void>;
   isRedirectCallback(callbackUrl: string): Promise<boolean>;

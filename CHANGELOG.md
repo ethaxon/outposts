@@ -2,7 +2,9 @@
 
 ## 0.3.1
 
-- **Fix: OIDC silent renew token stale cache** — `oidc-auth.driver` now subscribes to `PublicEventsService#NewAuthenticationResult` events; the internal `authCheck` promise is invalidated on every refresh-token grant or silent renew, ensuring `getAccessToken()` always returns the current non-expired token.
+- **Fix: OIDC silent renew — auth state stays stale after renewal** — `AuthService` now subscribes to `PublicEventsService#NewAuthenticationResult`; on every successful token refresh it calls `refresh()` so the `userInfo$` / `isAuthenticated$` observables (previously frozen by `shareReplay`) are kept up to date.
+- **Fix: OIDC silent renew failure leaves app in broken state** — `AuthService` now listens for `SilentRenewFailed`, `TokenExpired`, and `IdTokenExpired`; any renewal failure triggers an immediate redirect to the IdP so the user is re-authenticated rather than left with silently failing API calls.
+- **Fix: `p-panel-content-wrapper` cannot shrink inside a flex container** — added `::ng-deep` override in `workspace.component.scss` to set `min-width: 0` on PrimeNG's internal content wrapper, restoring normal flex-shrink behaviour.
 
 ## 0.3.0
 
