@@ -1,9 +1,35 @@
+cargo-features = ["profile-rustflags"]
+
 [workspace]
 members = ["apps/confluence"]
 resolver = "3"
 
 [workspace.dependencies]
-securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "5e73f77" }
+securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "682a7426" }
+
+[profile.dev.package.openidconnect]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.release.package.openidconnect]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.dev.package.sea-orm]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.release.package.sea-orm]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.dev.package.tokio-cron-scheduler]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.release.package.tokio-cron-scheduler]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.dev.package.jsonwebtoken]
+rustflags = ["-Zhint-mostly-unused"]
+
+[profile.release.package.jsonwebtoken]
+rustflags = ["-Zhint-mostly-unused"]
 
 # [patch.'https://github.com/ethaxon/securitydept']
 # securitydept-core = { path = "../securitydept/packages/core" }
