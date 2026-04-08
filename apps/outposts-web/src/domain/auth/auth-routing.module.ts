@@ -4,7 +4,7 @@ import { AuthCallbackComponent } from "./auth-callback.component";
 
 const routes: Routes = [
   {
-    path: "callback",
+    path: "auth/callback",
     component: AuthCallbackComponent,
   },
 ];

@@ -4,7 +4,6 @@ import { DOCUMENT, NgModule, provideZoneChangeDetection } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { BrowserModule, provideClientHydration, withEventReplay } from "@angular/platform-browser";
 import { provideRouter, RouterOutlet, withInMemoryScrolling } from "@angular/router";
-import { AuthModule } from "angular-auth-oidc-client";
 import { MonacoEditorModule } from "ngx-monaco-editor-v2";
 import { MessageService } from "primeng/api";
 import { providePrimeNG } from "primeng/config";
@@ -14,8 +13,7 @@ import { WINDOW, windowProvider } from "@/core/providers/window";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { PlatformService } from "@/core/servces/platform.service";
-import { createOidcAuthConfig } from "@/domain/auth/oidc-auth.config";
-import { AUTH_PROVIDERS } from "@/domain/auth/auth.providers";
+import { AuthModule as AppAuthModule } from "@/domain/auth/auth.module";
 import { environment } from "@/environments/environment";
 import { AppComponent } from "./app.component";
 import { routes } from "./app.routes";
@@ -26,7 +24,6 @@ import { TranslocoRootModule } from "./transloco-root.module";
   declarations: [AppComponent],
   imports: [
     BrowserModule,
-    AuthModule.forRoot(createOidcAuthConfig()),
     FormsModule,
     ReactiveFormsModule,
     ToastModule,
@@ -34,10 +31,10 @@ import { TranslocoRootModule } from "./transloco-root.module";
     TranslocoRootModule,
     MonacoEditorModule.forRoot(),
     RouterOutlet,
+    AppAuthModule,
   ],
   providers: [
     ...(environment.ssr ? [provideClientHydration(withEventReplay())] : []),
-    ...AUTH_PROVIDERS,
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,

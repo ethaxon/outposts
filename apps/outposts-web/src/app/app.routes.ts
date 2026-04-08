@@ -18,10 +18,6 @@ export const routes: Routes = [
             /* webpackChunkName: "confluence-module" */ "../domain/confluence/confluence.module"
           ).then((m) => m.ConfluenceModule),
       },
-      {
-        path: "auth",
-        loadChildren: () => import("../domain/auth/auth.module").then((m) => m.AuthModule),
-      },
     ],
   },
   { path: "notfound", loadChildren: () => import("@/pages/notfound/routes") },
