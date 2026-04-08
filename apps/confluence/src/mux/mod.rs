@@ -34,8 +34,7 @@ use crate::error::ConfigError;
 
 /// Resolve the [`ProxyServerNameserverPolicySource`] stored on a
 /// [`subscribe_source::Model`].  Falls back to the enum default
-/// (`ProxyServerNameserver`) when the column is `None` or contains an
-/// unrecognised value.
+/// (`Auto`) when the column is `None` or contains an unrecognised value.
 fn resolve_policy_source(model: &subscribe_source::Model) -> ProxyServerNameserverPolicySource {
     model
         .proxy_server_nameserver_policy_source

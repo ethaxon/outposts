@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .add_column_if_not_exists(
                         ColumnDef::new(SubscribeSource::ProxyServerNameserverPolicySource)
                             .text()
-                            .default("proxy_server_nameserver"),
+                            .default("auto"),
                     )
                     .to_owned(),
             )

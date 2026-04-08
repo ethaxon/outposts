@@ -68,7 +68,8 @@ export class WorkspaceComponent implements OnInit {
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
   policySourceOptions: { label: string; value: ProxyServerNameserverPolicySource }[] = [
-    { label: "proxy_server_nameserver", value: "proxy_server_nameserver" },
+    { label: "auto", value: "auto" },
+    { label: "proxy-server-nameserver", value: "proxy_server_nameserver" },
     { label: "nameserver", value: "nameserver" },
     { label: "none", value: "none" },
   ];
@@ -299,7 +300,7 @@ export class WorkspaceComponent implements OnInit {
               proxy_server: [null as string | null],
               proxy_auth: [null as string | null],
               proxy_server_nameserver_policy_source: [
-                "proxy_server_nameserver" as ProxyServerNameserverPolicySource | null,
+                "auto" as ProxyServerNameserverPolicySource | null,
               ],
             }),
           };

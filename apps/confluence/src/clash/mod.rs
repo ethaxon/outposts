@@ -37,6 +37,15 @@ impl DnsConfig {
         source: &ProxyServerNameserverPolicySource,
     ) -> &[String] {
         match source {
+            ProxyServerNameserverPolicySource::Auto => {
+                if !self.proxy_server_nameserver.is_empty() {
+                    &self.proxy_server_nameserver
+                } else if !self.nameserver.is_empty() {
+                    &self.nameserver
+                } else {
+                    &[]
+                }
+            }
             ProxyServerNameserverPolicySource::ProxyServerNameserver => {
                 &self.proxy_server_nameserver
             }
@@ -53,6 +62,7 @@ impl DnsConfig {
 #[ts(export)]
 pub enum ProxyServerNameserverPolicySource {
     #[default]
+    Auto,
     ProxyServerNameserver,
     Nameserver,
     None,
