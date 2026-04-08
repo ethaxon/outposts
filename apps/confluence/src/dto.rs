@@ -1,3 +1,4 @@
+use crate::clash::ProxyServerNameserverPolicySource;
 use crate::models;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -37,6 +38,7 @@ pub struct SubscribeSourceDto {
     pub passive_sync: Option<bool>,
     pub proxy_server: Option<String>,
     pub proxy_auth: Option<String>,
+    pub proxy_server_nameserver_policy_source: ProxyServerNameserverPolicySource,
 }
 
 impl From<models::subscribe_source::Model> for SubscribeSourceDto {
@@ -56,6 +58,11 @@ impl From<models::subscribe_source::Model> for SubscribeSourceDto {
             passive_sync: value.passive_sync,
             proxy_auth: value.proxy_auth,
             proxy_server: value.proxy_server,
+            proxy_server_nameserver_policy_source: value
+                .proxy_server_nameserver_policy_source
+                .as_deref()
+                .and_then(|s| serde_json::from_value(serde_json::Value::String(s.to_string())).ok())
+                .unwrap_or_default(),
         }
     }
 }
@@ -158,6 +165,7 @@ pub struct SubscribeSourceCreationDto {
     pub passive_sync: Option<bool>,
     pub proxy_server: Option<String>,
     pub proxy_auth: Option<String>,
+    pub proxy_server_nameserver_policy_source: Option<ProxyServerNameserverPolicySource>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -169,6 +177,7 @@ pub struct SubscribeSourceUpdateDto {
     pub passive_sync: Option<bool>,
     pub proxy_server: Option<String>,
     pub proxy_auth: Option<String>,
+    pub proxy_server_nameserver_policy_source: Option<ProxyServerNameserverPolicySource>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]

@@ -139,6 +139,7 @@
         "passive_sync": "Passive sync",
         "proxy_auth": "Proxy auth",
         "proxy_server": "Proxy server",
+        "proxy_server_nameserver_policy_source": "DNS Nameserver Policy Source",
         "url": "URL",
         "userAgent": "User-Agent"
       },

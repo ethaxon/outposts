@@ -54,12 +54,11 @@ export function subscribeToOidcEvents(
 
   const renewFailureSub = events$
     .pipe(
-      filter(
-        (e) =>
-          e.type === EventTypes.SilentRenewFailed ||
-          e.type === EventTypes.TokenExpired ||
-          e.type === EventTypes.IdTokenExpired,
-      ),
+      // Only SilentRenewFailed indicates an irrecoverable failure.
+      // TokenExpired / IdTokenExpired are informational events emitted
+      // *before* the library attempts renewal — reacting to them would
+      // short-circuit the silent renew cycle.
+      filter((e) => e.type === EventTypes.SilentRenewFailed),
     )
     .subscribe(() => handlers.onRenewFailure());
 

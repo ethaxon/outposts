@@ -84,15 +84,15 @@ describe("subscribeToOidcEvents", () => {
     expect(onRenewSuccess).not.toHaveBeenCalled();
   });
 
-  it("calls onRenewFailure when TokenExpired fires", () => {
+  it("ignores TokenExpired (informational, library will attempt silent renew)", () => {
     events$.next({ type: EventTypes.TokenExpired });
-    expect(onRenewFailure).toHaveBeenCalledTimes(1);
+    expect(onRenewFailure).not.toHaveBeenCalled();
     expect(onRenewSuccess).not.toHaveBeenCalled();
   });
 
-  it("calls onRenewFailure when IdTokenExpired fires", () => {
+  it("ignores IdTokenExpired (informational, library will attempt silent renew)", () => {
     events$.next({ type: EventTypes.IdTokenExpired });
-    expect(onRenewFailure).toHaveBeenCalledTimes(1);
+    expect(onRenewFailure).not.toHaveBeenCalled();
     expect(onRenewSuccess).not.toHaveBeenCalled();
   });
 
@@ -129,10 +129,10 @@ describe("subscribeToOidcEvents", () => {
     events$.next({ type: EventTypes.NewAuthenticationResult });
     events$.next({ type: EventTypes.SilentRenewFailed });
     events$.next({ type: EventTypes.NewAuthenticationResult });
-    events$.next({ type: EventTypes.TokenExpired });
+    events$.next({ type: EventTypes.TokenExpired }); // ignored
 
     expect(onRenewSuccess).toHaveBeenCalledTimes(2);
-    expect(onRenewFailure).toHaveBeenCalledTimes(2);
+    expect(onRenewFailure).toHaveBeenCalledTimes(1);
   });
 
   // ── Subscription lifecycle ────────────────────────────────────────────────

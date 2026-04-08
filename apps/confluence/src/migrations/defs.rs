@@ -49,6 +49,7 @@ pub enum SubscribeSource {
     PassiveSync,
     ProxyServer,
     ProxyAuth,
+    ProxyServerNameserverPolicySource,
 }
 
 pub async fn create_postgres_auto_update_ts_fn(

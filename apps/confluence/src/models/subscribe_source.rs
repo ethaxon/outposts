@@ -23,6 +23,7 @@ pub struct Model {
     pub passive_sync: Option<bool>,
     pub proxy_server: Option<String>,
     pub proxy_auth: Option<String>,
+    pub proxy_server_nameserver_policy_source: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

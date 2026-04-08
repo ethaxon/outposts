@@ -14,6 +14,7 @@ import { DialogModule } from "primeng/dialog";
 import { InputTextModule } from "primeng/inputtext";
 import { PanelModule } from "primeng/panel";
 import { ScrollTopModule } from "primeng/scrolltop";
+import { SelectModule } from "primeng/select";
 import { SkeletonModule } from "primeng/skeleton";
 import { TagModule } from "primeng/tag";
 import { ClipboardModule } from "@/tools/clipboard/clipboard.module";
@@ -49,6 +50,7 @@ import { WorkspaceComponent } from "./workspace/workspace.component";
     QrcodeModule,
     SkeletonModule,
     CheckboxModule,
+    SelectModule,
     TranslocoModule,
   ],
 })

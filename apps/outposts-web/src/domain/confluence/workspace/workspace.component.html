@@ -312,6 +312,15 @@
             [binary]="true"
             id="subscribe-source-creation-{{ item.key }}"
           />
+        } @else if (item.key === "proxy_server_nameserver_policy_source") {
+          <p-select
+            class="mt-2 w-full"
+            [formControlName]="item.key"
+            [options]="policySourceOptions"
+            optionLabel="label"
+            optionValue="value"
+            id="subscribe-source-creation-{{ item.key }}"
+          />
         } @else {
           <input
             class="mt-2"
@@ -437,6 +446,15 @@
             class="mt-2"
             [formControlName]="item.key"
             [binary]="true"
+            id="subscribe-source-creation-{{ item.key }}"
+          />
+        } @else if (item.key === "proxy_server_nameserver_policy_source") {
+          <p-select
+            class="mt-2 w-full"
+            [formControlName]="item.key"
+            [options]="policySourceOptions"
+            optionLabel="label"
+            optionValue="value"
             id="subscribe-source-creation-{{ item.key }}"
           />
         } @else {

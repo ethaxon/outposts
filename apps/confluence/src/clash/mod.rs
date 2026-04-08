@@ -6,6 +6,57 @@ use monostate::MustBe;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
+use ts_rs::TS;
+
+/// Clash DNS configuration.
+///
+/// Only the fields relevant to proxy-server nameserver policy merging are
+/// explicitly parsed; everything else is transparently preserved via `others`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+pub struct DnsConfig {
+    #[serde(default, rename = "proxy-server-nameserver")]
+    pub proxy_server_nameserver: Vec<String>,
+
+    #[serde(default, rename = "proxy-server-nameserver-policy")]
+    pub proxy_server_nameserver_policy: HashMap<String, Value>,
+
+    #[serde(default)]
+    pub nameserver: Vec<String>,
+
+    /// All other DNS keys (enable, enhanced-mode, fallback, …) are kept as-is.
+    #[serde(flatten)]
+    pub others: HashMap<String, Value>,
+}
+
+impl DnsConfig {
+    /// Return the nameserver list that should be used for generating
+    /// `proxy-server-nameserver-policy` entries, determined by the given
+    /// policy source.
+    pub fn nameservers_for_proxy_server_nameserver_policy(
+        &self,
+        source: &ProxyServerNameserverPolicySource,
+    ) -> &[String] {
+        match source {
+            ProxyServerNameserverPolicySource::ProxyServerNameserver => {
+                &self.proxy_server_nameserver
+            }
+            ProxyServerNameserverPolicySource::Nameserver => &self.nameserver,
+            ProxyServerNameserverPolicySource::None => &[],
+        }
+    }
+}
+
+/// Controls which nameserver list from the subscription source DNS config is
+/// used to populate `proxy-server-nameserver-policy` entries during mux.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub enum ProxyServerNameserverPolicySource {
+    #[default]
+    ProxyServerNameserver,
+    Nameserver,
+    None,
+}
 
 pub fn hysteria_v2_flatten_deserialize_with<'de, D>(
     deserializer: D,
@@ -139,6 +190,8 @@ pub struct Rule(pub String);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ClashConfig {
+    #[serde(default)]
+    pub dns: Option<DnsConfig>,
     #[serde(flatten)]
     pub others: HashMap<String, Value>,
     pub proxies: Vec<Proxy>,
@@ -149,7 +202,7 @@ pub struct ClashConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClashConfig, Proxy};
+    use super::{ClashConfig, DnsConfig, Proxy, ProxyServerNameserverPolicySource};
     use std::assert_matches;
 
     #[test]
@@ -219,5 +272,85 @@ mod tests {
                 &serde_yaml::Value::String("dddd".to_string())
             );
         }
+    }
+
+    #[test]
+    fn test_dns_config_parsing() {
+        let yaml = r#"
+proxies: []
+proxy-groups: []
+rules: []
+dns:
+  enable: true
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+  proxy-server-nameserver-policy:
+    'www.mynode.com': '114.114.114.114'
+"#;
+        let config: ClashConfig = serde_yaml::from_str(yaml).unwrap();
+        let dns = config.dns.unwrap();
+
+        assert_eq!(
+            dns.nameserver,
+            vec![
+                "https://doh.pub/dns-query",
+                "https://dns.alidns.com/dns-query",
+            ]
+        );
+        assert_eq!(
+            dns.proxy_server_nameserver,
+            vec!["https://doh.pub/dns-query"]
+        );
+        assert!(
+            dns.proxy_server_nameserver_policy
+                .contains_key("www.mynode.com")
+        );
+        // Extra DNS fields are preserved in `others`
+        assert_eq!(
+            dns.others.get("enable"),
+            Some(&serde_yaml::Value::Bool(true)),
+        );
+    }
+
+    #[test]
+    fn test_dns_config_absent() {
+        let yaml = r#"
+proxies: []
+proxy-groups: []
+rules: []
+"#;
+        let config: ClashConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.dns.is_none());
+    }
+
+    #[test]
+    fn test_nameservers_for_proxy_server_nameserver_policy() {
+        let dns = DnsConfig {
+            proxy_server_nameserver: vec!["psn1".into()],
+            nameserver: vec!["ns1".into(), "ns2".into()],
+            ..Default::default()
+        };
+
+        assert_eq!(
+            dns.nameservers_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::ProxyServerNameserver
+            ),
+            &["psn1".to_string()],
+        );
+        assert_eq!(
+            dns.nameservers_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::Nameserver
+            ),
+            &["ns1".to_string(), "ns2".to_string()],
+        );
+        assert!(
+            dns.nameservers_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::None
+            )
+            .is_empty(),
+        );
     }
 }

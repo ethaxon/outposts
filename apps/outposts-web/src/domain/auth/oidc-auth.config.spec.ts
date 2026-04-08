@@ -82,6 +82,10 @@ describe("createOidcAuthConfig", () => {
     expect(oidcConfig.customParamsAuthRequest).toBeUndefined();
     expect(oidcConfig.customParamsCodeRequest).toBeUndefined();
     expect(oidcConfig.customParamsRefreshTokenRequest).toBeUndefined();
+
+    // Silent renew tuning
+    expect(oidcConfig.renewTimeBeforeTokenExpiresInSeconds).toBe(75);
+    expect(oidcConfig.triggerRefreshWhenIdTokenExpired).toBe(false);
   });
 
   it("falls back to APP_HOST when no window.location is available", async () => {

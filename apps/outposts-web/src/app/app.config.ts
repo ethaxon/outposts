@@ -10,7 +10,11 @@ import { provideClientHydration, withEventReplay } from "@angular/platform-brows
 import { provideAnimationsAsync } from "@angular/platform-browser/animations/async";
 import { provideRouter, withInMemoryScrolling } from "@angular/router";
 import { provideTransloco } from "@jsverse/transloco";
-import { AuthModule } from "angular-auth-oidc-client";
+import {
+  AbstractSecurityStorage,
+  AuthModule,
+  DefaultLocalStorageService,
+} from "angular-auth-oidc-client";
 import { provideMonacoEditor } from "ngx-monaco-editor-v2";
 import { MessageService } from "primeng/api";
 import { providePrimeNG } from "primeng/config";
@@ -30,6 +34,9 @@ export const appConfig: ApplicationConfig = {
     ...(environment.ssr ? [provideClientHydration(withEventReplay())] : []),
     importProvidersFrom(AuthModule.forRoot(createOidcAuthConfig())),
     ...AUTH_PROVIDERS,
+    // Use localStorage instead of the default sessionStorage so that OIDC
+    // tokens (especially the refresh token) survive tab/browser restarts.
+    { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
     provideAnimationsAsync(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(

@@ -139,6 +139,7 @@
         "passive_sync": "被动同步",
         "proxy_auth": "代理认证",
         "proxy_server": "代理服务器",
+        "proxy_server_nameserver_policy_source": "DNS 名称服务器策略来源",
         "url": "URL",
         "userAgent": "User-Agent"
       },

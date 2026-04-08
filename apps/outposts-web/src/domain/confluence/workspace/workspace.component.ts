@@ -31,6 +31,7 @@ import type { ConfluenceDto } from "../bindings/ConfluenceDto";
 import type { ProfileDto } from "../bindings/ProfileDto";
 import type { SubscribeSourceDto } from "../bindings/SubscribeSourceDto";
 import type { SubscribeSourceUpdateDto } from "../bindings/SubscribeSourceUpdateDto";
+import type { ProxyServerNameserverPolicySource } from "../bindings/ProxyServerNameserverPolicySource";
 import { ConfluenceService } from "../confluence.service";
 import { hourPlusLevelCronExprValidator } from "../validators/cron-expr.validators";
 
@@ -66,6 +67,11 @@ export class WorkspaceComponent implements OnInit {
   tmpl = "";
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
+  policySourceOptions: { label: string; value: ProxyServerNameserverPolicySource }[] = [
+    { label: "proxy_server_nameserver", value: "proxy_server_nameserver" },
+    { label: "nameserver", value: "nameserver" },
+    { label: "none", value: "none" },
+  ];
   subscribeSourceCreation?: {
     value: {
       confluence_id: number;
@@ -76,6 +82,7 @@ export class WorkspaceComponent implements OnInit {
       proxy_server: FormControl<string | null>;
       proxy_auth: FormControl<string | null>;
       passive_sync: FormControl<boolean | null>;
+      proxy_server_nameserver_policy_source: FormControl<ProxyServerNameserverPolicySource | null>;
     }>;
   };
   subscribeSourceUpdate?: {
@@ -88,6 +95,7 @@ export class WorkspaceComponent implements OnInit {
       passive_sync: FormControl<boolean | null>;
       proxy_server: FormControl<string | null>;
       proxy_auth: FormControl<string | null>;
+      proxy_server_nameserver_policy_source: FormControl<ProxyServerNameserverPolicySource | null>;
     }>;
   };
   muxContentPreview?: {
@@ -290,6 +298,9 @@ export class WorkspaceComponent implements OnInit {
               passive_sync: [false],
               proxy_server: [null as string | null],
               proxy_auth: [null as string | null],
+              proxy_server_nameserver_policy_source: [
+                "proxy_server_nameserver" as ProxyServerNameserverPolicySource | null,
+              ],
             }),
           };
         }),
@@ -341,6 +352,9 @@ export class WorkspaceComponent implements OnInit {
         passive_sync: [!!item.passive_sync],
         proxy_server: [item.proxy_server],
         proxy_auth: [item.proxy_auth],
+        proxy_server_nameserver_policy_source: [
+          item.proxy_server_nameserver_policy_source as ProxyServerNameserverPolicySource | null,
+        ],
       }),
     };
   }

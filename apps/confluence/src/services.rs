@@ -67,7 +67,9 @@ pub async fn find_one_confluence_in_db(
         .filter(confluence::Column::Creator.eq(&current_user.user_id))
         .one(db)
         .await?
-        .ok_or_else(|| AppError::DbNotFound { message: format!("cannot find post id = {} for you", id) })
+        .ok_or_else(|| AppError::DbNotFound {
+            message: format!("cannot find post id = {} for you", id),
+        })
 }
 
 pub async fn find_certain_confluence_profiles_and_subscribe_sources(
@@ -348,7 +350,12 @@ pub async fn mux_one_confluence_impl(
         };
         sources.push((name, config));
     }
-    let mux_config = mux_configs(cm.name.as_str(), &template, &sources)?;
+    let source_refs: Vec<(&subscribe_source::Model, ClashConfig)> = sms
+        .iter()
+        .zip(sources)
+        .map(|(sm, (_name, config))| (sm, config))
+        .collect();
+    let mux_config = mux_configs(cm.name.as_str(), &template, &source_refs)?;
     let mux_content = serde_yaml::to_string(&mux_config).map_err(ConfigError::from)?;
     let mut cm = cm.into_active_model();
     cm.mux_content = Set(mux_content);
@@ -402,8 +409,8 @@ pub async fn find_one_profile_as_subscription_by_token(
         .all(db)
         .await?;
     if let Some((_, mut cms)) = pms.pop() {
-        let cm = cms.pop().ok_or_else(|| {
-            AppError::DbNotFound { message: format!("cannot find profile token = {}", token) }
+        let cm = cms.pop().ok_or_else(|| AppError::DbNotFound {
+            message: format!("cannot find profile token = {}", token),
         })?;
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -458,10 +465,9 @@ pub async fn find_one_profile_as_subscription_by_token(
         let mux_content = cm.mux_content;
         Ok((headers, mux_content))
     } else {
-        Err(AppError::DbNotFound { message: format!(
-            "cannot find profile token = {}",
-            token
-        ) })
+        Err(AppError::DbNotFound {
+            message: format!("cannot find profile token = {}", token),
+        })
     }
 }
 
@@ -499,10 +505,9 @@ pub async fn delete_one_profile(
         pam.delete(db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound { message: format!(
-            "cannot find profile id = {}",
-            id
-        ) })
+        Err(AppError::DbNotFound {
+            message: format!("cannot find profile id = {}", id),
+        })
     }
 }
 
@@ -521,6 +526,10 @@ pub async fn create_one_subscribe_source(
         passive_sync: Set(subscribe_creation_dto.passive_sync),
         proxy_auth: Set(subscribe_creation_dto.proxy_auth),
         proxy_server: Set(subscribe_creation_dto.proxy_server),
+        proxy_server_nameserver_policy_source: Set(subscribe_creation_dto
+            .proxy_server_nameserver_policy_source
+            .and_then(|v| serde_json::to_value(&v).ok())
+            .and_then(|v| v.as_str().map(String::from))),
         ..Default::default()
     };
     pms = pms.save(db).await?;
@@ -561,14 +570,18 @@ pub async fn update_one_subscribe_source(
         if let Some(proxy_server) = subscribe_update_dto.proxy_server {
             pam.proxy_server = Set(Some(proxy_server));
         };
+        if let Some(policy_source) = subscribe_update_dto.proxy_server_nameserver_policy_source {
+            pam.proxy_server_nameserver_policy_source = Set(serde_json::to_value(&policy_source)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from)));
+        };
         let pam = pam.save(db).await?;
         let pm = pam.try_into_model()?;
         Ok(Json(pm.into()))
     } else {
-        Err(AppError::DbNotFound { message: format!(
-            "cannot find subscribe source id = {}",
-            id
-        ) })
+        Err(AppError::DbNotFound {
+            message: format!("cannot find subscribe source id = {}", id),
+        })
     }
 }
 
@@ -589,10 +602,9 @@ pub async fn delete_one_subscribe_source(
         pam.delete(db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound { message: format!(
-            "cannot find subscribe source id = {}",
-            id
-        ) })
+        Err(AppError::DbNotFound {
+            message: format!("cannot find subscribe source id = {}", id),
+        })
     }
 }
 
@@ -614,9 +626,8 @@ pub async fn sync_one_subscribe_source(
         sync_one_subscribe_source_with_url(sm, &cm.user_agent, db).await?;
         Ok(())
     } else {
-        Err(AppError::DbNotFound { message: format!(
-            "cannot find subscribe source id = {}",
-            id
-        ) })
+        Err(AppError::DbNotFound {
+            message: format!("cannot find subscribe source id = {}", id),
+        })
     }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+- **Fix: Auth sign-in reverted to redirect flow** — `canActivate` default sign-in type changed back from `popup` to `redirect` for better UX and broader IdP compatibility.
+- **Backend: Clash DNS features** — Added support for parsing `proxy-server-nameserver` and related DNS template fields.
+- **Backend: Nameserver policy muxing** — Added `proxy_server_nameserver_policy_source` to `SubscribeSource`. Muxing now automatically merges and deduplicates per-source proxy server TLDs into the output `proxy-server-nameserver-policy`.
+- **Frontend: Subscribe Source UI** — Added a dropdown in the workspace to configure the DNS nameserver policy source.
+
 ## 0.3.1
 
 - **Fix: OIDC silent renew — auth state stays stale after renewal** — `AuthService` now subscribes to `PublicEventsService#NewAuthenticationResult`; on every successful token refresh it calls `refresh()` so the `userInfo$` / `isAuthenticated$` observables (previously frozen by `shareReplay`) are kept up to date.

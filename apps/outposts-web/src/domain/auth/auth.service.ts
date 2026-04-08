@@ -225,7 +225,7 @@ export class AuthService {
     resourcesConfigs: AuthResourceConfig[],
     {
       originUrlToBase,
-      signInType = "popup",
+      signInType = "redirect",
     }: {
       originUrlToBase?: string;
       signInType?: SignInOptions["signInType"];

@@ -1,6 +1,6 @@
 {
   "name": "outposts-web",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "exports": {
     "./env-var-plugin": "./plugins/env-var-plugin.ts"
   }
