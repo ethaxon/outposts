@@ -14,6 +14,7 @@ import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { PlatformService } from "@/core/servces/platform.service";
 import { AuthModule as AppAuthModule } from "@/domain/auth/auth.module";
+import { provideOidcAuthFromInjectedWindow } from "@/domain/auth/provide-oidc-auth";
 import { environment } from "@/environments/environment";
 import { AppComponent } from "./app.component";
 import { routes } from "./app.routes";
@@ -35,6 +36,12 @@ import { TranslocoRootModule } from "./transloco-root.module";
   ],
   providers: [
     ...(environment.ssr ? [provideClientHydration(withEventReplay())] : []),
+    {
+      provide: WINDOW,
+      useFactory: windowProvider,
+      deps: [DOCUMENT],
+    },
+    provideOidcAuthFromInjectedWindow(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,
@@ -48,11 +55,6 @@ import { TranslocoRootModule } from "./transloco-root.module";
       theme: Noir,
       ripple: false, // inputStyle: 'outlined'
     }),
-    {
-      provide: WINDOW,
-      useFactory: windowProvider,
-      deps: [DOCUMENT],
-    },
     PlatformService,
     MessageService,
     AppOverlayService,

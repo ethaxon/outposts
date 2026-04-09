@@ -23,7 +23,6 @@ import {
   throwError,
 } from "rxjs";
 import { WINDOW } from "@/core/providers/window";
-import { environment } from "../../environments/environment";
 import { AUTH_DRIVER, type AuthAccessTokenClaims } from "./auth.driver";
 import {
   AUTH_CALLBACK_ORIGIN_URI_KEY,
@@ -33,6 +32,7 @@ import {
   type SignInOptions,
   type SignOutOptions,
 } from "./auth.defs";
+import { resolveAppOriginFromWindow } from "./oidc-auth.config";
 import { parseScope } from "./auth.utils";
 
 @Injectable({
@@ -57,7 +57,10 @@ export class AuthService {
   constructor() {
     const publicEventsService = inject(PublicEventsService);
 
-    const isAuthenticated$ = this.authSyncTrigger$.pipe(
+    // Session state from the OIDC driver (tokens). Do NOT derive this from
+    // userInfo presence — after redirect, tokens can be valid before userinfo loads,
+    // and route guards would otherwise see false and drop post-login navigation.
+    const driverAuthenticated$ = this.authSyncTrigger$.pipe(
       switchMap(() => this.authDriver.isAuthenticated()),
       catchError((error) => {
         this.error = error;
@@ -65,7 +68,7 @@ export class AuthService {
       }),
     );
 
-    this.userInfo$ = isAuthenticated$.pipe(
+    this.userInfo$ = driverAuthenticated$.pipe(
       switchMap((isAuthenticated) => (isAuthenticated ? this.authDriver.getUserInfo() : of(null))),
       catchError((error) => {
         this.error = error;
@@ -74,11 +77,7 @@ export class AuthService {
       shareReplay(1),
     );
 
-    this.isAuthenticated$ = this.userInfo$.pipe(
-      map((userInfo) => !!userInfo),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
+    this.isAuthenticated$ = driverAuthenticated$.pipe(distinctUntilChanged(), shareReplay(1));
 
     this.shouldHandleCallback()
       .pipe(
@@ -106,7 +105,7 @@ export class AuthService {
       onRenewSuccess: () => this.refresh(),
       onRenewFailure: () => {
         const redirectUrl = new URL(
-          `${this.window.location.protocol}//${environment.APP_HOST}${AUTH_CALLBACK_PATH}`,
+          `${resolveAppOriginFromWindow(this.window)}${AUTH_CALLBACK_PATH}`,
         );
         try {
           localStorage.setItem(AUTH_CALLBACK_ORIGIN_URI_KEY, this.router.url);
@@ -166,6 +165,7 @@ export class AuthService {
         return signInCallbackResult;
       }),
       catchError((error) => {
+        console.error("Failed to handle sign in callback", error);
         this.router.navigateByUrl("/", { replaceUrl: true });
         this.error = error;
         return of(false);
@@ -277,9 +277,7 @@ export class AuthService {
 
   /** Redirect to IdP for sign-in and block the route (emits EMPTY while navigating). */
   private _signInRedirectAndBlock(originUrl: string): Observable<never> {
-    const redirectUrl = new URL(
-      `${this.window.location.protocol}//${environment.APP_HOST}${AUTH_CALLBACK_PATH}`,
-    );
+    const redirectUrl = new URL(`${resolveAppOriginFromWindow(this.window)}${AUTH_CALLBACK_PATH}`);
     try {
       localStorage.setItem(AUTH_CALLBACK_ORIGIN_URI_KEY, originUrl);
     } catch (e) {

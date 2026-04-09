@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- **Frontend: OIDC** — `triggerAuthorizationResultEvent` and app-controlled return; stable callback `redirectUrl` (`origin + /auth/callback`), `StsConfigLoader` + `WINDOW`, `isAuthenticated$` from token session, localStorage for `AbstractSecurityStorage` after `_provideAuth`.
+- **Tests** — Vitest/TestBed setup and `provide-oidc-auth` coverage for callback `redirectUrl`.
+
 ## 0.3.2
 
 - **Fix: Auth sign-in reverted to redirect flow** — `canActivate` default sign-in type changed back from `popup` to `redirect` for better UX and broader IdP compatibility.

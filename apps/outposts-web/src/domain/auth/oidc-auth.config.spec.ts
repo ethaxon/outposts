@@ -23,32 +23,18 @@ async function loadConfigModule(options?: {
   return import("./oidc-auth.config");
 }
 
-function setWindowOrigin(origin?: string): void {
-  if (origin) {
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        location: {
-          origin,
-        },
-      },
-      configurable: true,
-      writable: true,
-    });
-    return;
-  }
-
-  Reflect.deleteProperty(globalThis, "window");
+function mockBrowserWindow(origin: string): Window {
+  const protocol = origin.startsWith("https") ? "https:" : "http:";
+  return { location: { origin, protocol } } as Window;
 }
 
 afterEach(() => {
-  setWindowOrigin();
   vi.resetModules();
   vi.clearAllMocks();
 });
 
 describe("createOidcAuthConfig", () => {
   it("builds the single confluence OIDC config with configured scopes (no resource params sent to provider)", async () => {
-    setWindowOrigin("https://browser.outposts.example");
     const { createOidcAuthConfig } = await loadConfigModule({
       appHost: "ignored.example",
       oidcIssuer: "https://issuer.example/application/o/outposts/",
@@ -61,7 +47,9 @@ describe("createOidcAuthConfig", () => {
       ],
     });
 
-    const oidcConfig = createOidcAuthConfig().config;
+    const oidcConfig = createOidcAuthConfig(
+      mockBrowserWindow("https://browser.outposts.example"),
+    ).config;
 
     if (!oidcConfig || Array.isArray(oidcConfig)) {
       throw new Error("expected a single OIDC config");
@@ -88,13 +76,13 @@ describe("createOidcAuthConfig", () => {
     expect(oidcConfig.triggerRefreshWhenIdTokenExpired).toBe(false);
   });
 
-  it("falls back to APP_HOST when no window.location is available", async () => {
+  it("falls back to APP_HOST when no browser Window is available", async () => {
     const { createOidcAuthConfig } = await loadConfigModule({
       appHost: "app.outposts.example",
       resourceConfigs: [],
     });
 
-    const oidcConfig = createOidcAuthConfig().config;
+    const oidcConfig = createOidcAuthConfig(null).config;
 
     if (!oidcConfig || Array.isArray(oidcConfig)) {
       throw new Error("expected a single OIDC config");
@@ -106,5 +94,48 @@ describe("createOidcAuthConfig", () => {
     expect(oidcConfig.customParamsAuthRequest).toBeUndefined();
     expect(oidcConfig.customParamsCodeRequest).toBeUndefined();
     expect(oidcConfig.customParamsRefreshTokenRequest).toBeUndefined();
+  });
+});
+
+describe("resolveAppOriginFromWindow (sign-in redirect_uri vs localStorage origin)", () => {
+  /**
+   * Return path is stored under the *current page* origin. If authorize() used a
+   * redirect_uri on a different host than window.location.origin (e.g. env
+   * APP_HOST=localhost while the user opened 127.0.0.1), the IdP sends the
+   * browser to the wrong origin and localStorage does not contain the key —
+   * post-login navigation falls back to "/".
+   */
+  it("uses window.location.origin even when APP_HOST names a different host", async () => {
+    const { resolveAppOriginFromWindow, createOidcAuthConfig } = await loadConfigModule({
+      appHost: "localhost:4200",
+      resourceConfigs: [],
+    });
+
+    const win = mockBrowserWindow("http://127.0.0.1:4200");
+
+    expect(resolveAppOriginFromWindow(win)).toBe("http://127.0.0.1:4200");
+
+    const oidcConfig = createOidcAuthConfig(win).config;
+    if (!oidcConfig || Array.isArray(oidcConfig)) {
+      throw new Error("expected a single OIDC config");
+    }
+    expect(oidcConfig.redirectUrl).toBe("http://127.0.0.1:4200/auth/callback");
+  });
+
+  it("rejects the legacy redirect_uri formula that mixed protocol + APP_HOST", async () => {
+    const { resolveAppOriginFromWindow } = await loadConfigModule({
+      appHost: "localhost:4200",
+      callbackPath: "/auth/callback",
+      resourceConfigs: [],
+    });
+
+    const win = mockBrowserWindow("http://127.0.0.1:4200");
+    const callbackPath = "/auth/callback";
+    const legacyAuthorizeRedirect = `${win.location.protocol}//localhost:4200${callbackPath}`;
+    const fromSharedResolver = `${resolveAppOriginFromWindow(win)}${callbackPath}`;
+
+    expect(legacyAuthorizeRedirect).toBe("http://localhost:4200/auth/callback");
+    expect(fromSharedResolver).toBe("http://127.0.0.1:4200/auth/callback");
+    expect(legacyAuthorizeRedirect).not.toBe(fromSharedResolver);
   });
 });

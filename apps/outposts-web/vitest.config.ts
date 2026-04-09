@@ -16,5 +16,6 @@ export default defineConfig({
     include: ["src/**/*.spec.ts"],
     passWithNoTests: false,
     restoreMocks: true,
+    setupFiles: [resolve(rootDir, "src/test-setup.ts")],
   },
 });
