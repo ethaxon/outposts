@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use reqwest::Error as FetchError;
 use sea_orm::DbErr;
 use securitydept_core::oauth_resource_server::OAuthResourceServerError;
+use securitydept_core::token_set_context::access_token_substrate::AccessTokenSubstrateResourceServiceError;
 use snafu::Snafu;
 use std::fmt::Debug;
 use std::net::AddrParseError;
@@ -79,6 +80,28 @@ impl From<ConfigError> for AppError {
 impl From<FetchError> for AppError {
     fn from(source: FetchError) -> Self {
         Self::Fetch { source }
+    }
+}
+
+impl From<AccessTokenSubstrateResourceServiceError> for AppError {
+    fn from(err: AccessTokenSubstrateResourceServiceError) -> Self {
+        match err {
+            // Delegate OAuth resource server errors to the existing mapping.
+            AccessTokenSubstrateResourceServiceError::OAuthResourceServer { source } => {
+                AppError::from(source)
+            }
+            // Bearer token missing or not in Bearer scheme.
+            AccessTokenSubstrateResourceServiceError::BearerTokenRequired => {
+                AppError::unauthorized_str("bearer token required")
+            }
+            // Propagation errors — confluence does not enable propagation, map to internal.
+            AccessTokenSubstrateResourceServiceError::PropagationNotEnabled
+            | AccessTokenSubstrateResourceServiceError::PropagationDirectiveRequired
+            | AccessTokenSubstrateResourceServiceError::PropagationDirectiveInvalid { .. }
+            | AccessTokenSubstrateResourceServiceError::Propagation { .. } => {
+                AppError::internal_str("unexpected token propagation error")
+            }
+        }
     }
 }
 

@@ -32,6 +32,9 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect, TryIntoModel};
 use securitydept_core::oauth_resource_server::OAuthResourceServerVerifier;
+use securitydept_core::token_set_context::access_token_substrate::{
+    AccessTokenSubstrateResourceService, AccessTokenSubstrateRuntime,
+};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -40,7 +43,13 @@ pub struct AppState {
     pub conn: DatabaseConnection,
     pub config: AppConfig,
     pub names_generator: Arc<rnglib::RNG>,
+    /// OIDC access-token verifier (present when AUTH_TYPE=OIDC).
     pub oidc_verifier: Option<Arc<OAuthResourceServerVerifier>>,
+    /// Access-token substrate runtime (present when AUTH_TYPE=OIDC).
+    ///
+    /// Owns the propagation layer; paired with `oidc_verifier` to form
+    /// [`AccessTokenSubstrateResourceService`] for token verification.
+    pub substrate_runtime: Option<AccessTokenSubstrateRuntime>,
 }
 
 impl AppState {
@@ -48,12 +57,25 @@ impl AppState {
         conn: DatabaseConnection,
         config: AppConfig,
         oidc_verifier: Option<Arc<OAuthResourceServerVerifier>>,
+        substrate_runtime: Option<AccessTokenSubstrateRuntime>,
     ) -> Self {
         Self {
             conn,
             config,
             names_generator: Arc::new(rnglib::RNG::from(&rnglib::Language::Elven)),
             oidc_verifier,
+            substrate_runtime,
+        }
+    }
+
+    /// Build an [`AccessTokenSubstrateResourceService`] when both the substrate
+    /// runtime and the OIDC verifier are configured (i.e. AUTH_TYPE=OIDC).
+    pub fn access_token_resource_service(&self) -> Option<AccessTokenSubstrateResourceService<'_>> {
+        match (&self.substrate_runtime, &self.oidc_verifier) {
+            (Some(runtime), Some(verifier)) => {
+                Some(AccessTokenSubstrateResourceService::new(runtime, verifier))
+            }
+            _ => None,
         }
     }
 }

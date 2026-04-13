@@ -5,6 +5,13 @@ pub enum AuthConfig {
         audience: String,
         required_scopes: Vec<String>,
         user_claim: String,
+        /// OIDC client_id for the frontend web application.
+        ///
+        /// Served via `/api/auth/config` so the browser client can bootstrap
+        /// its authorization code + PKCE flow without baking credentials into
+        /// the frontend bundle. The backend itself is a resource server and
+        /// does not perform its own OIDC flows.
+        frontend_client_id: String,
     },
     BASIC { username: String, password: String },
 }

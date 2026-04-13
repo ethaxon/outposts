@@ -6,6 +6,7 @@ settings:
 
 overrides:
   node-fetch: 3.3.2
+  '@securitydept/client-angular': link:../securitydept/sdks/ts/packages/client-angular/dist
 
 importers:
 
@@ -50,15 +51,42 @@ importers:
       '@jsverse/transloco':
         specifier: ^8.2.1
         version: 8.2.1(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2)(typescript@5.9.3)
+      '@jsverse/utils':
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5
+      '@kurkle/color':
+        specifier: ^0.4.0
+        version: 0.4.0
+      '@primeuix/motion':
+        specifier: ^0.1.1
+        version: 0.1.1
+      '@primeuix/styled':
+        specifier: ^0.7.4
+        version: 0.7.4
+      '@primeuix/styles':
+        specifier: ^2.0.3
+        version: 2.0.3
       '@primeuix/themes':
         specifier: ^2.0.3
         version: 2.0.3
+      '@primeuix/utils':
+        specifier: ^0.7.1
+        version: 0.7.1
       '@rxweb/reactive-form-validators':
         specifier: ^13.0.1
         version: 13.0.1
-      angular-auth-oidc-client:
-        specifier: ^21.0.1
-        version: 21.0.1(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(rxjs@7.8.2)
+      '@securitydept/client':
+        specifier: link:../securitydept/sdks/ts/packages/client
+        version: link:../securitydept/sdks/ts/packages/client
+      '@securitydept/client-angular':
+        specifier: link:../securitydept/sdks/ts/packages/client-angular/dist
+        version: link:../securitydept/sdks/ts/packages/client-angular/dist
+      '@securitydept/token-set-context-client':
+        specifier: link:../securitydept/sdks/ts/packages/token-set-context-client
+        version: link:../securitydept/sdks/ts/packages/token-set-context-client
+      '@securitydept/token-set-context-client-angular':
+        specifier: link:../securitydept/sdks/ts/packages/token-set-context-client-angular/dist
+        version: link:../securitydept/sdks/ts/packages/token-set-context-client-angular/dist
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
@@ -71,12 +99,18 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dijkstrajs:
+        specifier: ^1.0.3
+        version: 1.0.3
       es-toolkit:
         specifier: ^1.45.1
         version: 1.45.1
       express:
         specifier: ~5.2.1
         version: 5.2.1
+      github-slugger:
+        specifier: ^2.0.0
+        version: 2.0.0
       katex:
         specifier: ^0.16.42
         version: 0.16.42
@@ -98,6 +132,9 @@ importers:
       ngx-monaco-editor-v2:
         specifier: ^21.1.4
         version: 21.1.4(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(monaco-editor@0.55.1)
+      oauth4webapi:
+        specifier: ^3.8.5
+        version: 3.8.5
       primeicons:
         specifier: ^7.0.0
         version: 7.0.0
@@ -278,6 +315,12 @@ importers:
         version: 2.10.2
 
   apps/outposts-web: {}
+
+  apps/outposts-web-host:
+    devDependencies:
+      '@types/bun':
+        specifier: ^1.2.0
+        version: 1.3.12
 
 packages:
 
@@ -1905,6 +1948,9 @@ packages:
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
+  '@kurkle/color@0.4.0':
+    resolution: {integrity: sha512-H4MGdCNqaMQW2gz47VNOE7zLy8s1NLLpvzxFTpWIPJzlmkYQMkOD9pRwrMWRDYjyErxL297mbgK6yyLuGdGEbg==}
+
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
@@ -2921,6 +2967,10 @@ packages:
     resolution: {integrity: sha512-PsZwOPq79Scp7/ionshRcQ5xKVf9+zuLcyY5mf6onK8chHT5C9JGphmcIZ4CzcqxuGEpsm8AIbTGy+zS3RtzLA==}
     engines: {node: '>=12.11.0'}
 
+  '@primeuix/motion@0.1.1':
+    resolution: {integrity: sha512-rIuL0P8OtPb8rRqVz9MPqcn/GWoZIoN2KxeEOAD4GarS4b1GoevdhKK2jNLMC6je/P0XWXwRlhL65BqZXPWBsg==}
+    engines: {node: '>=12.11.0'}
+
   '@primeuix/styled@0.7.4':
     resolution: {integrity: sha512-QSO/NpOQg8e9BONWRBx9y8VGMCMYz0J/uKfNJEya/RGEu7ARx0oYW0ugI1N3/KB1AAvyGxzKBzGImbwg0KUiOQ==}
     engines: {node: '>=12.11.0'}
@@ -2933,6 +2983,10 @@ packages:
 
   '@primeuix/utils@0.6.4':
     resolution: {integrity: sha512-pZ5f+vj7wSzRhC7KoEQRU5fvYAe+RP9+m39CTscZ3UywCD1Y2o6Fe1rRgklMPSkzUcty2jzkA0zMYkiJBD1hgg==}
+    engines: {node: '>=12.11.0'}
+
+  '@primeuix/utils@0.7.1':
+    resolution: {integrity: sha512-qX9hPvRqnvGTgv+Fo7KiTIEdKZ8dPN4rwLtfP1o0KbqMNQMcFPJgSz+xCewneJN/eDylBSayC4DGKn86wS5XlA==}
     engines: {node: '>=12.11.0'}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.4':
@@ -3507,6 +3561,9 @@ packages:
   '@types/bonjour@3.5.13':
     resolution: {integrity: sha512-z9fJ5Im06zvUL548KvYNecEVlA7cVDkGUi6kZusb04mpyEFKCIZJvloCcmpmLaIahDpOQGHaHmG6imtPMmPXGQ==}
 
+  '@types/bun@1.3.12':
+    resolution: {integrity: sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
@@ -3968,14 +4025,6 @@ packages:
     resolution: {integrity: sha512-Rf7xmeuIo7nb6S4mp4abW2faW8DauZyE2faBIKFaUfP3wnpOvNSbiI5AwVhqBNj0jPgBWEvhyCu0sLjN2q77Rg==}
     engines: {node: '>= 14.0.0'}
 
-  angular-auth-oidc-client@21.0.1:
-    resolution: {integrity: sha512-hmYUKikLUHS9e/0EwCwC2kLtRoA8OfaNy9AVj+W3im6NACPK8Cgv1iXx4wUid4Ekvet64sHrXPoZIrZ6yT6dNg==}
-    peerDependencies:
-      '@angular/common': '>=20.0.0'
-      '@angular/core': '>=20.0.0'
-      '@angular/router': '>=20.0.0'
-      rxjs: ^6.5.3 || ^7.4.0
-
   angular-eslint@21.3.1:
     resolution: {integrity: sha512-VGQWTyuPAEO/AnZuqHxGBJMYSiZ0tbrHx/OgPCRTKHfbrFU4x+zivS84h9UWoDpDtius1RyD+ZReFjTAEWptiA==}
     peerDependencies:
@@ -4239,6 +4288,9 @@ packages:
 
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
+
+  bun-types@1.3.12:
+    resolution: {integrity: sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA==}
 
   bundle-name@4.1.0:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
@@ -6873,6 +6925,9 @@ packages:
       '@swc/core':
         optional: true
 
+  oauth4webapi@3.8.5:
+    resolution: {integrity: sha512-A8jmyUckVhRJj5lspguklcl90Ydqk61H3dcU0oLhH3Yv13KpAliKTt5hknpGGPZSSfOwGyraNEFmofDYH+1kSg==}
+
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
@@ -7708,9 +7763,6 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
-
-  rfc4648@1.5.4:
-    resolution: {integrity: sha512-rRg/6Lb+IGfJqO05HZkN50UtY7K/JhxJag1kP23+zyMfrvoB0B7RWv06MbOzoc79RgCdNTiUaNsTT1AJZ7Z+cg==}
 
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
@@ -11120,6 +11172,8 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
+  '@kurkle/color@0.4.0': {}
+
   '@leichtgewicht/ip-codec@2.0.5': {}
 
   '@listr2/prompt-adapter-inquirer@3.0.5(@inquirer/prompts@7.10.1(@types/node@25.5.0))(@types/node@25.5.0)(listr2@9.0.5)':
@@ -12331,6 +12385,10 @@ snapshots:
     dependencies:
       '@primeuix/utils': 0.6.4
 
+  '@primeuix/motion@0.1.1':
+    dependencies:
+      '@primeuix/utils': 0.7.1
+
   '@primeuix/styled@0.7.4':
     dependencies:
       '@primeuix/utils': 0.6.4
@@ -12344,6 +12402,8 @@ snapshots:
       '@primeuix/styled': 0.7.4
 
   '@primeuix/utils@0.6.4': {}
+
+  '@primeuix/utils@0.7.1': {}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.4':
     optional: true
@@ -12804,6 +12864,10 @@ snapshots:
   '@types/bonjour@3.5.13':
     dependencies:
       '@types/node': 25.5.0
+
+  '@types/bun@1.3.12':
+    dependencies:
+      bun-types: 1.3.12
 
   '@types/chai@5.2.3':
     dependencies:
@@ -13392,15 +13456,6 @@ snapshots:
       '@algolia/requester-fetch': 5.48.1
       '@algolia/requester-node-http': 5.48.1
 
-  angular-auth-oidc-client@21.0.1(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(rxjs@7.8.2):
-    dependencies:
-      '@angular/common': 21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2)
-      '@angular/core': 21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)
-      '@angular/router': 21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2)
-      rfc4648: 1.5.4
-      rxjs: 7.8.2
-      tslib: 2.8.1
-
   angular-eslint@21.3.1(@angular/cli@21.2.3(@types/node@25.5.0)(chokidar@5.0.0))(chokidar@5.0.0)(eslint@10.1.0(jiti@2.6.1))(typescript-eslint@8.57.2(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@angular-devkit/core': 21.2.3(chokidar@5.0.0)
@@ -13712,6 +13767,10 @@ snapshots:
     dependencies:
       base64-js: 1.5.1
       ieee754: 1.2.1
+
+  bun-types@1.3.12:
+    dependencies:
+      '@types/node': 25.5.0
 
   bundle-name@4.1.0:
     dependencies:
@@ -16760,6 +16819,8 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  oauth4webapi@3.8.5: {}
+
   object-assign@4.1.1: {}
 
   object-inspect@1.13.4: {}
@@ -17649,8 +17710,6 @@ snapshots:
   retry@0.13.1: {}
 
   reusify@1.1.0: {}
-
-  rfc4648@1.5.4: {}
 
   rfdc@1.4.1: {}
 

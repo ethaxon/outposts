@@ -7,17 +7,10 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use base64::{Engine as _, engine::general_purpose};
-use securitydept_core::oauth_resource_server::VerifiedToken;
+use securitydept_core::creds::basic::parse_basic_auth_header;
 use std::sync::Arc;
 
-#[derive(Clone)]
-pub struct CurrentUser {
-    pub user_id: String,
-}
-
-const BEARER_TOKEN_PREFIX: &str = "Bearer ";
-const BASIC_AUTH_PREFIX: &str = "Basic ";
+pub mod config_projection;
 
 pub async fn auth(
     State(state): State<Arc<AppState>>,
@@ -42,19 +35,40 @@ pub async fn authorize_current_user(
         auth_header.ok_or_else(|| AppError::unauthorized_str("missing authorization header"))?;
 
     match state.config.auth {
-        AuthConfig::OIDC { ref user_claim, .. } => {
-            let auth_token = auth_header
-                .strip_prefix(BEARER_TOKEN_PREFIX)
-                .ok_or_else(|| {
-                    AppError::unauthorized_str("missing authorization header prefix Bearer")
-                })?;
-            let verifier = state
-                .oidc_verifier
-                .as_ref()
+        AuthConfig::OIDC {
+            ref user_claim,
+            ref required_scopes,
+            ..
+        } => {
+            // Use the access-token substrate resource service for bearer verification.
+            // This aligns the backend with the frontend-oidc-mode contract: the
+            // frontend produces OIDC access tokens; the substrate layer verifies them.
+            let resource_service = state
+                .access_token_resource_service()
                 .ok_or_else(|| AppError::internal_str("OIDC verifier not configured"))?;
-            let principal =
-                VerifiedToken::from(verifier.verify_rfc9068_access_token(auth_token).await?)
-                    .to_resource_token_principal();
+
+            let principal = resource_service
+                .authenticate_authorization_header(Some(auth_header))
+                .await
+                .map_err(AppError::from)?
+                .ok_or_else(|| {
+                    AppError::unauthorized_str(
+                        "missing or invalid bearer token in Authorization header",
+                    )
+                })?;
+
+            // Application-level scope policy: the substrate service validates
+            // the JWT structure and signature but delegates scope enforcement to
+            // the application so that each resource can declare its own policy.
+            for scope in required_scopes {
+                if !principal.scopes.contains(scope) {
+                    return Err(AppError::unauthorized_str(format!(
+                        "Access token is missing one or more required scopes: {}",
+                        required_scopes.join(", ")
+                    )));
+                }
+            }
+
             let user_id = if user_claim == "sub" {
                 principal
                     .subject
@@ -79,29 +93,9 @@ pub async fn authorize_current_user(
             ref username,
             ref password,
         } => {
-            // Extract Basic authentication credentials
-            let basic_auth = auth_header.strip_prefix(BASIC_AUTH_PREFIX).ok_or_else(|| {
-                AppError::unauthorized_str("missing authorization header prefix Basic")
-            })?;
+            let (provided_username, provided_password) =
+                parse_basic_auth_header(auth_header).map_err(AppError::unauthorized)?;
 
-            // Decode base64 encoded credentials
-            let decoded = general_purpose::STANDARD
-                .decode(basic_auth)
-                .map_err(|_| AppError::unauthorized_str("invalid base64 encoding in Basic auth"))?;
-
-            let credentials = String::from_utf8(decoded)
-                .map_err(|_| AppError::unauthorized_str("invalid UTF-8 in Basic auth"))?;
-
-            // Parse username and password (format: username:password)
-            let mut parts = credentials.splitn(2, ':');
-            let provided_username = parts
-                .next()
-                .ok_or_else(|| AppError::unauthorized_str("missing username in Basic auth"))?;
-            let provided_password = parts
-                .next()
-                .ok_or_else(|| AppError::unauthorized_str("missing password in Basic auth"))?;
-
-            // Validate username and password
             if provided_username != username.as_str() || provided_password != password.as_str() {
                 return Err(AppError::unauthorized_str("invalid username or password"));
             }
@@ -111,6 +105,11 @@ pub async fn authorize_current_user(
             })
         }
     }
+}
+
+#[derive(Clone)]
+pub struct CurrentUser {
+    pub user_id: String,
 }
 
 #[cfg(test)]

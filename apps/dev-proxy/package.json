@@ -10,5 +10,8 @@
   },
   "dependencies": {
     "whistle": "^2.10.2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

@@ -7,7 +7,11 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 RUN --mount=type=cache,id=angular,target=/usr/src/app/.angular npm run build:outposts-web
 
+# Production image: nginx serves static assets.
+# index.html injection is handled by the bun-injector sidecar
+# (see docker-compose.web.yml). The injected index.html is served
+# from a shared volume mounted at /shared.
 FROM nginx:alpine
 COPY ./apps/outposts-web/nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /usr/src/app/dist/apps/outposts-web /usr/share/nginx/html
+COPY --from=builder /usr/src/app/dist/apps/outposts-web/browser /usr/share/nginx/html
 EXPOSE 80

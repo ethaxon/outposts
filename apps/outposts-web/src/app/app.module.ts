@@ -13,8 +13,7 @@ import { WINDOW, windowProvider } from "@/core/providers/window";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { PlatformService } from "@/core/servces/platform.service";
-import { AuthModule as AppAuthModule } from "@/domain/auth/auth.module";
-import { provideOidcAuthFromInjectedWindow } from "@/domain/auth/provide-oidc-auth";
+import { provideAuth } from "@/domain/auth/auth.providers";
 import { environment } from "@/environments/environment";
 import { AppComponent } from "./app.component";
 import { routes } from "./app.routes";
@@ -32,7 +31,6 @@ import { TranslocoRootModule } from "./transloco-root.module";
     TranslocoRootModule,
     MonacoEditorModule.forRoot(),
     RouterOutlet,
-    AppAuthModule,
   ],
   providers: [
     ...(environment.ssr ? [provideClientHydration(withEventReplay())] : []),
@@ -41,7 +39,7 @@ import { TranslocoRootModule } from "./transloco-root.module";
       useFactory: windowProvider,
       deps: [DOCUMENT],
     },
-    provideOidcAuthFromInjectedWindow(),
+    ...provideAuth(typeof document !== "undefined" ? document.defaultView! : ({} as Window)),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,
@@ -53,7 +51,7 @@ import { TranslocoRootModule } from "./transloco-root.module";
     provideHttpClient(withInterceptorsFromDi(), withFetch()),
     providePrimeNG({
       theme: Noir,
-      ripple: false, // inputStyle: 'outlined'
+      ripple: false,
     }),
     PlatformService,
     MessageService,

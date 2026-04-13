@@ -23,7 +23,6 @@ axum = "0.8"
 axum-extra = "0.12"
 chrono = { version = "0.4", features = ["serde"] }
 openidconnect = { version = "4", features = ["reqwest"] }
-base64 = "0.22"
 dotenvy = "0.15"
 futures = "0.3"
 itertools = "0.14"
@@ -66,4 +65,8 @@ jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 securitydept-core = { workspace = true, features = [
   "oauth-resource-server",
   "creds",
+  "token-set-context",
 ] }
+
+[dev-dependencies]
+base64 = "0.22"

@@ -1,13 +1,17 @@
 use super::authorize_current_user;
+use crate::auth::config_projection::{OidcConfigQuery, get_oidc_config};
 use crate::config::{AppConfig, AuthConfig};
 use crate::error::AppError;
 use crate::services::AppState;
+
 use axum::{Json, Router, routing::get};
-use base64::{Engine as _, engine::general_purpose};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use sea_orm::{DatabaseBackend, MockDatabase};
 use securitydept_core::oauth_resource_server::{
     OAuthResourceServerConfig, OAuthResourceServerVerifier,
+};
+use securitydept_core::token_set_context::access_token_substrate::{
+    AccessTokenSubstrateRuntime, TokenPropagation,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -27,11 +31,17 @@ struct ScopedClaims {
     scope: String,
 }
 
+fn disabled_substrate_runtime() -> AccessTokenSubstrateRuntime {
+    AccessTokenSubstrateRuntime::new(&TokenPropagation::Disabled)
+        .expect("substrate runtime with propagation disabled should always succeed")
+}
+
 fn mock_state(
     auth: AuthConfig,
     oidc_verifier: Option<Arc<OAuthResourceServerVerifier>>,
 ) -> Arc<AppState> {
     let conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+    let substrate_runtime = oidc_verifier.as_ref().map(|_| disabled_substrate_runtime());
     Arc::new(AppState::new(
         conn,
         AppConfig {
@@ -40,6 +50,7 @@ fn mock_state(
             database_url: "postgres://example".to_string(),
         },
         oidc_verifier,
+        substrate_runtime,
     ))
 }
 
@@ -48,6 +59,7 @@ fn bearer_header(token: &str) -> String {
 }
 
 fn basic_header(username: &str, password: &str) -> String {
+    use base64::{Engine as _, engine::general_purpose};
     let credentials = format!("{}:{}", username, password);
     format!("Basic {}", general_purpose::STANDARD.encode(credentials))
 }
@@ -104,6 +116,9 @@ async fn oidc_state(
         .iter()
         .map(|scope| scope.to_string())
         .collect();
+    // Ensure the local JWKS server is not proxied — some CI/sandbox environments
+    // have HTTP_PROXY configured that would intercept 127.0.0.1 traffic and 502.
+    unsafe { std::env::set_var("NO_PROXY", "127.0.0.1,localhost") };
     let verifier = Arc::new(
         OAuthResourceServerVerifier::from_config(verifier_config)
             .await
@@ -119,6 +134,7 @@ async fn oidc_state(
                 .map(|scope| scope.to_string())
                 .collect(),
             user_claim: "sub".to_string(),
+            frontend_client_id: "outposts-web".to_string(),
         },
         Some(verifier),
     )
@@ -162,7 +178,7 @@ async fn authorize_current_user_rejects_invalid_basic_credentials() {
 }
 
 #[tokio::test]
-async fn authorize_current_user_accepts_oidc_token_via_oauth_resource_server() {
+async fn authorize_current_user_accepts_oidc_token_via_access_token_substrate() {
     let issuer = "https://issuer.example.test";
     let audience = "demo-api";
     let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
@@ -334,4 +350,63 @@ async fn authorize_current_user_rejects_missing_oidc_scope() {
         .expect("missing scope should be rejected");
 
     assert!(err.to_string().contains("required scopes"));
+}
+
+// ---------------------------------------------------------------------------
+// Config projection tests
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn get_oidc_config_returns_projection_for_oidc_mode() {
+    let issuer = "https://issuer.example.test";
+    let required_scopes = ["openid", "profile", "email", "confluence", "offline_access"];
+    let jwks_json = r#"{"keys":[{"kty":"oct","kid":"test-key","k":"c3VwZXItc2VjcmV0"}]}"#;
+    let state = oidc_state(jwks_json, issuer, None, &required_scopes).await;
+
+    let query = OidcConfigQuery {
+        redirect_uri: "https://app.example.test/auth/callback".to_string(),
+    };
+    let axum::Json(projection) = get_oidc_config(
+        axum::extract::Query(query),
+        axum::extract::State(state),
+    )
+    .await
+    .expect("config projection should succeed for OIDC mode");
+
+    assert_eq!(projection.client_id, "outposts-web");
+    assert_eq!(projection.redirect_url, "https://app.example.test/auth/callback");
+    assert_eq!(
+        projection.well_known_url.as_deref(),
+        Some("https://issuer.example.test/.well-known/openid-configuration")
+    );
+    assert_eq!(
+        projection.issuer_url.as_deref(),
+        Some(issuer)
+    );
+    assert!(projection.pkce_enabled);
+    assert_eq!(projection.scopes, required_scopes.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+}
+
+#[tokio::test]
+async fn get_oidc_config_rejects_basic_auth_mode() {
+    let state = mock_state(
+        AuthConfig::BASIC {
+            username: "demo".to_string(),
+            password: "secret".to_string(),
+        },
+        None,
+    );
+    let query = OidcConfigQuery {
+        redirect_uri: "https://app.example.test/auth/callback".to_string(),
+    };
+
+    let err = get_oidc_config(
+        axum::extract::Query(query),
+        axum::extract::State(state),
+    )
+    .await
+    .err()
+    .expect("BASIC mode should return an error for config projection");
+
+    assert!(matches!(err, AppError::BadRequest { .. }));
 }

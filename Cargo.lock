@@ -216,7 +216,7 @@ dependencies = [
  "arrow-schema",
  "arrow-select",
  "atoi",
- "base64 0.22.1",
+ "base64",
  "chrono",
  "half",
  "lexical-core",
@@ -454,12 +454,6 @@ name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
-
-[[package]]
-name = "base64"
-version = "0.21.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
@@ -766,14 +760,14 @@ dependencies = [
  "addr",
  "axum",
  "axum-extra",
- "base64 0.22.1",
+ "base64",
  "chrono",
  "chrono-tz",
  "cron",
  "dotenvy",
  "fancy-regex",
  "futures",
- "itertools 0.14.0",
+ "itertools",
  "jsonwebtoken",
  "lazy_static",
  "log",
@@ -804,6 +798,12 @@ name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
+
+[[package]]
+name = "const-oid"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 
 [[package]]
 name = "const-random"
@@ -960,6 +960,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ct-codecs"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b10589d1a5e400d61f9f38f12f884cfd080ff345de8f17efda36fe0e4a02aa8"
+
+[[package]]
 name = "ctutils"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -978,7 +984,7 @@ dependencies = [
  "cpufeatures 0.2.17",
  "curve25519-dalek-derive",
  "digest 0.10.7",
- "fiat-crypto",
+ "fiat-crypto 0.2.9",
  "rustc_version",
  "subtle",
  "zeroize",
@@ -1070,7 +1076,7 @@ version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7c1832837b905bbfb5101e07cc24c8deddf52f93225eee6ead5f4d63d53ddcb"
 dependencies = [
- "const-oid",
+ "const-oid 0.9.6",
  "pem-rfc7468",
  "zeroize",
 ]
@@ -1145,7 +1151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer 0.10.4",
- "const-oid",
+ "const-oid 0.9.6",
  "crypto-common 0.1.6",
  "subtle",
 ]
@@ -1157,6 +1163,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4850db49bf08e663084f7fb5c87d202ef91a3907271aff24a94eb97ff039153c"
 dependencies = [
  "block-buffer 0.12.0",
+ "const-oid 0.10.2",
  "crypto-common 0.2.1",
  "ctutils",
 ]
@@ -1223,7 +1230,7 @@ dependencies = [
  "curve25519-dalek",
  "ed25519",
  "serde",
- "sha2",
+ "sha2 0.10.9",
  "subtle",
  "zeroize",
 ]
@@ -1321,6 +1328,12 @@ name = "fiat-crypto"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
+
+[[package]]
+name = "fiat-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64cd1e32ddd350061ae6edb1b082d7c54915b5c672c389143b9a63403a109f24"
 
 [[package]]
 name = "find-msvc-tools"
@@ -1772,7 +1785,7 @@ version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96547c2556ec9d12fb1578c4eaf448b04993e7fb79cbaad930a656880a6bdfa0"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "futures-channel",
  "futures-util",
@@ -1997,15 +2010,6 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -2097,7 +2101,7 @@ version = "10.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0529410abe238729a60b108898784df8984c87f6054c9c4fcacc47e4803c1ce1"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "ed25519-dalek",
  "getrandom 0.2.17",
  "hmac",
@@ -2109,7 +2113,7 @@ dependencies = [
  "rsa",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "signature",
  "simple_asn1",
 ]
@@ -2457,7 +2461,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "chrono",
  "getrandom 0.2.17",
  "http",
@@ -2466,7 +2470,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "sha2",
+ "sha2 0.10.9",
  "thiserror 1.0.69",
  "url",
 ]
@@ -2486,16 +2490,15 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openidconnect"
 version = "4.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d8c6709ba2ea764bbed26bce1adf3c10517113ddea6f2d4196e4851757ef2b2"
+source = "git+https://github.com/ethaxon/openidconnect-rs.git?branch=set_option#6e0cb65b0a3b3014eb27a87ee754f688ed24417c"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "chrono",
  "dyn-clone",
  "ed25519-dalek",
  "hmac",
  "http",
- "itertools 0.10.5",
+ "itertools",
  "log",
  "oauth2",
  "p256",
@@ -2508,7 +2511,7 @@ dependencies = [
  "serde_path_to_error",
  "serde_plain",
  "serde_with",
- "sha2",
+ "sha2 0.10.9",
  "subtle",
  "thiserror 1.0.69",
  "url",
@@ -2536,6 +2539,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "orion"
+version = "0.17.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58fa7b8bd24f9f1b7fa56de934075adba4b6fb1bf0bf38db74f4236e05e14776"
+dependencies = [
+ "ct-codecs",
+ "fiat-crypto 0.3.0",
+ "getrandom 0.4.2",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -2571,7 +2587,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2583,7 +2599,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2631,7 +2647,7 @@ version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d30c53c26bc5b31a98cd02d20f25a7c8567146caf63ed593a9d87b2775291be"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "serde_core",
 ]
 
@@ -3168,7 +3184,7 @@ version = "0.12.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "futures-core",
  "http",
@@ -3206,7 +3222,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -3308,7 +3324,7 @@ version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8573f03f5883dcaebdfcf4725caa1ecb9c15b2ef50c43a07b816e06799bb12d"
 dependencies = [
- "const-oid",
+ "const-oid 0.9.6",
  "digest 0.10.7",
  "num-bigint-dig",
  "num-integer",
@@ -3352,7 +3368,7 @@ version = "8.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1"
 dependencies = [
- "sha2",
+ "sha2 0.10.9",
  "walkdir",
 ]
 
@@ -3549,7 +3565,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "futures-util",
- "itertools 0.14.0",
+ "itertools",
  "log",
  "mac_address",
  "ouroboros",
@@ -3609,7 +3625,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b449fe660e4d365f335222025df97ae01e670ef7ad788b3c67db9183b6cb0474"
 dependencies = [
  "heck 0.5.0",
- "itertools 0.14.0",
+ "itertools",
  "pluralizer",
  "proc-macro2",
  "quote",
@@ -3745,7 +3761,6 @@ dependencies = [
 [[package]]
 name = "securitydept-core"
 version = "0.2.0-alpha.4"
-source = "git+https://github.com/ethaxon/securitydept?rev=682a7426#682a74263beee1956d56aa092dacb741f1a30de9"
 dependencies = [
  "jsonwebtoken",
  "oauth2",
@@ -3753,16 +3768,17 @@ dependencies = [
  "securitydept-creds",
  "securitydept-oauth-provider",
  "securitydept-oauth-resource-server",
+ "securitydept-oidc-client",
+ "securitydept-token-set-context",
  "securitydept-utils",
 ]
 
 [[package]]
 name = "securitydept-creds"
 version = "0.2.0-alpha.4"
-source = "git+https://github.com/ethaxon/securitydept?rev=682a7426#682a74263beee1956d56aa092dacb741f1a30de9"
 dependencies = [
  "argon2",
- "base64 0.22.1",
+ "base64",
  "hex",
  "http",
  "jsonwebtoken",
@@ -3772,7 +3788,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
+ "sha2 0.11.0",
  "snafu",
  "tokio",
  "tracing",
@@ -3781,7 +3797,6 @@ dependencies = [
 [[package]]
 name = "securitydept-oauth-provider"
 version = "0.2.0-alpha.4"
-source = "git+https://github.com/ethaxon/securitydept?rev=682a7426#682a74263beee1956d56aa092dacb741f1a30de9"
 dependencies = [
  "humantime-serde",
  "oauth2",
@@ -3797,7 +3812,6 @@ dependencies = [
 [[package]]
 name = "securitydept-oauth-resource-server"
 version = "0.2.0-alpha.4"
-source = "git+https://github.com/ethaxon/securitydept?rev=682a7426#682a74263beee1956d56aa092dacb741f1a30de9"
 dependencies = [
  "chrono",
  "http",
@@ -3816,9 +3830,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "securitydept-oidc-client"
+version = "0.2.0-alpha.4"
+dependencies = [
+ "base64",
+ "chrono",
+ "http",
+ "humantime-serde",
+ "openidconnect",
+ "securitydept-oauth-provider",
+ "securitydept-utils",
+ "serde",
+ "serde-constant",
+ "serde_json",
+ "serde_with",
+ "snafu",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "securitydept-token-set-context"
+version = "0.2.0-alpha.4"
+dependencies = [
+ "base64",
+ "chrono",
+ "http",
+ "humantime-serde",
+ "orion",
+ "regex",
+ "securitydept-creds",
+ "securitydept-oauth-provider",
+ "securitydept-oauth-resource-server",
+ "securitydept-oidc-client",
+ "securitydept-utils",
+ "serde",
+ "serde_json",
+ "serde_regex",
+ "snafu",
+ "tracing",
+ "typed-builder",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "securitydept-utils"
 version = "0.2.0-alpha.4"
-source = "git+https://github.com/ethaxon/securitydept?rev=682a7426#682a74263beee1956d56aa092dacb741f1a30de9"
 dependencies = [
  "http",
  "iri-string",
@@ -3858,6 +3917,15 @@ dependencies = [
  "darling_core 0.23.0",
  "serde-rename-rule",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "serde-constant"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "301d0de95fe56444b1ea1ee62363452b756fe715fb4eab505be16b906599b47e"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -3970,7 +4038,7 @@ version = "3.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd5414fad8e6907dbdd5bc441a50ae8d6e26151a03b1de04d89a5576de61d01f"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "chrono",
  "hex",
  "indexmap 1.9.3",
@@ -4028,6 +4096,17 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "digest 0.11.2",
 ]
 
 [[package]]
@@ -4163,7 +4242,7 @@ version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "chrono",
  "crc",
@@ -4185,7 +4264,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "smallvec",
  "thiserror 2.0.18",
  "time",
@@ -4225,7 +4304,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "sqlx-core",
  "sqlx-mysql",
  "sqlx-postgres",
@@ -4242,7 +4321,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa003f0038df784eb8fecbbac13affe3da23b45194bd57dba231c8f48199c526"
 dependencies = [
  "atoi",
- "base64 0.22.1",
+ "base64",
  "bitflags",
  "byteorder",
  "bytes",
@@ -4270,7 +4349,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "sha1",
- "sha2",
+ "sha2 0.10.9",
  "smallvec",
  "sqlx-core",
  "stringprep",
@@ -4288,7 +4367,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db58fcd5a53cf07c184b154801ff91347e4c30d17a3562a635ff028ad5deda46"
 dependencies = [
  "atoi",
- "base64 0.22.1",
+ "base64",
  "bitflags",
  "byteorder",
  "chrono",
@@ -4311,7 +4390,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "smallvec",
  "sqlx-core",
  "stringprep",

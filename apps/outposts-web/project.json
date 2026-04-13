@@ -11,6 +11,7 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "plugins": ["outposts-web/env-var-plugin"],
+        "preserveSymlinks": true,
         "outputPath": "dist/apps/outposts-web",
         "index": "apps/outposts-web/src/index.html",
         "main": "apps/outposts-web/src/main.ts",
@@ -154,7 +155,8 @@
       "options": {
         "host": "127.0.0.1",
         "hmr": false,
-        "liveReload": false
+        "liveReload": false,
+        "esbuildMiddleware": ["apps/outposts-web/plugins/dev-inject-middleware.ts"]
       },
       "continuous": true
     },
