@@ -1,0 +1,5 @@
+FROM oven/bun:1-alpine
+WORKDIR /injector
+COPY ./apps/outposts-web-host/inject.ts ./inject.ts
+COPY ./dist/apps/outposts-web /app
+CMD ["bun", "run", "inject.ts"]

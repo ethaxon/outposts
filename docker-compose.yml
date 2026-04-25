@@ -61,7 +61,7 @@ services:
     container_name: outposts-web-host
     build:
       context: .
-      dockerfile: ./apps/outposts-web-host/Dockerfile
+      dockerfile: ./apps/outposts-web-host/Dockerfile.dev
     env_file: .env
     restart: unless-stopped
     volumes:

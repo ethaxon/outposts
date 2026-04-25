@@ -172,7 +172,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: "apps/outposts-web-host/Dockerfile"
+          file: "apps/outposts-web-host/Dockerfile.runtime"
           push: true
           tags: "ghcr.io/${{ env.ORG }}/outposts-web-host:latest"
           cache-from: type=gha
