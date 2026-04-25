@@ -20,5 +20,5 @@ jobs:
             git reset --hard HEAD
             git pull origin main
             cp -f docker-compose.deploy-override.yml docker-compose.override.yml
-            docker compose pull confluence outposts-web
+            docker compose pull confluence outposts-web outposts-web-host
             docker compose up -d --remove-orphans

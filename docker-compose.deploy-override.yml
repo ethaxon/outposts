@@ -20,6 +20,12 @@ services:
     - traefik.http.routers.outposts-web-http.middlewares=redirect-to-https@file
     - traefik.http.routers.outposts-web-http.service=noop@internal
 
+  outposts-web-host:
+    image: 'ghcr.io/ethaxon/outposts-web-host:latest'
+    build: !reset null
+    networks:
+    - traefik
+
   confluence:
     image: 'ghcr.io/ethaxon/confluence:latest'
     build: !reset null

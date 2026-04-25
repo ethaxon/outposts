@@ -17,9 +17,11 @@
  *   Future runtimes (Node.js, Deno) only need a new adapter.
  *
  * Environment variables:
- *   PROJECTION_SOURCES       - JSON array of projection source descriptors (required)
+ *   PROJECTION_SOURCES       - JSON array of projection source descriptors (preferred)
  *                              Each entry: { "key": string, "endpoint": string, "redirectUri": string }
  *                              Example: [{"key":"confluence","endpoint":"http://confluence:8080/api","redirectUri":"https://app/callback"}]
+ *                              When absent, outposts falls back to the built-in
+ *                              single-source confluence topology.
  *   INJECT_INTERVAL_MS       - Refresh interval in ms (default: 300000 = 5min)
  *   MAX_FAILURES             - Max consecutive failures before clearing cache (default: 3)
  *   TEMPLATE_PATH            - Path to the original index.html (default: /app/index.html)
@@ -111,20 +113,41 @@ interface InjectorConfig {
   outputPath: string;
 }
 
+function defaultSources(host: HostPort): ProjectionSourceDescriptor[] | null {
+  const outpostsWebHost = host.env("OUTPOSTS_WEB_HOST");
+  if (!outpostsWebHost) {
+    return null;
+  }
+
+  return [
+    {
+      key: "confluence",
+      endpoint: "http://confluence:4001/api",
+      redirectUri: `https://${outpostsWebHost}/auth/callback`,
+    },
+  ];
+}
+
 function readConfig(host: HostPort): InjectorConfig {
   const sourcesJson = host.env("PROJECTION_SOURCES");
 
-  if (!sourcesJson) {
-    host.logError("[injector] PROJECTION_SOURCES is required (JSON array)");
-    host.exit(1);
-  }
-
   let sources: ProjectionSourceDescriptor[];
-  try {
-    sources = JSON.parse(sourcesJson) as ProjectionSourceDescriptor[];
-  } catch {
-    host.logError("[injector] PROJECTION_SOURCES must be valid JSON");
-    host.exit(1);
+  if (sourcesJson) {
+    try {
+      sources = JSON.parse(sourcesJson) as ProjectionSourceDescriptor[];
+    } catch {
+      host.logError("[injector] PROJECTION_SOURCES must be valid JSON");
+      host.exit(1);
+    }
+  } else {
+    const fallbackSources = defaultSources(host);
+    if (!fallbackSources) {
+      host.logError(
+        "[injector] PROJECTION_SOURCES is required unless OUTPOSTS_WEB_HOST is set for the built-in confluence fallback",
+      );
+      host.exit(1);
+    }
+    sources = fallbackSources;
   }
 
   if (!Array.isArray(sources) || sources.length === 0) {

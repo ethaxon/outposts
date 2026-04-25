@@ -47,11 +47,33 @@ services:
     restart: unless-stopped
     ports:
       - 9004:80
+    volumes:
+      - outposts-web-shared:/shared
     networks:
       - outposts
     depends_on:
       confluence:
         condition: service_started
+      outposts-web-host:
+        condition: service_started
+
+  outposts-web-host:
+    container_name: outposts-web-host
+    build:
+      context: .
+      dockerfile: ./apps/outposts-web-host/Dockerfile
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - outposts-web-shared:/shared
+    networks:
+      - outposts
+    depends_on:
+      confluence:
+        condition: service_started
+
+volumes:
+  outposts-web-shared:
 
 networks:
   outposts:

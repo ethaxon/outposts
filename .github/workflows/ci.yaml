@@ -168,3 +168,12 @@ jobs:
           tags: "ghcr.io/${{ env.ORG }}/outposts-web:latest"
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build and push web host Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: "apps/outposts-web-host/Dockerfile"
+          push: true
+          tags: "ghcr.io/${{ env.ORG }}/outposts-web-host:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

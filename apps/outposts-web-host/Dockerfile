@@ -1,4 +1,14 @@
+FROM node:24-slim AS web-builder
+RUN npm install -g pnpm@10.33.0
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+WORKDIR /usr/src/app
+COPY . .
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=angular,target=/usr/src/app/.angular pnpm run build:outposts-web
+
 FROM oven/bun:1-alpine
 WORKDIR /injector
-COPY inject.ts .
+COPY ./apps/outposts-web-host/inject.ts ./inject.ts
+COPY --from=web-builder /usr/src/app/dist/apps/outposts-web /app
 CMD ["bun", "run", "inject.ts"]

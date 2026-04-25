@@ -9,7 +9,7 @@ RUN --mount=type=cache,id=angular,target=/usr/src/app/.angular npm run build:out
 
 # Production image: nginx serves static assets.
 # index.html injection is handled by the bun-injector sidecar
-# (see docker-compose.web.yml). The injected index.html is served
+# in the main compose stack. The injected index.html is served
 # from a shared volume mounted at /shared.
 FROM nginx:alpine
 COPY ./apps/outposts-web/nginx.conf /etc/nginx/nginx.conf
