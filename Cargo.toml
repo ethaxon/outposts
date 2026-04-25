@@ -5,16 +5,11 @@ members = ["apps/confluence"]
 resolver = "3"
 
 [workspace.dependencies]
-securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "682a7426" }
-
-[patch.'https://github.com/ethaxon/securitydept']
-securitydept-core = { path = "../securitydept/packages/core" }
+securitydept-core = { version = "=0.2.0-beta.2" }
 
 # securitydept-oidc-client depends on the set_option fork of openidconnect.
 # This patch aligns outposts with the securitydept workspace so that transitive
 # deps via securitydept-token-set-context compile against the same crate version.
-[patch.crates-io]
-openidconnect = { git = "https://github.com/ethaxon/openidconnect-rs.git", branch = "set_option" }
 
 [profile.dev.package.openidconnect]
 rustflags = ["-Zhint-mostly-unused"]
@@ -39,4 +34,3 @@ rustflags = ["-Zhint-mostly-unused"]
 
 [profile.release.package.jsonwebtoken]
 rustflags = ["-Zhint-mostly-unused"]
-

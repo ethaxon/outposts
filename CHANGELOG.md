@@ -2,8 +2,11 @@
 
 ## 0.3.3
 
-- **Frontend: OIDC** — `triggerAuthorizationResultEvent` and app-controlled return; stable callback `redirectUrl` (`origin + /auth/callback`), `StsConfigLoader` + `WINDOW`, `isAuthenticated$` from token session, localStorage for `AbstractSecurityStorage` after `_provideAuth`.
-- **Tests** — Vitest/TestBed setup and `provide-oidc-auth` coverage for callback `redirectUrl`.
+- **Frontend: published `securitydept` SDK adoption** — replaced local `link:` dependencies with published `0.2.0-beta.2` packages for `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular`; removed the pnpm override that forced a local Angular client build.
+- **Frontend: bearer injection hardening** — `provideTokenSetBearerInterceptor` now runs with `strictUrlMatch: true`, so bearer tokens are only attached to requests matching registered `urlPatterns` and no longer fall back onto unrelated third-party URLs.
+- **Frontend: auth regression coverage** — added focused Vitest specs for auth definitions, callback route ordering, bearer-token injection boundaries, and `AuthService.redirectToLogin()` preserving the current route as `postAuthRedirectUri`.
+- **Backend: published crate alignment** — switched `securitydept-core` from git/path overrides to published `=0.2.0-beta.2`, removed the `openidconnect` patch override, and refreshed Rust dependencies including `fancy-regex` `0.18`.
+- **Docs: auth integration guidance refreshed** — updated `docs/en/003-AUTH.md` and `docs/zh/003-AUTH.md` to describe the SDK-based auth runtime, strict bearer matching, completed Stage 1/2 status, and the new default of published dependencies with local overrides only for temporary integration loops.
 
 ## 0.3.2
 

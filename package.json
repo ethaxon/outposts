@@ -36,7 +36,7 @@
     "@angular/ssr": "~21.2.3",
     "@datasert/cronjs-parser": "^1.4.0",
     "@jsverse/transloco": "^8.2.1",
-    "@jsverse/utils": "1.0.0-beta.5",
+    "@jsverse/utils": "1.0.0-beta.6",
     "@kurkle/color": "^0.4.0",
     "@primeuix/motion": "^0.1.1",
     "@primeuix/styled": "^0.7.4",
@@ -44,10 +44,10 @@
     "@primeuix/themes": "^2.0.3",
     "@primeuix/utils": "^0.7.1",
     "@rxweb/reactive-form-validators": "^13.0.1",
-    "@securitydept/client": "link:../securitydept/sdks/ts/packages/client",
-    "@securitydept/client-angular": "link:../securitydept/sdks/ts/packages/client-angular/dist",
-    "@securitydept/token-set-context-client": "link:../securitydept/sdks/ts/packages/token-set-context-client",
-    "@securitydept/token-set-context-client-angular": "link:../securitydept/sdks/ts/packages/token-set-context-client-angular/dist",
+    "@securitydept/client": "0.2.0-beta.2",
+    "@securitydept/client-angular": "0.2.0-beta.2",
+    "@securitydept/token-set-context-client": "0.2.0-beta.2",
+    "@securitydept/token-set-context-client-angular": "0.2.0-beta.2",
     "change-case": "^5.4.4",
     "chart.js": "^4.5.1",
     "clipboard": "^2.0.11",
@@ -130,8 +130,7 @@
   },
   "pnpm": {
     "overrides": {
-      "node-fetch": "3.3.2",
-      "@securitydept/client-angular": "link:../securitydept/sdks/ts/packages/client-angular/dist"
+      "node-fetch": "3.3.2"
     },
     "onlyBuiltDependencies": [
       "@j178/prek",

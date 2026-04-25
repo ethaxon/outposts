@@ -178,7 +178,7 @@
 
 ## 对 `securitydept` 前端 SDK 抽象的直接反馈
 
-当前这条 `outposts-web -> confluence` 单链路没有接入 `token-set-context-client`，但它反而暴露出一个更清晰的 SDK 规划方向：
+当前这条 `outposts-web -> confluence` 单链路已经直接消费 `@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`：`provideTokenSetAuth()` + `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` 已经是真实运行面，callback 路由由 SDK 提供的 `TokenSetCallbackComponent` 承担，没有任何 app-local 手写 `Authorization` header。`strictUrlMatch: true` 把 bearer 注入边界硬限制为命中 `urlPatterns` 的请求 —— `CONFLUENCE_API_ENDPOINT` 之外（包括任意第三方 host）的请求都不会拿到 token。在这条真实链路上，SDK 的下一层规划方向也更清晰：
 
 1. **通用 token orchestration 层**
    - 管 `access_token` / `id_token` / `refresh_token` 的组合状态
@@ -203,26 +203,24 @@
 
 近期建议按下面的顺序推进，而不是一次性大迁移。
 
-### 阶段 1：标准 OIDC / Authentik-first baseline
+### 阶段 1：标准 OIDC / Authentik-first baseline（已完成）
 
-目标：
+现状：
 
-- 当前单 `confluence` 主链路已切到标准 OIDC driver
+- 当前单 `confluence` 主链路已切到标准 OIDC driver（`@securitydept/token-set-context-client/frontend-oidc-mode`）
 - 前端配置命名已收口到 `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests 已锁住 callback / redirect contract
-- 移除向 Provider 发送的 RFC 8707 `resource` 参数（Authentik 不支持）
-- `CONFLUENCE_OIDC_AUDIENCE` 改为可选，缺失时跳过 audience 校验
+- focused tests 已锁住 callback / redirect contract（见 `apps/outposts-web/src/domain/auth/auth.routes.spec.ts`、`auth.bearer-interceptor.spec.ts`、`auth.defs.spec.ts`、`auth-config-projection.spec.ts`）
+- 已移除向 Provider 发送的 RFC 8707 `resource` 参数（Authentik 不支持）
+- `CONFLUENCE_OIDC_AUDIENCE` 已改为可选，缺失时跳过 audience 校验
 
-### 阶段 2：后端对齐 issuer / audience / scope
+### 阶段 2：后端对齐 issuer / audience / scope（已完成）
 
-目标：
+现状：
 
-- 让 `confluence` 先完成与 Authentik 的 claims 对齐
+- `confluence` 已完成与 Authentik 的 claims 对齐（包括 `client_id` / `aud` 在 RFC 9068 JWT 中的可选语义）
 - 直接使用 `securitydept-oauth-resource-server` 承担单链路 Bearer token 校验
-- 明确每个服务自己的：
-  - issuer
-  - audience
-  - required scopes
+- 每个服务自己的 `issuer` / `audience` / `required scopes` 由配置承载，audience 缺失即跳过校验
+- backend 测试覆盖 audience 可选 / 必选 / 缺失 scope 三种语义（见 `apps/confluence/src/auth/tests.rs`）
 
 ### 阶段 3：route-level requirement orchestration 原型
 
@@ -244,32 +242,32 @@
 
 ### Rust
 
-生产发布（流水线）使用 git ref 固定版本；本地迭代通过 `[patch]` 覆盖到本地路径，两者可以快速切换：
+发布与本地开发都应优先对齐已发布版本；需要联调 workspace 边界时，再临时切回本地覆盖：
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "<commit-hash>" }
+securitydept-core = { version = "=0.2.0-beta.1" }
 
-# 本地迭代时取消注释：
-# [patch.'https://github.com/ethaxon/securitydept']
+# 仅在本地联调 securitydept workspace 时临时启用：
+# [patch.crates-io]
 # securitydept-core = { path = "../securitydept/packages/core" }
 ```
 
 规则：
 
-- 推送流水线前，确保 `[patch]` 部分已注释掉，`rev` 指向目标 commit
-- 本地调试时取消 `[patch]` 注释，无需改动 `[workspace.dependencies]` 声明
-- 新增 crate 时也遵循同样的 git ref + patch 模式
+- 默认依赖应固定到已发布版本，例如 `=0.2.0-beta.1`
+- 只有在本地联调 `securitydept` workspace 时才临时启用 `[patch.crates-io]`
+- 联调结束后恢复发布版依赖，避免把本地路径覆盖带进常规协作流
 
 ### Node / pnpm
 
-优先使用本地 `link:`，例如：
+默认应直接消费已发布 npm 包；需要联调 workspace 时再临时切回本地 `link:`，例如：
 
 ```json
 {
   "dependencies": {
-    "@securitydept/token-set-context-client": "link:../securitydept/sdks/ts/packages/token-set-context-client",
-    "@securitydept/session-context-client": "link:../securitydept/sdks/ts/packages/session-context-client"
+      "@securitydept/token-set-context-client": "0.2.0-beta.1",
+      "@securitydept/token-set-context-client-angular": "0.2.0-beta.1"
   }
 }
 ```
@@ -277,12 +275,12 @@ securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "<c
 规则：
 
 - dependency 只写包根，不为 subpath 单独声明依赖
-- 在活跃重构期，不先接 published version 再回切本地 link
-- 本地 link 的意义就是让 `outposts` 及时验证 `securitydept` 最新边界
+- 默认依赖应固定到已发布版本；只有在联调时才临时切换到 `link:`
+- 本地 link 仅用于验证未发布边界，不应作为常规依赖形态长期保留
 
 ## 当前结论
 
-`outposts` 当前不应被理解为“仍在 Logto 迁移过渡态”的项目。  
+`outposts` 当前不应被理解为“仍在 Logto 迁移过渡态”的项目。
 更准确的目标是：
 
 - 当前单 `confluence` 主链路先稳定在标准 OIDC / Authentik-first baseline

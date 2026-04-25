@@ -60,7 +60,7 @@ chrono-tz = "0.10"
 tokio-cron-scheduler = "0.15"
 monostate = "1"
 log = "0.4"
-fancy-regex = "0.17"
+fancy-regex = "0.18"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 securitydept-core = { workspace = true, features = [
   "oauth-resource-server",

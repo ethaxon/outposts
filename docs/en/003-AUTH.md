@@ -177,7 +177,7 @@ In other words:
 
 ## Direct Feedback For `securitydept` Frontend SDK Design
 
-The current `outposts-web -> confluence` path does not use `token-set-context-client`, but that makes one SDK-planning direction clearer:
+The current `outposts-web -> confluence` path now consumes both `@securitydept/token-set-context-client` and `@securitydept/token-set-context-client-angular` directly: `provideTokenSetAuth()` + `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` is the actual runtime surface, the callback route is served by the SDK-supplied `TokenSetCallbackComponent`, and there is no app-local hand-written `Authorization` header anywhere. `strictUrlMatch: true` hard-bounds bearer injection to requests that match a registered `urlPatterns` entry — anything outside `CONFLUENCE_API_ENDPOINT` (including any third-party host) receives no token. From that real integration the next SDK-planning direction is also clearer:
 
 1. **generic token orchestration layer**
    - owns combined `access_token` / `id_token` / `refresh_token` state
@@ -202,26 +202,24 @@ The more appropriate direction is:
 
 The near-term work should proceed in this order instead of one large migration.
 
-### Stage 1: standard OIDC / Authentik-first baseline
+### Stage 1: standard OIDC / Authentik-first baseline (done)
 
-Goal:
+Status:
 
-- the current single-`confluence` flow is already on the standard OIDC driver
+- the current single-`confluence` flow is on the standard OIDC driver (`@securitydept/token-set-context-client/frontend-oidc-mode`)
 - frontend config naming is narrowed to `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests lock callback / redirect contract
+- focused tests lock callback / redirect contract (see `apps/outposts-web/src/domain/auth/auth.routes.spec.ts`, `auth.bearer-interceptor.spec.ts`, `auth.defs.spec.ts`, `auth-config-projection.spec.ts`)
 - removed the RFC 8707 `resource` parameter from provider requests (Authentik does not support Resource Indicators)
-- `CONFLUENCE_OIDC_AUDIENCE` is now optional; when absent, audience validation is skipped
+- `CONFLUENCE_OIDC_AUDIENCE` is optional; when absent, audience validation is skipped
 
-### Stage 2: align backend issuer / audience / scope
+### Stage 2: align backend issuer / audience / scope (done)
 
-Goal:
+Status:
 
-- let `confluence` align with Authentik claims first
-- let `securitydept-oauth-resource-server` carry the single-path Bearer-token verification
-- make each service explicit about:
-  - issuer
-  - audience
-  - required scopes
+- `confluence` is aligned with Authentik claims (including `client_id` / `aud` being optional under RFC 9068)
+- `securitydept-oauth-resource-server` carries the single-path Bearer-token verification
+- each service's `issuer` / `audience` / `required scopes` is config-driven; missing audience skips audience validation
+- backend tests cover audience-optional, audience-required, and missing-scope semantics (see `apps/confluence/src/auth/tests.rs`)
 
 ### Stage 3: route-level requirement orchestration prototype
 
@@ -243,32 +241,32 @@ Goal:
 
 ### Rust
 
-Production releases (CI pipeline) pin a specific git ref; local iteration overrides with a `[patch]` block pointing to the local path. The two modes are easy to switch:
+Published versions should be the default for both release and normal local development. Switch to a local override only when you need an active workspace integration loop:
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { git = "https://github.com/ethaxon/securitydept", rev = "<commit-hash>" }
+securitydept-core = { version = "=0.2.0-beta.1" }
 
-# Uncomment for local iteration:
-# [patch.'https://github.com/ethaxon/securitydept']
+# Enable only for local securitydept workspace integration:
+# [patch.crates-io]
 # securitydept-core = { path = "../securitydept/packages/core" }
 ```
 
 Rules:
 
-- before pushing to CI, make sure the `[patch]` block is commented out and `rev` points to the target commit
-- for local debugging, uncomment `[patch]` — no need to touch `[workspace.dependencies]`
-- follow the same git ref + patch pattern when adding new crates
+- keep the default dependency pinned to the published version, for example `=0.2.0-beta.1`
+- use `[patch.crates-io]` only for temporary local workspace integration
+- remove the local override after the integration loop so normal collaboration stays on published artifacts
 
 ### Node / pnpm
 
-Prefer local `link:` references, for example:
+Use published npm packages by default. Switch to local `link:` references only for temporary workspace integration, for example:
 
 ```json
 {
   "dependencies": {
-    "@securitydept/token-set-context-client": "link:../securitydept/sdks/ts/packages/token-set-context-client",
-    "@securitydept/session-context-client": "link:../securitydept/sdks/ts/packages/session-context-client"
+      "@securitydept/token-set-context-client": "0.2.0-beta.1",
+      "@securitydept/token-set-context-client-angular": "0.2.0-beta.1"
   }
 }
 ```
@@ -276,8 +274,8 @@ Prefer local `link:` references, for example:
 Rules:
 
 - declare dependencies at the package root only, not per subpath
-- during active refactor, do not first integrate a published version and later switch back to a local link
-- the whole point of local links is to let `outposts` validate the latest `securitydept` boundaries directly
+- keep the default dependency on the published version; switch to `link:` only during an active integration loop
+- local links are only for validating unpublished boundaries and should not remain as the regular dependency shape
 
 ## Current Conclusion
 

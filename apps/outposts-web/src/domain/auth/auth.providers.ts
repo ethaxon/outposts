@@ -108,6 +108,6 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
         },
       ],
     }),
-    provideTokenSetBearerInterceptor(),
+    provideTokenSetBearerInterceptor({ strictUrlMatch: true }),
   ];
 }
