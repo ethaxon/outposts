@@ -78,12 +78,15 @@ export class AuthService {
    * Intended for use inside an `onUnauthenticated` handler passed to
    * `createTokenSetRouteAggregationGuard()`.
    */
-  redirectToLogin(clientKey: AuthClientKey): Observable<never> {
+  redirectToLogin(
+    clientKey: AuthClientKey,
+    postAuthRedirectUri: string = this.router.url,
+  ): Observable<never> {
     return defer(() =>
       from(this.getClient(clientKey)).pipe(
         switchMap((client) => {
           if (!client) return EMPTY;
-          return from(client.loginWithRedirect({ postAuthRedirectUri: this.router.url })).pipe(
+          return from(client.loginWithRedirect({ postAuthRedirectUri })).pipe(
             switchMap(() => EMPTY),
           );
         }),

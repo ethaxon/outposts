@@ -13,8 +13,8 @@
  *
  * Runtime isolation:
  *   All host-specific I/O (file read/write, env, timers, logging) goes
- *   through the HostPort interface. The current runtime adapter is Bun.
- *   Future runtimes (Node.js, Deno) only need a new adapter.
+ *   through the HostPort interface. The startup code selects Bun or Node.js
+ *   at runtime.
  *
  * Environment variables:
  *   PROJECTION_SOURCES       - JSON array of projection source descriptors (preferred)
@@ -27,7 +27,6 @@
  *   TEMPLATE_PATH            - Path to the original index.html (default: /app/index.html)
  *   OUTPUT_PATH              - Path to write injected index.html (default: /shared/index.html)
  */
-
 // ---------------------------------------------------------------------------
 // Host port — minimal interface for runtime-specific capabilities
 // ---------------------------------------------------------------------------
@@ -85,6 +84,51 @@ function createBunHostPort(): HostPort {
     logError: (msg) => console.error(msg),
     exit: (code) => process.exit(code),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Node.js adapter
+// ---------------------------------------------------------------------------
+
+function createNodeHostPort(): HostPort {
+  return {
+    readFile: async (path) => {
+      const fs = await import("node:fs/promises");
+      return fs.readFile(path, "utf-8");
+    },
+    writeFile: async (path, content) => {
+      const fs = await import("node:fs/promises");
+      await fs.writeFile(path, content, "utf-8");
+    },
+    env: (key) => process.env[key],
+    fetchJson: async (url) => {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    },
+    setInterval: (fn, ms) => {
+      const id = setInterval(fn, ms);
+      return () => clearInterval(id);
+    },
+    logInfo: (msg) => console.log(msg),
+    logWarn: (msg) => console.warn(msg),
+    logError: (msg) => console.error(msg),
+    exit: (code) => process.exit(code),
+  };
+}
+
+function createHostPort(): HostPort {
+  if ("Bun" in globalThis) {
+    return createBunHostPort();
+  }
+  if (typeof process !== "undefined" && process.versions?.node) {
+    return createNodeHostPort();
+  }
+  throw new Error("[injector] Unsupported runtime: expected Bun or Node.js");
 }
 
 // ---------------------------------------------------------------------------
@@ -313,7 +357,7 @@ async function createRefreshCycle(
 // Startup
 // ---------------------------------------------------------------------------
 
-const host = createBunHostPort();
+const host = createHostPort();
 const config = readConfig(host);
 
 host.logInfo(`[injector] Starting with ${config.sources.length} projection source(s):`);

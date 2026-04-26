@@ -8,11 +8,10 @@ import { AuthService } from "./auth.service";
 
 // Iteration 150 review-1 fix (Finding 2):
 //
-// Locks down the contract that AuthService.redirectToLogin() forwards the
-// CURRENT router URL as `postAuthRedirectUri` so the IdP round-trip resumes
-// users on the route that triggered the auth challenge — instead of always
-// dropping them on the app root. Source-reading is not enough; this test
-// exercises the actual call path with a stub Router and a stub client.
+// Locks down the contract that AuthService.redirectToLogin() can forward an
+// explicit attempted URL as `postAuthRedirectUri`. Guard-triggered redirects
+// must use Angular RouterStateSnapshot.url, not Router.url, because Router.url
+// still points at the previously committed route while a guard is running.
 //
 // Vitest runs in `node` environment (no DOM) so we deliberately avoid
 // `TestBed` (which pulls in the platform-browser DocumentToken) and instead
@@ -27,8 +26,9 @@ function makeAuthService(providers: { provide: unknown; useValue: unknown }[]): 
 }
 
 describe("AuthService.redirectToLogin", () => {
-  it("passes the current router URL as postAuthRedirectUri", async () => {
-    const currentUrl = "/spaces/abc?tab=pages";
+  it("passes the explicit attempted URL as postAuthRedirectUri", async () => {
+    const currentUrl = "/previous";
+    const attemptedUrl = "/spaces/abc?tab=pages";
 
     const loginWithRedirect = vi.fn().mockResolvedValue(undefined);
 
@@ -51,7 +51,7 @@ describe("AuthService.redirectToLogin", () => {
     ]);
 
     await new Promise<void>((resolve, reject) => {
-      service.redirectToLogin(AuthClientKey.Confluence).subscribe({
+      service.redirectToLogin(AuthClientKey.Confluence, attemptedUrl).subscribe({
         complete: () => resolve(),
         error: (err) => reject(err),
       });
@@ -59,7 +59,7 @@ describe("AuthService.redirectToLogin", () => {
 
     expect(loginWithRedirect).toHaveBeenCalledTimes(1);
     expect(loginWithRedirect).toHaveBeenCalledWith({
-      postAuthRedirectUri: currentUrl,
+      postAuthRedirectUri: attemptedUrl,
     });
   });
 

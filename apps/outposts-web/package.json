@@ -1,9 +1,10 @@
 {
   "name": "outposts-web",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "type": "module",
   "exports": {
-    "./env-var-plugin": "./plugins/env-var-plugin.ts"
+    "./env-var-plugin": "./plugins/env-var-plugin.ts",
+    "./dev-inject-middleware": "./plugins/dev-inject-middleware.ts"
   },
   "engines": {
     "node": ">=24.0.0"

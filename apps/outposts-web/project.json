@@ -156,7 +156,7 @@
         "host": "127.0.0.1",
         "hmr": false,
         "liveReload": false,
-        "esbuildMiddleware": ["apps/outposts-web/plugins/dev-inject-middleware.ts"]
+        "esbuildMiddleware": ["outposts-web/dev-inject-middleware"]
       },
       "continuous": true
     },

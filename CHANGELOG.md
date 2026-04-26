@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.4
+
+- **Frontend/Auth: guard-triggered login redirects now preserve the attempted URL** — route protection switched to `createFrontendOidcLoginRedirectHandler`, and `AuthService.redirectToLogin()` now accepts an explicit `postAuthRedirectUri` so redirects can use the guard's attempted route instead of the previously committed `Router.url`; auth service specs were updated to lock down that contract.
+- **Frontend/Dev: Angular dev-server projection injection is now package-exported and Nx-compatible** — `outposts-web` now exports `./dev-inject-middleware`, the Nx `serve` target resolves middleware through that export path, and the middleware no longer uses top-level await so Nx can `require()` it while still fetching and injecting `window.__OUTPOSTS_CONFIG__` into dev HTML responses.
+- **Web host: projection injector now runs on Bun or Node.js** — `apps/outposts-web-host/inject.ts` now detects the runtime explicitly, keeps Bun as the production path, adds a Node.js host adapter with lazy `node:fs/promises` loading for local development, and documents a localhost `PROJECTION_SOURCES` example in `.env.example`.
+- **Securitydept dependencies: frontend and backend advanced to `0.2.0-beta.3`** — bumped the published `@securitydept/*` npm packages, aligned the Rust workspace `securitydept-core` dependency and lockfile crates to `0.2.0-beta.3`, and refreshed package/crate version metadata for the `0.3.4` release.
+- **Tooling: local commands aligned on current workspace conventions** — `just dev-proxy` now runs through `pnpm --filter dev-proxy run start`, `oxfmt` was updated to `^0.46.0`, and the old `.cursorignore` override file was removed from the workspace.
+
 ## 0.3.3
 
 - **Frontend: published `securitydept` SDK adoption** — replaced local `link:` dependencies with published `0.2.0-beta.2` packages for `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular`; removed the pnpm override that forced a local Angular client build.

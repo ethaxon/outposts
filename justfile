@@ -13,7 +13,7 @@ dev-webui:
   pnpm exec nx serve outposts-web
 
 dev-proxy:
-  npm run start -w dev-proxy
+  pnpm --filter dev-proxy run start
 
 build-webui:
   pnpm exec nx build outposts-web

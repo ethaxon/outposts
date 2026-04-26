@@ -1,13 +1,12 @@
-import { inject } from "@angular/core";
 import type { Routes } from "@angular/router";
 import { AppMainComponent } from "@/components/layout/app.main.component";
 import {
+  createFrontendOidcLoginRedirectHandler,
   TokenSetCallbackComponent,
   secureRouteRoot,
 } from "@securitydept/token-set-context-client-angular";
 import { LandingComponent } from "@/pages/landing/landing.component";
 import { AuthCallbackRouteSegment, AuthClientKey } from "@/domain/auth/auth.defs";
-import { AuthService } from "@/domain/auth/auth.service";
 
 export const routes: Routes = [
   { path: "", component: LandingComponent, pathMatch: "full" },
@@ -26,10 +25,9 @@ export const routes: Routes = [
         "confluence",
         {
           requirementHandlers: {
-            frontend_oidc: (_failing, _req) => {
-              inject(AuthService).redirectToLogin(AuthClientKey.Confluence).subscribe();
-              return false;
-            },
+            frontend_oidc: createFrontendOidcLoginRedirectHandler({
+              clientKey: AuthClientKey.Confluence,
+            }),
           },
           requirements: [
             {

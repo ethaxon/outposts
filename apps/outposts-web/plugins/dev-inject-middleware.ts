@@ -111,7 +111,7 @@ function buildBootstrapScript(): string {
 
 // Initial fetch on module load
 if (sources.length > 0) {
-  await refreshAll();
+  void refreshAll();
   // Periodic refresh
   setInterval(() => {
     void refreshAll();

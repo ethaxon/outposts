@@ -366,25 +366,29 @@ async fn get_oidc_config_returns_projection_for_oidc_mode() {
     let query = OidcConfigQuery {
         redirect_uri: "https://app.example.test/auth/callback".to_string(),
     };
-    let axum::Json(projection) = get_oidc_config(
-        axum::extract::Query(query),
-        axum::extract::State(state),
-    )
-    .await
-    .expect("config projection should succeed for OIDC mode");
+    let axum::Json(projection) =
+        get_oidc_config(axum::extract::Query(query), axum::extract::State(state))
+            .await
+            .expect("config projection should succeed for OIDC mode");
 
     assert_eq!(projection.client_id, "outposts-web");
-    assert_eq!(projection.redirect_url, "https://app.example.test/auth/callback");
+    assert_eq!(
+        projection.redirect_url,
+        "https://app.example.test/auth/callback"
+    );
     assert_eq!(
         projection.well_known_url.as_deref(),
         Some("https://issuer.example.test/.well-known/openid-configuration")
     );
-    assert_eq!(
-        projection.issuer_url.as_deref(),
-        Some(issuer)
-    );
+    assert_eq!(projection.issuer_url.as_deref(), Some(issuer));
     assert!(projection.pkce_enabled);
-    assert_eq!(projection.scopes, required_scopes.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+    assert_eq!(
+        projection.scopes,
+        required_scopes
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>()
+    );
 }
 
 #[tokio::test]
@@ -400,13 +404,9 @@ async fn get_oidc_config_rejects_basic_auth_mode() {
         redirect_uri: "https://app.example.test/auth/callback".to_string(),
     };
 
-    let err = get_oidc_config(
-        axum::extract::Query(query),
-        axum::extract::State(state),
-    )
-    .await
-    .err()
-    .expect("BASIC mode should return an error for config projection");
+    let err = get_oidc_config(axum::extract::Query(query), axum::extract::State(state))
+        .await
+        .expect_err("BASIC mode should return an error for config projection");
 
     assert!(matches!(err, AppError::BadRequest { .. }));
 }
