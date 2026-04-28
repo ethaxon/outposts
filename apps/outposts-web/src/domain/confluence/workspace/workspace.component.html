@@ -189,6 +189,18 @@
                     (keyup)="copyProfileUrl(item)"
                   ></i>
                   <i
+                    class="pi pi-file-edit p-1 cursor-pointer"
+                    tabindex="0"
+                    (click)="openUpdateProfileDialog(item)"
+                    (keyup)="openUpdateProfileDialog(item)"
+                  ></i>
+                  <i
+                    class="pi pi-play p-1 cursor-pointer"
+                    tabindex="0"
+                    (click)="openProfileTransformPreviewDialog(item)"
+                    (keyup)="openProfileTransformPreviewDialog(item)"
+                  ></i>
+                  <i
                     class="pi pi-times p-1 cursor-pointer"
                     tabindex="0"
                     (click)="removeProfile(item.id)"
@@ -537,6 +549,118 @@
         icon="pi pi-check"
         (click)="acceptUpdateSubscribeSourceContentDialog()"
       ></p-button>
+    </div>
+  </p-dialog>
+}
+@if (profileUpdate) {
+  <p-dialog
+    [header]="'confluence.workspace.dialogs.editProfile' | transloco"
+    [visible]="true"
+    (visibleChange)="cancelUpdateProfileDialog()"
+    [modal]="true"
+    [style]="{ width: '70vw', minWidth: '300px' }"
+    [draggable]="false"
+    [resizable]="false"
+    [baseZIndex]="100"
+  >
+    <div class="profile-script-editor-header">
+      <label class="profile-script-editor-label" for="profile-transform-script">
+        {{ "confluence.workspace.fields.transform_script" | transloco }}
+      </label>
+      <p class="profile-script-editor-hint">
+        {{ "confluence.workspace.profileScriptHint" | transloco }}
+        <a
+          class="profile-script-schema-link"
+          href="https://raw.githubusercontent.com/dongchengjie/meta-json-schema/refs/heads/main/src/meta-json-schema.json"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {{ "confluence.workspace.profileScriptSchemaLink" | transloco }}
+        </a>
+      </p>
+    </div>
+    <div class="profile-script-editor-shell">
+      <ngx-monaco-editor
+        id="profile-transform-script"
+        [options]="profileScriptEditorOptions"
+        [(ngModel)]="profileUpdate.transformScript"
+        style="min-height: 260px; height: 55vh"
+      ></ngx-monaco-editor>
+    </div>
+    <div class="flex justify-end gap-2 mt-6">
+      <p-button
+        size="small"
+        [label]="'common.actions.cancel' | transloco"
+        icon="pi pi-times"
+        [outlined]="true"
+        (click)="cancelUpdateProfileDialog()"
+      ></p-button>
+      <p-button
+        size="small"
+        [label]="'common.actions.save' | transloco"
+        icon="pi pi-check"
+        (click)="acceptUpdateProfileDialog()"
+      ></p-button>
+    </div>
+  </p-dialog>
+}
+@if (profileTransformPreview) {
+  <p-dialog
+    [header]="'confluence.workspace.dialogs.testProfileTransform' | transloco"
+    [visible]="true"
+    (visibleChange)="cancelProfileTransformPreviewDialog()"
+    [modal]="true"
+    [style]="{ width: '78vw', minWidth: '320px' }"
+    [draggable]="false"
+    [resizable]="false"
+    [baseZIndex]="100"
+  >
+    <div class="profile-transform-preview">
+      <label class="profile-transform-preview-label" for="profile-transform-preview-url">
+        {{ "confluence.workspace.fields.requestUrl" | transloco }}
+      </label>
+      <input
+        id="profile-transform-preview-url"
+        pInputText
+        class="w-full"
+        [ngModel]="profileTransformPreview.url"
+        (ngModelChange)="updateProfileTransformPreviewUrl($event)"
+      />
+
+      <div class="profile-transform-preview-grid">
+        <div class="profile-transform-preview-section">
+          <label class="profile-transform-preview-label" for="profile-transform-preview-headers">
+            {{ "confluence.workspace.fields.requestHeaders" | transloco }}
+          </label>
+          <div class="profile-transform-preview-editor-shell profile-transform-preview-headers">
+            <ngx-monaco-editor
+              id="profile-transform-preview-headers"
+              [options]="profileTransformHeadersEditorOptions"
+              [ngModel]="profileTransformPreview.headersJson"
+              (ngModelChange)="updateProfileTransformPreviewHeaders($event)"
+              style="height: 9rem"
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+
+        <div class="profile-transform-preview-section">
+          <label class="profile-transform-preview-label" for="profile-transform-preview-result">
+            {{ "confluence.workspace.fields.transformResult" | transloco }}
+          </label>
+          @if (profileTransformPreview.error) {
+            <p class="profile-transform-preview-error">{{ profileTransformPreview.error }}</p>
+          }
+          <div class="profile-transform-preview-editor-shell profile-transform-preview-result">
+            <ngx-monaco-editor
+              id="profile-transform-preview-result"
+              [options]="profileTransformResultEditorOptions"
+              [(ngModel)]="profileTransformPreview.resultYaml"
+              [disabled]="true"
+              style="min-height: 260px; height: 46vh"
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+      </div>
     </div>
   </p-dialog>
 }

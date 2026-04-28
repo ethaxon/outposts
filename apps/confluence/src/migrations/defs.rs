@@ -30,6 +30,8 @@ pub enum Profile {
     CreatedAt,
     UpdatedAt,
     ResourceToken,
+    TransformScript,
+    TransformScriptTranspiled,
 }
 
 #[derive(DeriveIden)]

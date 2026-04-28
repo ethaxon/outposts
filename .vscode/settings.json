@@ -12,6 +12,17 @@
     {
       "ssh": "Disabled",
       "previewLimit": 50,
+      "server": "127.0.0.1",
+      "port": 9005,
+      "askForPassword": true,
+      "driver": "PostgreSQL",
+      "name": "outposts-dev",
+      "database": "outposts",
+      "username": "outposts"
+    },
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
       "server": "192.168.128.5",
       "port": 9005,
       "sshOptions": {

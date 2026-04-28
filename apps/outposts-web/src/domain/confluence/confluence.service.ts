@@ -6,6 +6,7 @@ import type { ConfluenceUpdateCronDto } from "./bindings/ConfluenceUpdateCronDto
 import type { ConfluenceUpdateDto } from "./bindings/ConfluenceUpdateDto";
 import type { ProfileCreationDto } from "./bindings/ProfileCreationDto";
 import type { ProfileDto } from "./bindings/ProfileDto";
+import type { ProfileUpdateDto } from "./bindings/ProfileUpdateDto";
 import type { SubscribeSourceCreationDto } from "./bindings/SubscribeSourceCreationDto";
 import type { SubscribeSourceDto } from "./bindings/SubscribeSourceDto";
 import type { SubscribeSourceUpdateDto } from "./bindings/SubscribeSourceUpdateDto";
@@ -129,6 +130,16 @@ export class ConfluenceService {
     return this.httpClient.delete(`${environment.CONFLUENCE_API_ENDPOINT}/profile/${id}`, {
       responseType: "json",
     });
+  }
+
+  updateProfile(id: number, form: ProfileUpdateDto) {
+    return this.httpClient.put<ProfileDto>(
+      `${environment.CONFLUENCE_API_ENDPOINT}/profile/${id}`,
+      form,
+      {
+        responseType: "json",
+      },
+    );
   }
 
   getProfileUrl(resourceToken: string) {

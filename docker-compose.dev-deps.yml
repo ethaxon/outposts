@@ -1,7 +1,7 @@
 
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18-alpine
     env_file: .env
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"

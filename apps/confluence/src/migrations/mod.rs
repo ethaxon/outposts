@@ -10,6 +10,8 @@ mod m20250127_043332_passive_sync;
 mod m20250129_025213_subscriber_source_proxy;
 mod m20250207_005800_fix_deletions;
 mod m20260409_000001_subscribe_source_nameserver_policy;
+mod m20260428_000001_profile_transform_script;
+mod m20260429_000001_profile_transform_script_transpiled;
 
 pub struct Migrator;
 
@@ -26,7 +28,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20250129_025213_subscriber_source_proxy::Migration),
             Box::new(m20250207_005800_fix_deletions::Migration),
             Box::new(m20260409_000001_subscribe_source_nameserver_policy::Migration),
+            Box::new(m20260428_000001_profile_transform_script::Migration),
+            Box::new(m20260429_000001_profile_transform_script_transpiled::Migration),
         ]
     }
 }
-

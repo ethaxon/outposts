@@ -4,7 +4,7 @@ import {
   AuthSourceKind,
 } from "@securitydept/token-set-context-client/orchestration";
 import type { Observable } from "rxjs";
-import { of } from "rxjs";
+import { firstValueFrom, of } from "rxjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthClientKey } from "./auth.defs";
 
@@ -123,7 +123,7 @@ describe("outposts bearer interceptor — provider-neutral injection", () => {
     const req = makeReq(`${API_ENDPOINT}/items`);
 
     const obs = interceptor(makeReqClone(req), nextHandler(captured));
-    obs.subscribe();
+    await firstValueFrom(obs);
 
     expect(captured).toHaveLength(1);
     expect(captured[0]?.setHeaders).toEqual({
@@ -149,7 +149,7 @@ describe("outposts bearer interceptor — provider-neutral injection", () => {
     const captured: FakeReq[] = [];
     const req = makeReq("https://third-party.example.com/v1/data");
 
-    interceptor(makeReqClone(req), nextHandler(captured)).subscribe();
+    await firstValueFrom(interceptor(makeReqClone(req), nextHandler(captured)));
 
     expect(captured).toHaveLength(1);
     expect(captured[0]?.setHeaders).toBeUndefined();
@@ -169,7 +169,7 @@ describe("outposts bearer interceptor — provider-neutral injection", () => {
     const captured: FakeReq[] = [];
     const req = makeReq(`${API_ENDPOINT}/items`);
 
-    interceptor(makeReqClone(req), nextHandler(captured)).subscribe();
+    await firstValueFrom(interceptor(makeReqClone(req), nextHandler(captured)));
 
     expect(captured).toHaveLength(1);
     expect(captured[0]?.setHeaders).toBeUndefined();
@@ -206,7 +206,7 @@ describe("outposts bearer interceptor — provider-neutral injection", () => {
     const captured: FakeReq[] = [];
     const req = makeReq("https://third-party.example.com/v1/data");
 
-    interceptor(makeReqClone(req), nextHandler(captured)).subscribe();
+    await firstValueFrom(interceptor(makeReqClone(req), nextHandler(captured)));
 
     expect(captured).toHaveLength(1);
     expect(captured[0]?.setHeaders).toEqual({

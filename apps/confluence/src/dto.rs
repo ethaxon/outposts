@@ -13,6 +13,10 @@ pub struct ProfileDto {
     #[ts(type = "number")]
     pub updated_at: i64,
     pub resource_token: String,
+    #[ts(optional)]
+    pub transform_script: Option<String>,
+    #[ts(optional)]
+    pub transform_script_transpiled: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -75,6 +79,8 @@ impl From<models::profile::Model> for ProfileDto {
             created_at: value.created_at.and_utc().timestamp_millis(),
             updated_at: value.updated_at.and_utc().timestamp_millis(),
             resource_token: value.resource_token,
+            transform_script: value.transform_script,
+            transform_script_transpiled: value.transform_script_transpiled,
         }
     }
 }
@@ -154,6 +160,15 @@ impl ConfluenceDto {
 #[ts(export)]
 pub struct ProfileCreationDto {
     pub confluence_id: i32,
+    #[ts(optional)]
+    pub transform_script: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+pub struct ProfileUpdateDto {
+    #[ts(optional)]
+    pub transform_script: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]

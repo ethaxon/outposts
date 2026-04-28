@@ -1,10 +1,11 @@
 use axum::{
     Router, handler::HandlerWithoutStateExt, http::Method, http::StatusCode, middleware,
-    routing::delete, routing::get, routing::post, routing::put,
+    routing::get, routing::post, routing::put,
 };
 use confluence::auth::auth;
 use confluence::auth::config_projection::get_oidc_config;
 
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use confluence::config::{AppConfig, AuthConfig, parse_scopes};
 use confluence::error::AppError;
 use confluence::migrations;
@@ -13,7 +14,7 @@ use confluence::services::{
     delete_one_confluence, delete_one_profile, delete_one_subscribe_source, find_many_confluences,
     find_one_confluence, find_one_profile_as_subscription_by_token, mux_one_confluence,
     sync_one_confluence, sync_one_subscribe_source, update_one_confluence,
-    update_one_confluence_cron, update_one_subscribe_source,
+    update_one_confluence_cron, update_one_profile, update_one_subscribe_source,
 };
 use confluence::tasks::init_backend_jobs;
 use sea_orm::{ConnectOptions, Database};
@@ -28,7 +29,6 @@ use std::env;
 use std::sync::Arc;
 use tokio_cron_scheduler::JobScheduler;
 use tower_http::cors::{Any, CorsLayer};
-use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -180,7 +180,7 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
 
     let profile_api = Router::<Arc<AppState>>::new()
         .route("/", post(create_one_profile))
-        .route("/{id}", delete(delete_one_profile))
+        .route("/{id}", put(update_one_profile).delete(delete_one_profile))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
     let subscribe_source_api = Router::<Arc<AppState>>::new()
@@ -199,8 +199,7 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
 
     // Unauthenticated: serves the OIDC client config projection to the browser
     // before the user has logged in. No private data is exposed.
-    let auth_config_api = Router::<Arc<AppState>>::new()
-        .route("/config", get(get_oidc_config));
+    let auth_config_api = Router::<Arc<AppState>>::new().route("/config", get(get_oidc_config));
 
     Router::<Arc<AppState>>::new()
         .nest("/api/profile", profile_api)

@@ -21,6 +21,7 @@ uuid = { version = "1", features = [
 addr = "0.15"
 axum = "0.8"
 axum-extra = "0.12"
+boa_engine = "0.21"
 chrono = { version = "0.4", features = ["serde"] }
 openidconnect = { version = "4", features = ["reqwest"] }
 dotenvy = "0.15"
@@ -66,6 +67,16 @@ securitydept-core = { workspace = true, features = [
   "oauth-resource-server",
   "creds",
   "token-set-context",
+] }
+swc_core = { version = "65", features = [
+  "__parser",
+  "common",
+  "ecma_ast",
+  "ecma_codegen",
+  "ecma_parser_typescript",
+  "ecma_transforms",
+  "ecma_transforms_typescript",
+  "ecma_visit",
 ] }
 
 [dev-dependencies]

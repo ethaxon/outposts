@@ -124,13 +124,17 @@
         "newProfileSuffix": "配置"
       },
       "cronHint": "支持 Unix 风格 cron 表达式，最小粒度为小时，例如",
+      "profileScriptHint": "脚本接收 ProfileTransformContext，并返回修改后的 ClashMetaConfig；ctx.request 包含 headers、url 与 body。",
+      "profileScriptSchemaLink": "Schema 来源",
       "dialogs": {
         "editSubscribeSource": "编辑订阅源",
+        "editProfile": "编辑配置脚本",
         "newSubscribeSource": "新建订阅源",
         "previewMuxContent": "预览聚合内容",
         "previewProfileContent": "预览配置内容",
         "previewSubscribeSourceContent": "预览订阅源内容",
-        "rename": "重命名"
+        "rename": "重命名",
+        "testProfileTransform": "测试配置转换"
       },
       "fields": {
         "cronExpr": "Cron 表达式",
@@ -140,8 +144,16 @@
         "proxy_auth": "代理认证",
         "proxy_server": "代理服务器",
         "proxy_server_nameserver_policy_source": "DNS 名称服务器策略来源",
+        "requestHeaders": "请求 Headers",
+        "requestUrl": "请求 URL",
+        "transformResult": "转换结果",
+        "transform_script": "转换脚本",
         "url": "URL",
         "userAgent": "User-Agent"
+      },
+      "profileTransformPreview": {
+        "headersObjectOnly": "请求 headers 必须是 JSON 对象。",
+        "noTranspiledScript": "当前没有已保存的预转译转换脚本。"
       },
       "sections": {
         "profiles": "配置",

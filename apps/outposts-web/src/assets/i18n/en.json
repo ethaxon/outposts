@@ -124,13 +124,17 @@
         "newProfileSuffix": "Profile"
       },
       "cronHint": "Supports Unix-style cron expressions with an hourly minimum interval, for example",
+      "profileScriptHint": "The script receives ProfileTransformContext and returns the modified ClashMetaConfig; ctx.request contains headers, url, and body.",
+      "profileScriptSchemaLink": "Schema source",
       "dialogs": {
         "editSubscribeSource": "Edit Subscribe Source",
+        "editProfile": "Edit Profile Script",
         "newSubscribeSource": "New Subscribe Source",
         "previewMuxContent": "Preview Mux Content",
         "previewProfileContent": "Preview Profile Content",
         "previewSubscribeSourceContent": "Preview Subscribe Source Content",
-        "rename": "Rename"
+        "rename": "Rename",
+        "testProfileTransform": "Test Profile Transform"
       },
       "fields": {
         "cronExpr": "Cron expression",
@@ -140,8 +144,16 @@
         "proxy_auth": "Proxy auth",
         "proxy_server": "Proxy server",
         "proxy_server_nameserver_policy_source": "DNS Nameserver Policy Source",
+        "requestHeaders": "Request headers",
+        "requestUrl": "Request URL",
+        "transformResult": "Transform result",
+        "transform_script": "Transform script",
         "url": "URL",
         "userAgent": "User-Agent"
+      },
+      "profileTransformPreview": {
+        "headersObjectOnly": "Request headers must be a JSON object.",
+        "noTranspiledScript": "No saved transpiled transform script is available."
       },
       "sections": {
         "profiles": "Profiles",

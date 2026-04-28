@@ -6,4 +6,6 @@ export type ProfileDto = {
   created_at: number;
   updated_at: number;
   resource_token: string;
+  transform_script?: string;
+  transform_script_transpiled?: string;
 };

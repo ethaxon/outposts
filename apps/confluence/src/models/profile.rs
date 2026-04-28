@@ -14,6 +14,8 @@ pub struct Model {
     #[sea_orm(column_type = "Timestamp")]
     pub updated_at: DateTime,
     pub resource_token: String,
+    pub transform_script: Option<String>,
+    pub transform_script_transpiled: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

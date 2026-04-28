@@ -6,6 +6,7 @@ import { RxwebValidators } from "@rxweb/reactive-form-validators";
 import { format } from "date-fns";
 import { isEqual } from "es-toolkit";
 import type { editor as MonacoEditor } from "monaco-editor";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   BehaviorSubject,
   catchError,
@@ -24,6 +25,7 @@ import {
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppI18nService } from "@/core/servces/app-i18n.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
+import { WINDOW } from "@/core/providers/window";
 import { ClipboardService } from "@/tools/clipboard/clipboard.service";
 import { QrcodeService } from "@/tools/qrcode/qrcode.service";
 import type { RecursiveNonNullable } from "@/tools/type-assert";
@@ -34,6 +36,19 @@ import type { SubscribeSourceUpdateDto } from "../bindings/SubscribeSourceUpdate
 import type { ProxyServerNameserverPolicySource } from "../bindings/ProxyServerNameserverPolicySource";
 import { ConfluenceService } from "../confluence.service";
 import { hourPlusLevelCronExprValidator } from "../validators/cron-expr.validators";
+
+const DEFAULT_PROFILE_TRANSFORM_SCRIPT = `export default function transform(ctx: ProfileTransformContext): ClashMetaConfig {
+  return ctx.profile;
+}
+`;
+
+type ProfileTransformHeaders = Record<string, string>;
+
+type ProfileTransformRequest = {
+  headers: ProfileTransformHeaders;
+  url: string;
+  body: string;
+};
 
 @Component({
   standalone: false,
@@ -56,6 +71,7 @@ export class WorkspaceComponent implements OnInit {
   );
   protected readonly clipboardService = inject(ClipboardService);
   protected readonly qrcodeService = inject(QrcodeService);
+  protected readonly window = inject(WINDOW);
 
   confluence$ = new BehaviorSubject<ConfluenceDto | undefined>(undefined);
   confluenceName$ = this.confluence$.pipe(map((c) => `${c?.name ?? ""}`.toLocaleUpperCase()));
@@ -64,6 +80,31 @@ export class WorkspaceComponent implements OnInit {
     language: "yaml",
     automaticLayout: true,
   };
+  protected profileScriptEditorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
+    theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
+    language: "typescript",
+    automaticLayout: true,
+    minimap: { enabled: false },
+    padding: { top: 12, bottom: 12 },
+  };
+  protected profileTransformHeadersEditorOptions: MonacoEditor.IStandaloneEditorConstructionOptions =
+    {
+      theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
+      language: "json",
+      automaticLayout: true,
+      minimap: { enabled: false },
+      padding: { top: 10, bottom: 10 },
+      wordWrap: "on",
+    };
+  protected profileTransformResultEditorOptions: MonacoEditor.IStandaloneEditorConstructionOptions =
+    {
+      theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
+      language: "yaml",
+      automaticLayout: true,
+      readOnly: true,
+      minimap: { enabled: false },
+      padding: { top: 10, bottom: 10 },
+    };
   tmpl = "";
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
@@ -109,6 +150,19 @@ export class WorkspaceComponent implements OnInit {
   urlPreview?: {
     url: string;
     qrcodeDataUrl?: string;
+  };
+  profileUpdate?: {
+    value: {
+      id: number;
+    };
+    transformScript: string;
+  };
+  profileTransformPreview?: {
+    profile: ProfileDto;
+    url: string;
+    headersJson: string;
+    resultYaml: string;
+    error?: string;
   };
   cronUpdateForm = this.fb.group({
     cronExpr: this.fb.control("", [hourPlusLevelCronExprValidator]),
@@ -218,6 +272,30 @@ export class WorkspaceComponent implements OnInit {
         this.tmplEditorOptions = {
           theme: theme === "dark" ? "vs-dark" : "vs",
           language: "yaml",
+          automaticLayout: true,
+        };
+        this.profileScriptEditorOptions = {
+          theme: theme === "dark" ? "vs-dark" : "vs",
+          language: "typescript",
+          automaticLayout: true,
+          minimap: { enabled: false },
+          padding: { top: 12, bottom: 12 },
+        };
+        this.profileTransformHeadersEditorOptions = {
+          theme: theme === "dark" ? "vs-dark" : "vs",
+          language: "json",
+          automaticLayout: true,
+          minimap: { enabled: false },
+          padding: { top: 10, bottom: 10 },
+          wordWrap: "on",
+        };
+        this.profileTransformResultEditorOptions = {
+          theme: theme === "dark" ? "vs-dark" : "vs",
+          language: "yaml",
+          automaticLayout: true,
+          readOnly: true,
+          minimap: { enabled: false },
+          padding: { top: 10, bottom: 10 },
         };
       });
   }
@@ -522,6 +600,149 @@ export class WorkspaceComponent implements OnInit {
         this.subscribeSourceCreation = undefined;
         this.toastSuccess("common.toast.removed");
       });
+  }
+
+  openUpdateProfileDialog(item: ProfileDto) {
+    this.profileUpdate = {
+      value: {
+        id: item.id,
+      },
+      transformScript: item.transform_script || DEFAULT_PROFILE_TRANSFORM_SCRIPT,
+    };
+  }
+
+  cancelUpdateProfileDialog() {
+    this.profileUpdate = undefined;
+  }
+
+  acceptUpdateProfileDialog() {
+    if (!this.profileUpdate) {
+      return;
+    }
+    this.overlayService
+      .withSuspense(
+        this.confluenceService
+          .updateProfile(this.profileUpdate.value.id, {
+            transform_script: this.profileUpdate.transformScript,
+          })
+          .pipe(
+            combineLatestWith(this.confluenceId$),
+            switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
+          ),
+      )
+      .subscribe((c) => {
+        this.confluence$.next(c);
+        this.profileUpdate = undefined;
+        this.toastSuccess("common.toast.saved");
+      });
+  }
+
+  openProfileTransformPreviewDialog(item: ProfileDto) {
+    this.profileTransformPreview = {
+      profile: item,
+      url: this.confluenceService.getProfileUrl(item.resource_token),
+      headersJson: JSON.stringify(
+        {
+          "user-agent": this.window.navigator.userAgent,
+        },
+        null,
+        2,
+      ),
+      resultYaml: "",
+    };
+    this.refreshProfileTransformPreview();
+  }
+
+  cancelProfileTransformPreviewDialog() {
+    this.profileTransformPreview = undefined;
+  }
+
+  updateProfileTransformPreviewUrl(url: string) {
+    if (!this.profileTransformPreview) {
+      return;
+    }
+    this.profileTransformPreview.url = url;
+    this.refreshProfileTransformPreview();
+  }
+
+  updateProfileTransformPreviewHeaders(headersJson: string) {
+    if (!this.profileTransformPreview) {
+      return;
+    }
+    this.profileTransformPreview.headersJson = headersJson;
+    this.refreshProfileTransformPreview();
+  }
+
+  refreshProfileTransformPreview() {
+    const preview = this.profileTransformPreview;
+    const confluence = this.confluence$.getValue();
+    if (!preview || !confluence) {
+      return;
+    }
+
+    try {
+      const script = preview.profile.transform_script_transpiled?.trim();
+      if (!script) {
+        preview.resultYaml = confluence.mux_content;
+        preview.error = this.i18nService.translate(
+          "confluence.workspace.profileTransformPreview.noTranspiledScript",
+        );
+        return;
+      }
+
+      const request: ProfileTransformRequest = {
+        headers: this.parseProfileTransformHeaders(preview.headersJson),
+        url: preview.url,
+        body: "",
+      };
+      preview.resultYaml = this.runProfileTransformScript(script, confluence.mux_content, request);
+      preview.error = undefined;
+    } catch (err: unknown) {
+      preview.resultYaml = confluence.mux_content;
+      preview.error = err instanceof Error ? err.message : `${err}`;
+    }
+  }
+
+  private parseProfileTransformHeaders(headersJson: string): ProfileTransformHeaders {
+    const headers = JSON.parse(headersJson || "{}") as unknown;
+    if (!headers || Array.isArray(headers) || typeof headers !== "object") {
+      throw new Error(
+        this.i18nService.translate(
+          "confluence.workspace.profileTransformPreview.headersObjectOnly",
+        ),
+      );
+    }
+
+    return Object.fromEntries(
+      Object.entries(headers).map(([name, value]) => [name.toLowerCase(), `${value ?? ""}`]),
+    );
+  }
+
+  private runProfileTransformScript(
+    script: string,
+    profileYaml: string,
+    request: ProfileTransformRequest,
+  ) {
+    const profile = parseYaml(profileYaml || "{}") ?? {};
+    const context = { request, profile };
+    const execute = new Function(
+      "__ctx",
+      `
+        var __exports = {};
+        ${script}
+        var __fn = __exports.default;
+        if (typeof __fn !== "function") {
+          throw new Error("No default export function found in the profile transform script");
+        }
+        var __result = __fn(__ctx);
+        if (__result && typeof __result.then === "function") {
+          throw new Error("Async profile transform scripts are not supported");
+        }
+        return __result === undefined ? __ctx.profile : __result;
+      `,
+    ) as (profileContext: unknown) => unknown;
+
+    return stringifyYaml(execute(context));
   }
 
   saveCron() {

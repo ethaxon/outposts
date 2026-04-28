@@ -5,12 +5,16 @@ use crate::clash::http::{
 use crate::clash::{ClashConfig, parse_subscription_userinfo_in_header};
 use crate::config::AppConfig;
 use crate::dto::{
-    ConfluenceUpdateCronDto, SubscribeSourceCreationDto, SubscribeSourceDto,
+    ConfluenceUpdateCronDto, ProfileUpdateDto, SubscribeSourceCreationDto, SubscribeSourceDto,
     SubscribeSourceUpdateDto,
 };
 use crate::error::ConfigError;
 use crate::models::subscribe_source;
 use crate::mux::mux_configs;
+use crate::profile_script::{
+    apply_profile_transform_script_transpiled, build_profile_script_request,
+    compile_profile_transform_script,
+};
 use crate::{
     dto::ProfileCreationDto,
     error::AppError,
@@ -21,8 +25,9 @@ use crate::{
         models::confluence,
     },
 };
+use axum::body::Bytes;
 use axum::extract::{Path, State};
-use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};
+use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri, header};
 use axum::{Extension, Json};
 use chrono_tz::Tz;
 use cron::Schedule;
@@ -422,6 +427,9 @@ pub async fn delete_one_confluence(
 pub async fn find_one_profile_as_subscription_by_token(
     Path(token): Path<String>,
     State(state): State<Arc<AppState>>,
+    request_headers: HeaderMap,
+    uri: Uri,
+    body: Bytes,
 ) -> Result<(HeaderMap, String), AppError> {
     let db = &state.conn;
     let mut pms = profile::Entity::find()
@@ -430,7 +438,7 @@ pub async fn find_one_profile_as_subscription_by_token(
         .limit(1)
         .all(db)
         .await?;
-    if let Some((_, mut cms)) = pms.pop() {
+    if let Some((pm, mut cms)) = pms.pop() {
         let cm = cms.pop().ok_or_else(|| AppError::DbNotFound {
             message: format!("cannot find profile token = {}", token),
         })?;
@@ -484,7 +492,25 @@ pub async fn find_one_profile_as_subscription_by_token(
                 );
             }
         };
-        let mux_content = cm.mux_content;
+        let mut transform_script_transpiled = pm.transform_script_transpiled.clone();
+        if transform_script_transpiled.is_none()
+            && let Some(script) = pm
+                .transform_script
+                .as_deref()
+                .filter(|script| !script.trim().is_empty())
+        {
+            transform_script_transpiled = compile_profile_transform_script(script)?;
+            let mut pam = pm.clone().into_active_model();
+            pam.transform_script_transpiled = Set(transform_script_transpiled.clone());
+            pam.save(db).await?;
+        }
+
+        let mux_content = if let Some(script) = transform_script_transpiled.as_deref() {
+            let request = build_profile_script_request(&request_headers, &uri, &body);
+            apply_profile_transform_script_transpiled(script, &cm.mux_content, request)?
+        } else {
+            cm.mux_content
+        };
         Ok((headers, mux_content))
     } else {
         Err(AppError::DbNotFound {
@@ -500,14 +526,52 @@ pub async fn create_one_profile(
 ) -> Result<Json<ProfileDto>, AppError> {
     let db = &state.conn;
     find_one_confluence_in_db(db, profile_creation_dto.confluence_id, &current_user).await?;
+    let transform_script_transpiled = profile_creation_dto
+        .transform_script
+        .as_deref()
+        .map(compile_profile_transform_script)
+        .transpose()?
+        .flatten();
     let mut pms = profile::ActiveModel {
         resource_token: Set(Uuid::new_v4().to_string()),
         confluence_id: Set(profile_creation_dto.confluence_id),
+        transform_script: Set(profile_creation_dto.transform_script),
+        transform_script_transpiled: Set(transform_script_transpiled),
         ..Default::default()
     };
     pms = pms.save(db).await?;
     let pms = pms.try_into_model()?;
     Ok(Json(pms.into()))
+}
+
+pub async fn update_one_profile(
+    Path(id): Path<i32>,
+    State(state): State<Arc<AppState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    Json(profile_update_dto): Json<ProfileUpdateDto>,
+) -> Result<Json<ProfileDto>, AppError> {
+    let db = &state.conn;
+    let mut pm = profile::Entity::find_by_id(id)
+        .find_with_related(confluence::Entity)
+        .filter(confluence::Column::Creator.eq(&current_user.user_id))
+        .limit(1)
+        .all(db)
+        .await?;
+    if let Some((pm, _)) = pm.pop() {
+        let mut pam = pm.into_active_model();
+        if let Some(transform_script) = profile_update_dto.transform_script {
+            let transform_script_transpiled = compile_profile_transform_script(&transform_script)?;
+            pam.transform_script = Set(Some(transform_script));
+            pam.transform_script_transpiled = Set(transform_script_transpiled);
+        }
+        let pam = pam.save(db).await?;
+        let pm = pam.try_into_model()?;
+        Ok(Json(pm.into()))
+    } else {
+        Err(AppError::DbNotFound {
+            message: format!("cannot find profile id = {}", id),
+        })
+    }
 }
 
 pub async fn delete_one_profile(

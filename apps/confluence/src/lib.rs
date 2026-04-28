@@ -8,5 +8,6 @@ pub mod error;
 pub mod migrations;
 pub mod models;
 pub mod mux;
+pub mod profile_script;
 pub mod services;
 pub mod tasks;
