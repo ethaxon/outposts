@@ -12,6 +12,8 @@ mod m20250207_005800_fix_deletions;
 mod m20260409_000001_subscribe_source_nameserver_policy;
 mod m20260428_000001_profile_transform_script;
 mod m20260429_000001_profile_transform_script_transpiled;
+mod m20260430_000002_subscribe_source_traffic_reset_policy;
+mod m20260430_000003_subscribe_source_traffic_next_reset_at;
 
 pub struct Migrator;
 
@@ -30,6 +32,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260409_000001_subscribe_source_nameserver_policy::Migration),
             Box::new(m20260428_000001_profile_transform_script::Migration),
             Box::new(m20260429_000001_profile_transform_script_transpiled::Migration),
+            Box::new(m20260430_000002_subscribe_source_traffic_reset_policy::Migration),
+            Box::new(m20260430_000003_subscribe_source_traffic_next_reset_at::Migration),
         ]
     }
 }

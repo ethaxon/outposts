@@ -146,10 +146,24 @@
         "proxy_server_nameserver_policy_source": "DNS Nameserver Policy Source",
         "requestHeaders": "Request headers",
         "requestUrl": "Request URL",
+        "traffic_reset_policy": "Traffic reset policy",
         "transformResult": "Transform result",
         "transform_script": "Transform script",
         "url": "URL",
         "userAgent": "User-Agent"
+      },
+      "metadata": {
+        "expireAt": "Expires at",
+        "profiles": "Profiles",
+        "subscribeSources": "Subscribe sources",
+        "totalTraffic": "Total traffic",
+        "usedTraffic": "Used traffic"
+      },
+      "nameserverPolicySource": {
+        "auto": "Auto",
+        "nameserver": "nameserver",
+        "none": "None",
+        "proxy_server_nameserver": "proxy-server-nameserver"
       },
       "profileTransformPreview": {
         "headersObjectOnly": "Request headers must be a JSON object.",
@@ -161,6 +175,21 @@
         "syncSchedule": "Sync Schedule",
         "syncUserAgent": "Sync User-Agent",
         "template": "Template"
+      },
+      "subscription": {
+        "expireAt": "Expires at",
+        "trafficNextResetAt": "Next reset",
+        "trafficResetPolicy": "Reset policy",
+        "totalTraffic": "Total traffic",
+        "updatedAt": "Updated at",
+        "usedTraffic": "Used traffic"
+      },
+      "trafficResetPolicy": {
+        "default": "Default (monthly)",
+        "monthly": "Monthly",
+        "one_time": "One-time",
+        "quarterly": "Quarterly",
+        "yearly": "Yearly"
       },
       "toasts": {
         "muxed": "Mux completed successfully",

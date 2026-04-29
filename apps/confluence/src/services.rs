@@ -616,6 +616,11 @@ pub async fn create_one_subscribe_source(
             .proxy_server_nameserver_policy_source
             .and_then(|v| serde_json::to_value(&v).ok())
             .and_then(|v| v.as_str().map(String::from))),
+        traffic_reset_policy: Set(subscribe_creation_dto
+            .traffic_reset_policy
+            .and_then(|v| serde_json::to_value(&v).ok())
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_else(|| "default".to_string())),
         ..Default::default()
     };
     pms = pms.save(db).await?;
@@ -660,6 +665,12 @@ pub async fn update_one_subscribe_source(
             pam.proxy_server_nameserver_policy_source = Set(serde_json::to_value(&policy_source)
                 .ok()
                 .and_then(|v| v.as_str().map(String::from)));
+        };
+        if let Some(traffic_reset_policy) = subscribe_update_dto.traffic_reset_policy {
+            pam.traffic_reset_policy = Set(serde_json::to_value(&traffic_reset_policy)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_else(|| "default".to_string()));
         };
         let pam = pam.save(db).await?;
         let pm = pam.try_into_model()?;

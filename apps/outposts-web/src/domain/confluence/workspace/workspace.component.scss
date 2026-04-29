@@ -19,15 +19,40 @@
   }
 
   .confluence-subscribe-source-item {
-    min-width: 9em;
+    width: 100%;
+    min-height: 16.5rem;
 
     .p-card-content {
       padding: 0;
     }
   }
 
+  .confluence-subscribe-source-item .p-card-body,
+  .confluence-subscribe-source-item .p-card-content {
+    height: 100%;
+  }
+
+  .subscription-usage-progress.p-progressbar {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--p-surface-200);
+  }
+
+  .subscription-usage-progress .p-progressbar-value {
+    border-radius: 999px;
+  }
+
+  .subscription-usage-progress-ok .p-progressbar-value {
+    background: var(--p-green-500);
+  }
+
+  .subscription-usage-progress-warning .p-progressbar-value {
+    background: var(--p-orange-500);
+  }
+
   .confluence-profile-item {
-    min-width: 9em;
+    width: 100%;
+    min-height: 6.75rem;
 
     .p-card-content {
       padding: 0;
@@ -48,6 +73,104 @@
   p-button {
     right: 0;
     top: 0;
+  }
+}
+
+.workspace-card-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: stretch;
+  margin-top: 1.5rem;
+}
+
+.workspace-subscribe-source-grid {
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.workspace-profile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+
+.workspace-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.workspace-metadata-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--p-surface-200);
+  border-radius: 0.5rem;
+  background: var(--p-surface-50);
+
+  span {
+    min-width: 0;
+    color: var(--p-surface-500);
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--p-surface-900);
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.confluence-subscribe-source-create .p-card-content {
+  display: flex;
+  min-height: 11.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.subscription-source-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+  min-width: 0;
+  text-align: left;
+}
+
+.subscription-source-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--p-surface-600);
+
+  span,
+  strong {
+    min-width: 0;
+  }
+
+  strong {
+    color: var(--p-surface-900);
+    font-weight: 700;
+    white-space: nowrap;
   }
 }
 
@@ -169,12 +292,33 @@
     background: var(--p-surface-900);
   }
 
+  .workspace-metadata-item {
+    border-color: var(--p-surface-700);
+    background: var(--p-surface-900);
+
+    span {
+      color: var(--p-surface-400);
+    }
+
+    strong {
+      color: var(--p-surface-0);
+    }
+  }
+
   .profile-script-editor-label {
     color: var(--p-surface-0);
   }
 
   .profile-script-editor-hint {
     color: var(--p-surface-300);
+  }
+
+  .subscription-source-meta-row {
+    color: var(--p-surface-300);
+
+    strong {
+      color: var(--p-surface-0);
+    }
   }
 
   .profile-script-schema-link {

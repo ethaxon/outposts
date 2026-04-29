@@ -228,3 +228,5 @@ index.d.ts.map
 vite.config.*.timestamp*
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+temp/
+!temp/.gitkeep

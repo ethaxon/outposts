@@ -146,10 +146,24 @@
         "proxy_server_nameserver_policy_source": "DNS 名称服务器策略来源",
         "requestHeaders": "请求 Headers",
         "requestUrl": "请求 URL",
+        "traffic_reset_policy": "流量重置策略",
         "transformResult": "转换结果",
         "transform_script": "转换脚本",
         "url": "URL",
         "userAgent": "User-Agent"
+      },
+      "metadata": {
+        "expireAt": "到期时间",
+        "profiles": "配置数量",
+        "subscribeSources": "订阅源数量",
+        "totalTraffic": "总计流量",
+        "usedTraffic": "已用流量"
+      },
+      "nameserverPolicySource": {
+        "auto": "自动",
+        "nameserver": "nameserver",
+        "none": "无",
+        "proxy_server_nameserver": "proxy-server-nameserver"
       },
       "profileTransformPreview": {
         "headersObjectOnly": "请求 headers 必须是 JSON 对象。",
@@ -161,6 +175,21 @@
         "syncSchedule": "同步计划",
         "syncUserAgent": "同步 User-Agent",
         "template": "模板"
+      },
+      "subscription": {
+        "expireAt": "到期时间",
+        "trafficNextResetAt": "下次重置",
+        "trafficResetPolicy": "重置策略",
+        "totalTraffic": "总计流量",
+        "updatedAt": "更新时间",
+        "usedTraffic": "已用流量"
+      },
+      "trafficResetPolicy": {
+        "default": "默认（按月）",
+        "monthly": "按月",
+        "one_time": "一次性",
+        "quarterly": "按季度",
+        "yearly": "按年"
       },
       "toasts": {
         "muxed": "聚合完成",

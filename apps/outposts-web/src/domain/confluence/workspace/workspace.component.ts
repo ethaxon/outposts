@@ -32,6 +32,7 @@ import type { RecursiveNonNullable } from "@/tools/type-assert";
 import type { ConfluenceDto } from "../bindings/ConfluenceDto";
 import type { ProfileDto } from "../bindings/ProfileDto";
 import type { SubscribeSourceDto } from "../bindings/SubscribeSourceDto";
+import type { SubscribeSourceTrafficResetPolicy } from "../bindings/SubscribeSourceTrafficResetPolicy";
 import type { SubscribeSourceUpdateDto } from "../bindings/SubscribeSourceUpdateDto";
 import type { ProxyServerNameserverPolicySource } from "../bindings/ProxyServerNameserverPolicySource";
 import { ConfluenceService } from "../confluence.service";
@@ -117,10 +118,20 @@ export class WorkspaceComponent implements OnInit {
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
   policySourceOptions: { label: string; value: ProxyServerNameserverPolicySource }[] = [
-    { label: "auto", value: "auto" },
-    { label: "proxy-server-nameserver", value: "proxy_server_nameserver" },
-    { label: "nameserver", value: "nameserver" },
-    { label: "none", value: "none" },
+    { label: "confluence.workspace.nameserverPolicySource.auto", value: "auto" },
+    {
+      label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver",
+      value: "proxy_server_nameserver",
+    },
+    { label: "confluence.workspace.nameserverPolicySource.nameserver", value: "nameserver" },
+    { label: "confluence.workspace.nameserverPolicySource.none", value: "none" },
+  ];
+  trafficResetPolicyOptions: { label: string; value: SubscribeSourceTrafficResetPolicy }[] = [
+    { label: "confluence.workspace.trafficResetPolicy.default", value: "default" },
+    { label: "confluence.workspace.trafficResetPolicy.monthly", value: "monthly" },
+    { label: "confluence.workspace.trafficResetPolicy.quarterly", value: "quarterly" },
+    { label: "confluence.workspace.trafficResetPolicy.yearly", value: "yearly" },
+    { label: "confluence.workspace.trafficResetPolicy.one_time", value: "one_time" },
   ];
   subscribeSourceCreation?: {
     value: {
@@ -133,6 +144,7 @@ export class WorkspaceComponent implements OnInit {
       proxy_auth: FormControl<string | null>;
       passive_sync: FormControl<boolean | null>;
       proxy_server_nameserver_policy_source: FormControl<ProxyServerNameserverPolicySource | null>;
+      traffic_reset_policy: FormControl<SubscribeSourceTrafficResetPolicy | null>;
     }>;
   };
   subscribeSourceUpdate?: {
@@ -146,6 +158,7 @@ export class WorkspaceComponent implements OnInit {
       proxy_server: FormControl<string | null>;
       proxy_auth: FormControl<string | null>;
       proxy_server_nameserver_policy_source: FormControl<ProxyServerNameserverPolicySource | null>;
+      traffic_reset_policy: FormControl<SubscribeSourceTrafficResetPolicy | null>;
     }>;
   };
   muxContentPreview?: {
@@ -396,6 +409,7 @@ export class WorkspaceComponent implements OnInit {
               proxy_server_nameserver_policy_source: [
                 "auto" as ProxyServerNameserverPolicySource | null,
               ],
+              traffic_reset_policy: ["default" as SubscribeSourceTrafficResetPolicy | null],
             }),
           };
         }),
@@ -450,6 +464,7 @@ export class WorkspaceComponent implements OnInit {
         proxy_server_nameserver_policy_source: [
           item.proxy_server_nameserver_policy_source as ProxyServerNameserverPolicySource | null,
         ],
+        traffic_reset_policy: [item.traffic_reset_policy],
       }),
     };
   }
@@ -583,6 +598,49 @@ export class WorkspaceComponent implements OnInit {
 
   cancelPreviewMuxContentDialog() {
     this.muxContentPreview = undefined;
+  }
+
+  formatTrafficGb(value?: number | null): string {
+    if (value == null) {
+      return "-- GB";
+    }
+    return `${(Math.max(0, value) / 1024 ** 3).toFixed(2)} GB`;
+  }
+
+  formatOptionalTime(value?: number | null): string {
+    if (value == null) {
+      return "--";
+    }
+    return format(value, "yyyy-MM-dd HH:mm");
+  }
+
+  trafficResetPolicyLabelKey(value: SubscribeSourceTrafficResetPolicy): string {
+    return `confluence.workspace.trafficResetPolicy.${value}`;
+  }
+
+  usedTraffic(
+    item: Pick<SubscribeSourceDto | ConfluenceDto, "sub_upload" | "sub_download">,
+  ): number | undefined {
+    const upload = item.sub_upload ?? 0;
+    const download = item.sub_download ?? 0;
+    if (item.sub_upload == null && item.sub_download == null) {
+      return undefined;
+    }
+    return upload + download;
+  }
+
+  subscribeSourceUsagePercent(item: SubscribeSourceDto): number {
+    const used = this.usedTraffic(item);
+    if (used == null || item.sub_total == null || item.sub_total <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((used / item.sub_total) * 100));
+  }
+
+  subscribeSourceUsageProgressClass(item: SubscribeSourceDto): string {
+    return this.subscribeSourceUsagePercent(item) > 80
+      ? "subscription-usage-progress subscription-usage-progress-warning"
+      : "subscription-usage-progress subscription-usage-progress-ok";
   }
 
   formatTime = format;

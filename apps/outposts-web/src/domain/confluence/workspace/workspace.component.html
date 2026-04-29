@@ -14,9 +14,34 @@
         (keyup)="openUpdateNameDialog()"
       >
         <span class="font-bold text-2xl">{{ (confluenceName$ | async)! }}</span>
+        <i class="pi pi-pencil text-sm text-surface-500"></i>
       </div>
     </ng-template>
     <ng-template #content>
+      @if (confluence$ | async; as confluence) {
+        <div class="workspace-metadata">
+          <div class="workspace-metadata-item">
+            <span>{{ "confluence.workspace.metadata.totalTraffic" | transloco }}</span>
+            <strong>{{ formatTrafficGb(confluence.sub_total) }}</strong>
+          </div>
+          <div class="workspace-metadata-item">
+            <span>{{ "confluence.workspace.metadata.usedTraffic" | transloco }}</span>
+            <strong>{{ formatTrafficGb(usedTraffic(confluence)) }}</strong>
+          </div>
+          <div class="workspace-metadata-item">
+            <span>{{ "confluence.workspace.metadata.expireAt" | transloco }}</span>
+            <strong>{{ formatOptionalTime(confluence.sub_expire) }}</strong>
+          </div>
+          <div class="workspace-metadata-item">
+            <span>{{ "confluence.workspace.metadata.subscribeSources" | transloco }}</span>
+            <strong>{{ confluence.subscribe_sources.length }}</strong>
+          </div>
+          <div class="workspace-metadata-item">
+            <span>{{ "confluence.workspace.metadata.profiles" | transloco }}</span>
+            <strong>{{ confluence.profiles.length }}</strong>
+          </div>
+        </div>
+      }
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
@@ -66,10 +91,10 @@
       </div>
       <p-dataView #dv [value]="subscribeSources" class="mt-6" [emptyMessage]="' '">
         <ng-template #list let-items>
-          <div class="flex flex-wrap mt-6 gap-6 items-stretch text-center">
-            <div class="flex flex-col items-center">
+          <div class="workspace-card-grid workspace-subscribe-source-grid text-center">
+            <div>
               <p-card
-                class="cursor-pointer text-center relative confluence-subscribe-source-item h-full dark:bg-surface-950"
+                class="cursor-pointer text-center relative confluence-subscribe-source-item confluence-subscribe-source-create h-full dark:bg-surface-950"
                 (click)="openCreateSubscribeSourceDialog()"
               >
                 <div>{{ "confluence.workspace.cards.import" | transloco }}</div>
@@ -77,11 +102,10 @@
                   <i class="pi pi-plus p-1"></i>
                 </div>
               </p-card>
-              <time class="mt-2">&nbsp;<br />&nbsp;</time>
             </div>
 
             @for (item of items; track item.id) {
-              <div class="flex flex-col items-center">
+              <div>
                 <p-card
                   class="cursor-pointer text-center relative confluence-subscribe-source-item h-full dark:bg-surface-950"
                 >
@@ -126,12 +150,46 @@
                       top: '0.5em',
                     }"
                   ></div>
+                  <div class="subscription-source-meta">
+                    <div class="subscription-source-meta-row">
+                      <span>{{ "confluence.workspace.subscription.updatedAt" | transloco }}</span>
+                      <strong>{{ formatTime(item.updated_at, "MM-dd HH:mm") }}</strong>
+                    </div>
+                    <div class="subscription-source-meta-row">
+                      <span>{{ "confluence.workspace.subscription.expireAt" | transloco }}</span>
+                      <strong>{{ formatOptionalTime(item.sub_expire) }}</strong>
+                    </div>
+                    <div class="subscription-source-meta-row">
+                      <span>{{ "confluence.workspace.subscription.usedTraffic" | transloco }}</span>
+                      <strong>{{ formatTrafficGb(usedTraffic(item)) }}</strong>
+                    </div>
+                    <div class="subscription-source-meta-row">
+                      <span>{{
+                        "confluence.workspace.subscription.totalTraffic" | transloco
+                      }}</span>
+                      <strong>{{ formatTrafficGb(item.sub_total) }}</strong>
+                    </div>
+                    <div class="subscription-source-meta-row">
+                      <span>{{
+                        "confluence.workspace.subscription.trafficResetPolicy" | transloco
+                      }}</span>
+                      <strong>{{
+                        trafficResetPolicyLabelKey(item.traffic_reset_policy) | transloco
+                      }}</strong>
+                    </div>
+                    <div class="subscription-source-meta-row">
+                      <span>{{
+                        "confluence.workspace.subscription.trafficNextResetAt" | transloco
+                      }}</span>
+                      <strong>{{ formatOptionalTime(item.traffic_next_reset_at) }}</strong>
+                    </div>
+                    <p-progressbar
+                      [value]="subscribeSourceUsagePercent(item)"
+                      [showValue]="false"
+                      [styleClass]="subscribeSourceUsageProgressClass(item)"
+                    ></p-progressbar>
+                  </div>
                 </p-card>
-                <time class="mt-2">
-                  {{ "confluence.workspace.updatedAt" | transloco }}
-                  <br />
-                  {{ formatTime(item.updated_at, "MM-dd HH:mm") }}
-                </time>
               </div>
             }
           </div>
@@ -160,7 +218,7 @@
       </div>
       <p-dataView #dv [value]="profiles" class="mt-6" [emptyMessage]="' '">
         <ng-template #list let-items>
-          <div class="flex flex-wrap mt-6 gap-6 items-stretch text-center">
+          <div class="workspace-card-grid workspace-profile-grid text-center">
             <p-card
               class="cursor-pointer confluence-profile-item h-full dark:bg-surface-950"
               (click)="createProfile()"
@@ -170,7 +228,7 @@
                 <br />
                 {{ "confluence.workspace.cards.newProfileSuffix" | transloco }}
               </div>
-              <div class="flex items-center justify-center gap-1 mt-2">
+              <div class="profile-card-actions">
                 <i class="pi pi-plus p-1"></i>
               </div>
             </p-card>
@@ -183,7 +241,7 @@
                   <br />
                   {{ formatTime(item.updated_at, "HH:mm") }}
                 </time>
-                <div class="flex items-center justify-center gap-1 mt-2">
+                <div class="profile-card-actions">
                   <i
                     class="pi pi-copy p-1 cursor-pointer"
                     tabindex="0"
@@ -311,41 +369,62 @@
       class="w-full flex flex-col"
       onsubmit="return false;"
     >
-      @for (item of subscribeSourceCreation.form.controls | keyvalue; track item.key) {
+      @for (control of subscribeSourceCreation.form.controls | keyvalue; track control.key) {
         <label
           style="text-transform: capitalize"
           [ngClass]="{ 'mt-4': !$first }"
-          for="subscribe-source-creation-{{ item.key }}"
+          for="subscribe-source-creation-{{ control.key }}"
         >
-          {{ "confluence.workspace.fields." + item.key | transloco }}
+          {{ "confluence.workspace.fields." + control.key | transloco }}
         </label>
-        @if (item.key === "passive_sync") {
+        @if (control.key === "passive_sync") {
           <p-checkbox
             class="mt-2"
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             [binary]="true"
-            id="subscribe-source-creation-{{ item.key }}"
+            id="subscribe-source-creation-{{ control.key }}"
           />
-        } @else if (item.key === "proxy_server_nameserver_policy_source") {
+        } @else if (control.key === "proxy_server_nameserver_policy_source") {
           <p-select
             class="mt-2 w-full"
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             [options]="policySourceOptions"
-            optionLabel="label"
             optionValue="value"
-            id="subscribe-source-creation-{{ item.key }}"
-          />
+            id="subscribe-source-creation-{{ control.key }}"
+          >
+            <ng-template #selectedItem let-selectedOption>
+              {{ selectedOption?.label | transloco }}
+            </ng-template>
+            <ng-template #item let-option>
+              {{ option.label | transloco }}
+            </ng-template>
+          </p-select>
+        } @else if (control.key === "traffic_reset_policy") {
+          <p-select
+            class="mt-2 w-full"
+            [formControlName]="control.key"
+            [options]="trafficResetPolicyOptions"
+            optionValue="value"
+            id="subscribe-source-creation-{{ control.key }}"
+          >
+            <ng-template #selectedItem let-selectedOption>
+              {{ selectedOption?.label | transloco }}
+            </ng-template>
+            <ng-template #item let-option>
+              {{ option.label | transloco }}
+            </ng-template>
+          </p-select>
         } @else {
           <input
             class="mt-2"
             [ngClass]="{
-              'ng-invalid': item.value.invalid,
-              'ng-dirty': item.value.touched,
+              'ng-invalid': control.value.invalid,
+              'ng-dirty': control.value.touched,
             }"
             type="text"
-            id="subscribe-source-creation-{{ item.key }}"
+            id="subscribe-source-creation-{{ control.key }}"
             pInputText
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             autocomplete="off"
           />
         }
@@ -447,41 +526,62 @@
         autocomplete="off"
         [disabled]="true"
       />
-      @for (item of subscribeSourceUpdate.form.controls | keyvalue; track item.key) {
+      @for (control of subscribeSourceUpdate.form.controls | keyvalue; track control.key) {
         <label
           style="text-transform: capitalize"
           class="mt-6"
-          for="subscribe-source-creation-{{ item.key }}"
+          for="subscribe-source-creation-{{ control.key }}"
         >
-          {{ "confluence.workspace.fields." + item.key | transloco }}
+          {{ "confluence.workspace.fields." + control.key | transloco }}
         </label>
-        @if (item.key === "passive_sync") {
+        @if (control.key === "passive_sync") {
           <p-checkbox
             class="mt-2"
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             [binary]="true"
-            id="subscribe-source-creation-{{ item.key }}"
+            id="subscribe-source-creation-{{ control.key }}"
           />
-        } @else if (item.key === "proxy_server_nameserver_policy_source") {
+        } @else if (control.key === "proxy_server_nameserver_policy_source") {
           <p-select
             class="mt-2 w-full"
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             [options]="policySourceOptions"
-            optionLabel="label"
             optionValue="value"
-            id="subscribe-source-creation-{{ item.key }}"
-          />
+            id="subscribe-source-creation-{{ control.key }}"
+          >
+            <ng-template #selectedItem let-selectedOption>
+              {{ selectedOption?.label | transloco }}
+            </ng-template>
+            <ng-template #item let-option>
+              {{ option.label | transloco }}
+            </ng-template>
+          </p-select>
+        } @else if (control.key === "traffic_reset_policy") {
+          <p-select
+            class="mt-2 w-full"
+            [formControlName]="control.key"
+            [options]="trafficResetPolicyOptions"
+            optionValue="value"
+            id="subscribe-source-creation-{{ control.key }}"
+          >
+            <ng-template #selectedItem let-selectedOption>
+              {{ selectedOption?.label | transloco }}
+            </ng-template>
+            <ng-template #item let-option>
+              {{ option.label | transloco }}
+            </ng-template>
+          </p-select>
         } @else {
           <input
             class="mt-2"
             [ngClass]="{
-              'ng-invalid': item.value.invalid,
-              'ng-dirty': item.value.touched,
+              'ng-invalid': control.value.invalid,
+              'ng-dirty': control.value.touched,
             }"
             type="text"
-            id="subscribe-source-creation-{{ item.key }}"
+            id="subscribe-source-creation-{{ control.key }}"
             pInputText
-            [formControlName]="item.key"
+            [formControlName]="control.key"
             autocomplete="off"
           />
         }

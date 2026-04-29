@@ -52,6 +52,8 @@ pub enum SubscribeSource {
     ProxyServer,
     ProxyAuth,
     ProxyServerNameserverPolicySource,
+    TrafficResetPolicy,
+    TrafficNextResetAt,
 }
 
 pub async fn create_postgres_auto_update_ts_fn(

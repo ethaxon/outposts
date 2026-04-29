@@ -259,6 +259,8 @@ mod tests {
             proxy_server: None,
             proxy_auth: None,
             proxy_server_nameserver_policy_source: policy_source.map(String::from),
+            traffic_reset_policy: "default".to_string(),
+            traffic_next_reset_at: None,
         }
     }
 

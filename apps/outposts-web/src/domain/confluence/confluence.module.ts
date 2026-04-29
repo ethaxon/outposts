@@ -13,6 +13,7 @@ import { DataViewModule } from "primeng/dataview";
 import { DialogModule } from "primeng/dialog";
 import { InputTextModule } from "primeng/inputtext";
 import { PanelModule } from "primeng/panel";
+import { ProgressBarModule } from "primeng/progressbar";
 import { ScrollTopModule } from "primeng/scrolltop";
 import { SelectModule } from "primeng/select";
 import { SkeletonModule } from "primeng/skeleton";
@@ -40,6 +41,7 @@ import { WorkspaceComponent } from "./workspace/workspace.component";
     CardModule,
     AvatarModule,
     PanelModule,
+    ProgressBarModule,
     RouterModule,
     FormsModule,
     MonacoEditorModule,
