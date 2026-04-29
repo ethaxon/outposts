@@ -76,17 +76,17 @@ importers:
         specifier: ^13.0.1
         version: 13.0.1
       '@securitydept/client':
-        specifier: ^0.2.0-beta.4
-        version: 0.2.0-beta.4
+        specifier: ^0.2.0-beta.6
+        version: 0.2.0-beta.6
       '@securitydept/client-angular':
-        specifier: ^0.2.0-beta.4
-        version: 0.2.0-beta.4(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.4)(rxjs@7.8.2)
+        specifier: ^0.2.0-beta.6
+        version: 0.2.0-beta.6(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.6)(rxjs@7.8.2)
       '@securitydept/token-set-context-client':
-        specifier: ^0.2.0-beta.4
-        version: 0.2.0-beta.4(oauth4webapi@3.8.5)
+        specifier: ^0.2.0-beta.6
+        version: 0.2.0-beta.6(oauth4webapi@3.8.5)
       '@securitydept/token-set-context-client-angular':
-        specifier: ^0.2.0-beta.4
-        version: 0.2.0-beta.4(d2e330b0d67600f9e0d41b280fbf1258)
+        specifier: ^0.2.0-beta.6
+        version: 0.2.0-beta.6(19018f62942ced65e000dfdfbdd7bfb7)
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
@@ -3320,30 +3320,30 @@ packages:
     resolution: {integrity: sha512-rCEprgpNbJLl9Rm/t92eRYc1eIqD4BAJqB1OO8fzQolyDajCcOBpohjXkuLYSwK9RMyS6f+szNnYGOQawlrPYw==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
 
-  '@securitydept/client-angular@0.2.0-beta.4':
-    resolution: {integrity: sha512-E0ot/TFEicU8Xlca0PzWfP9Qqu7U6FTdrxn3yA79iT1d0x2vZhUHTqpO4DNxxZUYDuZZjp5ULzKTh0tTa19/Uw==}
+  '@securitydept/client-angular@0.2.0-beta.6':
+    resolution: {integrity: sha512-IPyT2Wo5ByjDUS3ttsxZRFxMOJPR9VSoY+DY3BfcvA0iuScAnpRkq82O2+0xGR+TuMe+b82Yjrgjrv2kBZ5uuw==}
     peerDependencies:
       '@angular/core': '>=19.0.0'
       '@angular/router': '>=19.0.0'
-      '@securitydept/client': 0.2.0-beta.4
+      '@securitydept/client': 0.2.0-beta.6
       rxjs: '>=7.0.0'
 
-  '@securitydept/client@0.2.0-beta.4':
-    resolution: {integrity: sha512-lB71ab2slgplSPOsNYw0gjMlbqImcDEpvHFjazqYJQ1nR4Cueq3Om2ayVh+B2/mPKpaTbmlZElXpiIzbxrQa/g==}
+  '@securitydept/client@0.2.0-beta.6':
+    resolution: {integrity: sha512-IWCJfSZYp+OJwY5v0W/vCPD6PNXUzDvP5Ya6b+wth5nCUVArc3vKFqqEaNY+39RRm+cuhBvu8AHM3jRYk/NU7g==}
 
-  '@securitydept/token-set-context-client-angular@0.2.0-beta.4':
-    resolution: {integrity: sha512-Zepz/3ai4Z/SvJGvxcd8tJCBt3WCDsS+wju9mnMJxgpKNoe9VOz9HBOOSg1FghpR3jyUBM/z43S2ANPF7/WyBw==}
+  '@securitydept/token-set-context-client-angular@0.2.0-beta.6':
+    resolution: {integrity: sha512-keFznqRzkV2HxNzP77epiTse96b9gF5QICPRrGjMUb2i/V29a61Iv1uczIG0QbGCrGmIuiZpvyY28KFbPakZpQ==}
     peerDependencies:
       '@angular/common': '>=19.0.0'
       '@angular/core': '>=19.0.0'
       '@angular/router': '>=19.0.0'
-      '@securitydept/client': 0.2.0-beta.4
-      '@securitydept/client-angular': 0.2.0-beta.4
-      '@securitydept/token-set-context-client': 0.2.0-beta.4
+      '@securitydept/client': 0.2.0-beta.6
+      '@securitydept/client-angular': 0.2.0-beta.6
+      '@securitydept/token-set-context-client': 0.2.0-beta.6
       rxjs: '>=7.0.0'
 
-  '@securitydept/token-set-context-client@0.2.0-beta.4':
-    resolution: {integrity: sha512-CGj8XAIU4UyNNqjYdb7F7fXk8Th0pn3SI0dRzTYNwXqDaKPCe0zEunJca91+AtqOFq1cRNXW7Qtxf7b9zzOcEA==}
+  '@securitydept/token-set-context-client@0.2.0-beta.6':
+    resolution: {integrity: sha512-2e+FSbD8BUf49m+1Z7Obc66fEH2NdSJyZXR7BLgdUhJptfypGlNa6N+K6aH2ix0MMrdppNcy28fVO9F7f8ubCg==}
     peerDependencies:
       oauth4webapi: ^3.0.0
     peerDependenciesMeta:
@@ -12711,32 +12711,33 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@securitydept/client-angular@0.2.0-beta.4(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.4)(rxjs@7.8.2)':
+  '@securitydept/client-angular@0.2.0-beta.6(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.6)(rxjs@7.8.2)':
     dependencies:
       '@angular/core': 21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)
       '@angular/router': 21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2)
-      '@securitydept/client': 0.2.0-beta.4
+      '@securitydept/client': 0.2.0-beta.6
       rxjs: 7.8.2
       tslib: 2.8.1
 
-  '@securitydept/client@0.2.0-beta.4':
+  '@securitydept/client@0.2.0-beta.6':
     dependencies:
       '@standard-schema/spec': 1.1.0
+      rxjs: 7.8.2
 
-  '@securitydept/token-set-context-client-angular@0.2.0-beta.4(d2e330b0d67600f9e0d41b280fbf1258)':
+  '@securitydept/token-set-context-client-angular@0.2.0-beta.6(19018f62942ced65e000dfdfbdd7bfb7)':
     dependencies:
       '@angular/common': 21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2)
       '@angular/core': 21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)
       '@angular/router': 21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2)
-      '@securitydept/client': 0.2.0-beta.4
-      '@securitydept/client-angular': 0.2.0-beta.4(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.4)(rxjs@7.8.2)
-      '@securitydept/token-set-context-client': 0.2.0-beta.4(oauth4webapi@3.8.5)
+      '@securitydept/client': 0.2.0-beta.6
+      '@securitydept/client-angular': 0.2.0-beta.6(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/router@21.2.5(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(@angular/platform-browser@21.2.5(@angular/animations@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.5(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.5(@angular/compiler@21.2.5)(rxjs@7.8.2)(zone.js@0.16.1)))(rxjs@7.8.2))(@securitydept/client@0.2.0-beta.6)(rxjs@7.8.2)
+      '@securitydept/token-set-context-client': 0.2.0-beta.6(oauth4webapi@3.8.5)
       rxjs: 7.8.2
       tslib: 2.8.1
 
-  '@securitydept/token-set-context-client@0.2.0-beta.4(oauth4webapi@3.8.5)':
+  '@securitydept/token-set-context-client@0.2.0-beta.6(oauth4webapi@3.8.5)':
     dependencies:
-      '@securitydept/client': 0.2.0-beta.4
+      '@securitydept/client': 0.2.0-beta.6
     optionalDependencies:
       oauth4webapi: 3.8.5
 

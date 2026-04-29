@@ -33,6 +33,15 @@
       padding: 0;
     }
   }
+
+  // Allow Monaco suggest/hover widgets to escape dialog content clipping.
+  .workspace-monaco-dialog.p-dialog {
+    overflow: visible;
+  }
+
+  .workspace-monaco-dialog .p-dialog-content {
+    overflow: visible;
+  }
 }
 
 .confluence-subscribe-source-item {
@@ -82,9 +91,25 @@
 
 .profile-script-editor-shell {
   margin: 0;
+  position: relative;
   overflow: visible;
   border: 1px solid var(--p-surface-200);
   border-radius: 0.5rem;
+}
+
+.workspace-monaco-shell {
+  position: relative;
+  overflow: visible;
+}
+
+.workspace-monaco-shell-stable {
+  overflow: hidden;
+}
+
+.workspace-monaco-shell ngx-monaco-editor,
+.profile-script-editor-shell ngx-monaco-editor,
+.profile-transform-preview-editor-shell ngx-monaco-editor {
+  display: block;
 }
 
 .profile-transform-preview {
@@ -126,6 +151,7 @@
 }
 
 .profile-transform-preview-editor-shell {
+  position: relative;
   overflow: visible;
   border: 1px solid var(--p-surface-200);
   border-radius: 0.5rem;

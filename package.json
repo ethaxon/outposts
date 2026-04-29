@@ -1,6 +1,6 @@
 {
   "name": "outposts",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "description": "outposts",
   "repository": {
@@ -44,10 +44,10 @@
     "@primeuix/themes": "^2.0.3",
     "@primeuix/utils": "^0.7.1",
     "@rxweb/reactive-form-validators": "^13.0.1",
-    "@securitydept/client": "^0.2.0-beta.4",
-    "@securitydept/client-angular": "^0.2.0-beta.4",
-    "@securitydept/token-set-context-client": "^0.2.0-beta.4",
-    "@securitydept/token-set-context-client-angular": "^0.2.0-beta.4",
+    "@securitydept/client": "^0.2.0-beta.6",
+    "@securitydept/client-angular": "^0.2.0-beta.6",
+    "@securitydept/token-set-context-client": "^0.2.0-beta.6",
+    "@securitydept/token-set-context-client-angular": "^0.2.0-beta.6",
     "change-case": "^5.4.4",
     "chart.js": "^4.5.1",
     "clipboard": "^2.0.11",

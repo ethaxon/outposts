@@ -39,7 +39,9 @@
           ></p-button>
         </div>
       </div>
-      <div class="m-0 rounded-border border border-surface dark:border-transparent">
+      <div
+        class="m-0 rounded-border border border-surface dark:border-transparent workspace-monaco-shell workspace-monaco-shell-stable"
+      >
         <ngx-monaco-editor
           [options]="tmplEditorOptions"
           [(ngModel)]="tmpl"
@@ -505,6 +507,7 @@
   <p-dialog
     [header]="'confluence.workspace.dialogs.previewMuxContent' | transloco"
     [visible]="true"
+    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelPreviewMuxContentDialog()"
     [modal]="true"
     [style]="{ width: '50vw', minWidth: '300px' }"
@@ -512,17 +515,20 @@
     [resizable]="false"
     [baseZIndex]="100"
   >
-    <ngx-monaco-editor
-      [options]="tmplEditorOptions"
-      [(ngModel)]="muxContentPreview.content"
-      [disabled]="true"
-      style="min-height: 200px; height: 50vh"
-    ></ngx-monaco-editor>
+    <div class="workspace-monaco-shell">
+      <ngx-monaco-editor
+        [options]="tmplEditorOptions"
+        [(ngModel)]="muxContentPreview.content"
+        [disabled]="true"
+        style="min-height: 200px; height: 50vh"
+      ></ngx-monaco-editor>
+    </div>
   </p-dialog>
 } @else if (subscribeSourceContentPreview) {
   <p-dialog
     [header]="'confluence.workspace.dialogs.previewSubscribeSourceContent' | transloco"
     [visible]="true"
+    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelPreviewSubscribeSourceContentDialog()"
     [modal]="true"
     [style]="{ width: '50vw', minWidth: '300px' }"
@@ -530,11 +536,13 @@
     [resizable]="false"
     [baseZIndex]="100"
   >
-    <ngx-monaco-editor
-      [options]="tmplEditorOptions"
-      [(ngModel)]="subscribeSourceContentPreview.content"
-      style="min-height: 200px; height: 50vh"
-    ></ngx-monaco-editor>
+    <div class="workspace-monaco-shell">
+      <ngx-monaco-editor
+        [options]="tmplEditorOptions"
+        [(ngModel)]="subscribeSourceContentPreview.content"
+        style="min-height: 200px; height: 50vh"
+      ></ngx-monaco-editor>
+    </div>
     <div class="flex justify-end gap-2 mt-6">
       <p-button
         size="small"
@@ -556,6 +564,7 @@
   <p-dialog
     [header]="'confluence.workspace.dialogs.editProfile' | transloco"
     [visible]="true"
+    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelUpdateProfileDialog()"
     [modal]="true"
     [style]="{ width: '70vw', minWidth: '300px' }"
@@ -608,6 +617,7 @@
   <p-dialog
     [header]="'confluence.workspace.dialogs.testProfileTransform' | transloco"
     [visible]="true"
+    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelProfileTransformPreviewDialog()"
     [modal]="true"
     [style]="{ width: '78vw', minWidth: '320px' }"

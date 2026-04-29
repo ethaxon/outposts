@@ -1,4 +1,9 @@
-import { type EnvironmentProviders, type Provider } from "@angular/core";
+import {
+  type EnvironmentProviders,
+  inject,
+  type Provider,
+  provideEnvironmentInitializer,
+} from "@angular/core";
 import { provideAuthPlannerHost } from "@securitydept/client-angular";
 import { createWebRuntime } from "@securitydept/client/web";
 import {
@@ -19,8 +24,10 @@ import {
 import {
   provideTokenSetAuth,
   provideTokenSetBearerInterceptor,
+  TokenSetAuthRegistry,
 } from "@securitydept/token-set-context-client-angular";
 import { environment } from "@/environments/environment";
+import { installOutpostsAuthEventDiagnostics } from "./auth.event-diagnostics";
 import { AuthCallbackPath, AuthClientKey } from "./auth.defs";
 
 /** Window global key used by the outposts server-side injection. */
@@ -95,7 +102,7 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
             return createFrontendOidcModeClient(
               {
                 ...resolved.config,
-                persistentStateKey: "outposts.web.auth.confluence",
+                persistentStateKey: "confluence",
               },
               createWebRuntime({
                 persistentStore,
@@ -107,6 +114,13 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
           callbackPath: AuthCallbackPath,
         },
       ],
+    }),
+    provideEnvironmentInitializer(() => {
+      installOutpostsAuthEventDiagnostics(
+        browserWindow,
+        inject(TokenSetAuthRegistry),
+        AuthClientKey.Confluence,
+      );
     }),
     provideTokenSetBearerInterceptor({ strictUrlMatch: true }),
   ];

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5
+
+- **Frontend/Workspace: Monaco editor UX was hardened for constrained screens and dialogs** — unified Monaco shell handling in workspace and dialog flows, removed `fixedOverflowWidgets` after position regressions, relaxed dialog/content overflow via a Monaco-specific dialog class to prevent suggestion clipping, and set default Monaco indentation to `tabSize: 2` with spaces for better mobile/tablet editing density.
+- **Frontend/Auth: persistent key naming and diagnostics gating were corrected** — fixed auth persistent state key duplication (`outposts.web.auth.outposts.web.auth.confluence` -> `outposts.web.auth.confluence`) by using a non-prefixed `persistentStateKey`, and changed auth diagnostics behavior so development is enabled by default while production remains disabled unless `OUTPOSTS_WEB_ENABLE_AUTH_DIAGNOSTICS=true`.
+- **Release: patch version bumped to `0.3.5`** — synchronized version metadata across root workspace (`package.json`), `apps/outposts-web/package.json`, and `apps/confluence/Cargo.toml`.
+
 ## 0.3.4
 
 - **Frontend/Auth: guard-triggered login redirects now preserve the attempted URL** — route protection switched to `createFrontendOidcLoginRedirectHandler`, and `AuthService.redirectToLogin()` now accepts an explicit `postAuthRedirectUri` so redirects can use the guard's attempted route instead of the previously committed `Router.url`; auth service specs were updated to lock down that contract.

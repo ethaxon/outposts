@@ -1,7 +1,10 @@
+import { createSubject } from "@securitydept/client";
 import { TokenSetAuthRegistry } from "@securitydept/token-set-context-client-angular";
 import {
   type AuthSnapshot,
   AuthSourceKind,
+  EnsureAuthForResourceStatus,
+  TokenSetAuthFlowReason,
 } from "@securitydept/token-set-context-client/orchestration";
 import type { Observable } from "rxjs";
 import { firstValueFrom, of } from "rxjs";
@@ -68,8 +71,30 @@ function createMockClient(initial: AuthSnapshot | null = null) {
         return () => listeners.delete(l);
       },
     },
+    authEvents: createSubject(),
     dispose: vi.fn(),
     restorePersistedState: vi.fn().mockResolvedValue(null),
+    authorizationHeader: vi.fn(() => (value ? `Bearer ${value.tokens.accessToken}` : null)),
+    ensureFreshAuthState: vi.fn().mockImplementation(async () => value),
+    ensureAuthorizationHeader: vi
+      .fn()
+      .mockImplementation(async () => (value ? `Bearer ${value.tokens.accessToken}` : null)),
+    ensureAuthForResource: vi.fn().mockImplementation(async () => {
+      if (value) {
+        return {
+          status: EnsureAuthForResourceStatus.Authenticated,
+          snapshot: value,
+          authorizationHeader: `Bearer ${value.tokens.accessToken}`,
+          freshness: "fresh" as const,
+        };
+      }
+      return {
+        status: EnsureAuthForResourceStatus.Unauthenticated,
+        snapshot: null,
+        authorizationHeader: null,
+        reason: TokenSetAuthFlowReason.NoSnapshot,
+      };
+    }),
     handleCallback: vi.fn(),
     _set(snap: AuthSnapshot | null) {
       value = snap;
