@@ -8,6 +8,7 @@
   "biome.enabled": false,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
+  "terminal.integrated.macOptionIsMeta": true,
   "sqltools.connections": [
     {
       "ssh": "Disabled",

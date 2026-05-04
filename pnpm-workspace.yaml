@@ -1,3 +1,15 @@
 packages:
   - "packages/*"
   - "apps/*"
+overrides:
+  node-fetch: 3.3.2
+  typescript: 6.0.3
+allowBuilds:
+  "@j178/prek": true
+  "@parcel/watcher": true
+  "@swc/core": true
+  esbuild: true
+  lmdb: true
+  meta-json-schema: true
+  msgpackr-extract: true
+  nx: true

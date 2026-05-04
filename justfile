@@ -2,9 +2,12 @@ set windows-shell := ["pwsh.exe", "-c"]
 set dotenv-load := true
 
 setup:
+  mise install
   pnpm install
-  pnpm exec prek install
   cargo check --workspace --all-features
+
+dev:
+  zellij --layout zellij-dev.kdl
 
 dev-confluence:
   watchexec -r -e rs,toml,yaml,yml,env,json -- cargo run -p confluence --bin confluence_server

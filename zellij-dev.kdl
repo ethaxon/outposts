@@ -1,0 +1,43 @@
+on_force_close "quit"
+mouse_mode true
+
+keybinds {
+    shared_except "locked" {
+        unbind "Ctrl q"
+        bind "Alt q" { Quit; }
+    }
+
+    shared_except "tab" "locked" {
+        unbind "Ctrl t"
+        bind "Alt t" { SwitchToMode "Tab"; }
+    }
+}
+
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+    }
+    tab name="Confluence" {
+        pane command="watchexec" {
+            args "-r" "-e" "rs,toml,yaml,yml,env,json" "--" "cargo" "run" "-p" "confluence" "--bin" "confluence_server"
+        }
+    }
+    tab name="WebUI" {
+        pane command="pnpm" {
+            args "exec" "nx" "serve" "outposts-web"
+        }
+    }
+    tab name="DevProxy" {
+        pane command="pnpm" {
+            args "--filter" "dev-proxy" "run" "start"
+        }
+    }
+    tab name="DevDeps" {
+        pane command="docker" {
+            args "compose" "-f" "docker-compose.dev-deps.yml" "up"
+        }
+    }
+}

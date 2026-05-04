@@ -90,7 +90,8 @@ jobs:
           file: "apps/confluence/Dockerfile.runtime"
           platforms: ${{ matrix.platform }}
           push: true
-          tags: "ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-${{ matrix.tag_suffix }}"
+          tags: "ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-${{
+            matrix.tag_suffix }}"
 
   publish-confluence-manifest:
     name: Publish Confluence Manifest
@@ -116,7 +117,8 @@ jobs:
             ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-amd64 \
             ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}-arm64
       - name: Inspect published manifest
-        run: docker buildx imagetools inspect ghcr.io/${{ env.ORG }}/confluence:sha-${{ github.sha }}
+        run: docker buildx imagetools inspect ghcr.io/${{ env.ORG }}/confluence:sha-${{
+          github.sha }}
 
   build-web:
     name: Build Outposts Web
@@ -131,7 +133,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v5
         with:
-          version: 10.33.0
+          version: 11.0.3
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:

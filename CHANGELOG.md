@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.7
+
+- **Securitydept** — upgraded frontend packages and backend crate to `0.3.0-beta.2`.
+- **Tooling** — migrated to pnpm v11 across CI, mise, Dockerfiles, and lockfile; moved pnpm overrides and build allowlist from `package.json` into `pnpm-workspace.yaml`; streamlined `just setup` by replacing `prek install` with `mise install`; added `zellij-dev.kdl` layout and `just dev` command for portable one-shot zellij dev environment; registered `watchexec` and `zellij` in mise tools; set `terminal.integrated.macOptionIsMeta` in VS Code settings.
+- **Release** — bumped package/crate version metadata to `0.3.7`.
+
 ## 0.3.6
 
 - **Workspace UI** — added traffic metadata, reset policy, next reset, and usage progress to subscribe source cards; added workspace summary metadata and a rename affordance; switched card lists to responsive grid layouts.
