@@ -230,3 +230,4 @@ vite.config.*.timestamp*
 .github/instructions/nx.instructions.md
 temp/
 !temp/.gitkeep
+**/.DS_Store

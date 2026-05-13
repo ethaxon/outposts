@@ -177,7 +177,7 @@ In other words:
 
 ## Direct Feedback For `securitydept` Frontend SDK Design
 
-The current `outposts-web -> confluence` path now consumes both `@securitydept/token-set-context-client` and `@securitydept/token-set-context-client-angular` directly: `provideTokenSetAuth()` + `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` is the actual runtime surface, the callback route is served by the SDK-supplied `TokenSetCallbackComponent`, and there is no app-local hand-written `Authorization` header anywhere. `strictUrlMatch: true` hard-bounds bearer injection to requests that match a registered `urlPatterns` entry — anything outside `CONFLUENCE_API_ENDPOINT` (including any third-party host) receives no token. From that real integration the next SDK-planning direction is also clearer:
+The current `outposts-web -> confluence` path now consumes `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular` at `0.3.0-beta.3` directly. The composition root uses `ClientEnvironmentService` with `createFrontendOidcModeWebClientEnvironment(...)` to own browser page and web environment construction; `providePageClientEnvironment({ environment: pageEnvironmentService })` bridges that service into Angular DI. `provideAuthPlannerHost()` registers the SDK route-requirement planner. `provideTokenSetAuth(...)` wires the keyed client registry and `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` hard-bounds bearer injection to registered `urlPatterns` — anything outside `CONFLUENCE_API_ENDPOINT` (including any third-party host) receives no token. The callback route is served by the SDK-supplied `TokenSetCallbackComponent`. From that real integration the next SDK-planning direction is also clearer:
 
 1. **generic token orchestration layer**
    - owns combined `access_token` / `id_token` / `refresh_token` state
@@ -265,8 +265,10 @@ Use published npm packages by default. Switch to local `link:` references only f
 ```json
 {
   "dependencies": {
-      "@securitydept/token-set-context-client": "0.2.0-beta.1",
-      "@securitydept/token-set-context-client-angular": "0.2.0-beta.1"
+      "@securitydept/client": "0.3.0-beta.3",
+      "@securitydept/client-angular": "0.3.0-beta.3",
+      "@securitydept/token-set-context-client": "0.3.0-beta.3",
+      "@securitydept/token-set-context-client-angular": "0.3.0-beta.3"
   }
 }
 ```

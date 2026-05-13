@@ -178,7 +178,7 @@
 
 ## 对 `securitydept` 前端 SDK 抽象的直接反馈
 
-当前这条 `outposts-web -> confluence` 单链路已经直接消费 `@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`：`provideTokenSetAuth()` + `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` 已经是真实运行面，callback 路由由 SDK 提供的 `TokenSetCallbackComponent` 承担，没有任何 app-local 手写 `Authorization` header。`strictUrlMatch: true` 把 bearer 注入边界硬限制为命中 `urlPatterns` 的请求 —— `CONFLUENCE_API_ENDPOINT` 之外（包括任意第三方 host）的请求都不会拿到 token。在这条真实链路上，SDK 的下一层规划方向也更清晰：
+当前这条 `outposts-web -> confluence` 单链路已经直接消费 `@securitydept/client`、`@securitydept/client-angular`、`@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`（版本 `0.3.0-beta.3`）。组合根使用 `ClientEnvironmentService` + `createFrontendOidcModeWebClientEnvironment(...)` 承担浏览器页面与 Web 环境构造；`providePageClientEnvironment({ environment: pageEnvironmentService })` 把该 service 桥接到 Angular DI；`provideAuthPlannerHost()` 注册 SDK 路由 requirement 规划器；`provideTokenSetAuth(...)` 接入带键 client 注册表；`provideTokenSetBearerInterceptor({ strictUrlMatch: true })` 把 bearer 注入边界硬限制为命中 `urlPatterns` 的请求 —— `CONFLUENCE_API_ENDPOINT` 之外（包括任意第三方 host）的请求都不会拿到 token；callback 路由由 SDK 提供的 `TokenSetCallbackComponent` 承担，没有任何 app-local 手写 `Authorization` header。在这条真实链路上，SDK 的下一层规划方向也更清晰：
 
 1. **通用 token orchestration 层**
    - 管 `access_token` / `id_token` / `refresh_token` 的组合状态
@@ -266,8 +266,10 @@ securitydept-core = { version = "=0.2.0-beta.1" }
 ```json
 {
   "dependencies": {
-      "@securitydept/token-set-context-client": "0.2.0-beta.1",
-      "@securitydept/token-set-context-client-angular": "0.2.0-beta.1"
+      "@securitydept/client": "0.3.0-beta.3",
+      "@securitydept/client-angular": "0.3.0-beta.3",
+      "@securitydept/token-set-context-client": "0.3.0-beta.3",
+      "@securitydept/token-set-context-client-angular": "0.3.0-beta.3"
   }
 }
 ```

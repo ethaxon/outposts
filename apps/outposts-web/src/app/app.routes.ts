@@ -1,7 +1,7 @@
 import type { Routes } from "@angular/router";
 import { AppMainComponent } from "@/components/layout/app.main.component";
 import {
-  createFrontendOidcLoginRedirectHandler,
+  createTokenSetOidcLoginRedirectHandler,
   TokenSetCallbackComponent,
   secureRouteRoot,
 } from "@securitydept/token-set-context-client-angular";
@@ -25,7 +25,7 @@ export const routes: Routes = [
         "confluence",
         {
           requirementHandlers: {
-            frontend_oidc: createFrontendOidcLoginRedirectHandler({
+            frontend_oidc: createTokenSetOidcLoginRedirectHandler({
               clientKey: AuthClientKey.Confluence,
             }),
           },

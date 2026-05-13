@@ -1,7 +1,13 @@
+import "@angular/compiler";
 import { Injector, runInInjectionContext } from "@angular/core";
 import { Router } from "@angular/router";
+import { providePageClientEnvironment } from "@securitydept/client-angular";
+import {
+  createBrowserPageClientEnvironment,
+  createWebClientEnvironment,
+  deriveClientEnvironment,
+} from "@securitydept/client/web";
 import { TokenSetAuthRegistry } from "@securitydept/token-set-context-client-angular";
-import { FrontendOidcModeClient } from "@securitydept/token-set-context-client/frontend-oidc-mode";
 import { describe, expect, it, vi } from "vitest";
 import { AuthClientKey } from "./auth.defs";
 import { AuthService } from "./auth.service";
@@ -18,28 +24,58 @@ import { AuthService } from "./auth.service";
 // instantiate AuthService inside an isolated `Injector.create()` injection
 // context — the same primitive standalone Angular relies on internally.
 
-function makeAuthService(providers: { provide: unknown; useValue: unknown }[]): AuthService {
+function makeAuthService(
+  providers: Parameters<typeof Injector.create>[0]["providers"],
+): AuthService {
   const injector = Injector.create({
-    providers: providers as Parameters<typeof Injector.create>[0]["providers"],
+    providers,
   });
   return runInInjectionContext(injector, () => new AuthService());
+}
+
+function createTestPageEnvironment() {
+  const webEnvironment = createWebClientEnvironment({
+    transport: {
+      execute: vi.fn(async () => ({
+        status: 200,
+        headers: {},
+        body: null,
+      })),
+    },
+    scheduler: {
+      setTimeout() {
+        return { cancel() {} };
+      },
+    },
+    clock: { now: () => Date.now() },
+  });
+
+  return createBrowserPageClientEnvironment({
+    ...deriveClientEnvironment(webEnvironment),
+    pageCapability: {
+      location: {
+        href: "https://outposts.example.test/current",
+        hash: "",
+        pathname: "/current",
+        search: "",
+      },
+      history: {
+        replaceState() {},
+      },
+    },
+  });
 }
 
 describe("AuthService.redirectToLogin", () => {
   it("passes the explicit attempted URL as postAuthRedirectUri", async () => {
     const currentUrl = "/previous";
     const attemptedUrl = "/spaces/abc?tab=pages";
+    const pageEnvironment = createTestPageEnvironment();
 
     const loginWithRedirect = vi.fn().mockResolvedValue(undefined);
-
-    // Minimal FrontendOidcModeClient stub: only the surface AuthService
-    // touches inside redirectToLogin. We use Object.create() so the stub
-    // satisfies `instanceof FrontendOidcModeClient` without instantiating
-    // the real (network-touching) client.
-    const stubClient = Object.create(FrontendOidcModeClient.prototype) as {
-      loginWithRedirect: typeof loginWithRedirect;
+    const stubClient = {
+      loginWithRedirect,
     };
-    stubClient.loginWithRedirect = loginWithRedirect;
 
     const registryStub = {
       whenReady: vi.fn().mockResolvedValue({ client: stubClient }),
@@ -48,6 +84,7 @@ describe("AuthService.redirectToLogin", () => {
     const service = makeAuthService([
       { provide: TokenSetAuthRegistry, useValue: registryStub },
       { provide: Router, useValue: { url: currentUrl } },
+      providePageClientEnvironment({ environment: pageEnvironment }),
     ]);
 
     await new Promise<void>((resolve, reject) => {
@@ -59,6 +96,7 @@ describe("AuthService.redirectToLogin", () => {
 
     expect(loginWithRedirect).toHaveBeenCalledTimes(1);
     expect(loginWithRedirect).toHaveBeenCalledWith({
+      environment: pageEnvironment,
       postAuthRedirectUri: attemptedUrl,
     });
   });
@@ -84,5 +122,27 @@ describe("AuthService.redirectToLogin", () => {
       });
     });
     expect(completed).toBe(true);
+  });
+
+  it("fails fast when redirectToLogin is used without a registered page environment", async () => {
+    const registryStub = {
+      whenReady: vi.fn().mockResolvedValue({
+        client: { loginWithRedirect: vi.fn().mockResolvedValue(undefined) },
+      }),
+    } as unknown as TokenSetAuthRegistry;
+
+    const service = makeAuthService([
+      { provide: TokenSetAuthRegistry, useValue: registryStub },
+      { provide: Router, useValue: { url: "/spaces" } },
+    ]);
+
+    await expect(
+      new Promise<void>((resolve, reject) => {
+        service.redirectToLogin(AuthClientKey.Confluence).subscribe({
+          complete: () => resolve(),
+          error: (err) => reject(err),
+        });
+      }),
+    ).rejects.toThrow(/providePageClientEnvironment/);
   });
 });

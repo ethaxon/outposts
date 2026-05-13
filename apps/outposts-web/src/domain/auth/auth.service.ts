@@ -1,7 +1,11 @@
 import { Injectable, inject } from "@angular/core";
 import { Router } from "@angular/router";
+import {
+  PAGE_CLIENT_ENVIRONMENT,
+  resolvePageClientEnvironmentSource,
+} from "@securitydept/client-angular";
 import { TokenSetAuthRegistry } from "@securitydept/token-set-context-client-angular";
-import { FrontendOidcModeClient } from "@securitydept/token-set-context-client/frontend-oidc-mode";
+import type { OidcRedirectLoginClient } from "@securitydept/token-set-context-client/registry";
 import {
   EMPTY,
   Observable,
@@ -21,6 +25,9 @@ import { AuthClientKey } from "./auth.defs";
 export class AuthService {
   private readonly registry = inject(TokenSetAuthRegistry);
   private readonly router = inject(Router);
+  private readonly pageEnvironmentSource = inject(PAGE_CLIENT_ENVIRONMENT, {
+    optional: true,
+  });
 
   // Streams keyed by client — lazily resolved once whenReady() resolves.
   // Using defer() + from(whenReady()) means the Observable is not subscribed
@@ -58,14 +65,14 @@ export class AuthService {
   );
 
   /**
-   * Get the FrontendOidcModeClient for a key once it has materialized.
+   * Get the shared redirect-login client for a key once it has materialized.
    *
    * Returns a Promise so callers can await client readiness rather than
    * assuming the client is synchronously available.
    */
-  async getClient(key: AuthClientKey): Promise<FrontendOidcModeClient | null> {
+  async getClient(key: AuthClientKey): Promise<OidcRedirectLoginClient | null> {
     const service = await this.registry.whenReady(key);
-    if (service.client instanceof FrontendOidcModeClient) {
+    if (isOidcRedirectLoginClient(service.client)) {
       return service.client;
     }
     return null;
@@ -86,11 +93,37 @@ export class AuthService {
       from(this.getClient(clientKey)).pipe(
         switchMap((client) => {
           if (!client) return EMPTY;
-          return from(client.loginWithRedirect({ postAuthRedirectUri })).pipe(
-            switchMap(() => EMPTY),
+          return from(
+            resolvePageClientEnvironmentSource(
+              this.pageEnvironmentSource ?? undefined,
+              failMissingPageEnvironment,
+            ),
+          ).pipe(
+            switchMap((environment) =>
+              from(
+                client.loginWithRedirect({
+                  environment,
+                  postAuthRedirectUri,
+                }),
+              ).pipe(switchMap(() => EMPTY)),
+            ),
           );
         }),
       ),
     );
   }
+}
+
+function isOidcRedirectLoginClient(client: unknown): client is OidcRedirectLoginClient {
+  return (
+    typeof client === "object" &&
+    client !== null &&
+    typeof (client as { loginWithRedirect?: unknown }).loginWithRedirect === "function"
+  );
+}
+
+function failMissingPageEnvironment(): never {
+  throw new Error(
+    "AuthService.redirectToLogin requires a page environment. Ensure provideAuth() registers providePageClientEnvironment({ environment }).",
+  );
 }

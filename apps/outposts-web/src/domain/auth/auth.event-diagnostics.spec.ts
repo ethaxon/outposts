@@ -1,9 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  installOutpostsAuthEventDiagnostics,
-  OUTPOSTS_AUTH_DIAGNOSTICS_WINDOW_KEY,
-  type OutpostsAuthDiagnosticsState,
-} from "./auth.event-diagnostics";
 
 function createMemoryStorage(initial: Record<string, string> = {}): Storage {
   const store = new Map(Object.entries(initial));
@@ -32,6 +27,11 @@ function createMemoryStorage(initial: Record<string, string> = {}): Storage {
 
 describe("installOutpostsAuthEventDiagnostics", () => {
   it("exposes an inspect() snapshot with current client and persisted storage state", async () => {
+    vi.resetModules();
+    process.env["OUTPOSTS_WEB_ENABLE_AUTH_DIAGNOSTICS"] = "true";
+    const { installOutpostsAuthEventDiagnostics, OUTPOSTS_AUTH_DIAGNOSTICS_WINDOW_KEY } =
+      await import("./auth.event-diagnostics");
+
     const localStorage = createMemoryStorage({
       "outposts.web.auth.confluence": JSON.stringify({
         value: {
@@ -72,7 +72,9 @@ describe("installOutpostsAuthEventDiagnostics", () => {
       sessionStorage,
       localStorage,
     } as unknown as Window & {
-      [OUTPOSTS_AUTH_DIAGNOSTICS_WINDOW_KEY]?: OutpostsAuthDiagnosticsState;
+      [OUTPOSTS_AUTH_DIAGNOSTICS_WINDOW_KEY]?: {
+        inspect(): Promise<unknown>;
+      };
     };
 
     installOutpostsAuthEventDiagnostics(browserWindow, registry as never, "confluence");
@@ -107,5 +109,7 @@ describe("installOutpostsAuthEventDiagnostics", () => {
         parseError: expect.any(String),
       },
     ]);
+
+    delete process.env["OUTPOSTS_WEB_ENABLE_AUTH_DIAGNOSTICS"];
   });
 });

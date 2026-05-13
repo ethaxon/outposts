@@ -1025,7 +1025,7 @@ dependencies = [
 
 [[package]]
 name = "confluence"
-version = "0.3.7"
+version = "0.3.8"
 dependencies = [
  "addr",
  "axum",
@@ -4417,9 +4417,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-core"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67af1fd40a5d73d64fe293f0e1e0c6a473088188dc5391932905ef1e7a72c80b"
+checksum = "8da3071cdf58b14927a66c1772b2e09ef189c6d4da9f2b43d30f41dc40587b25"
 dependencies = [
  "jsonwebtoken",
  "oauth2",
@@ -4434,9 +4434,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-creds"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0401e0cb8bb64db7cb8bd8d9d572e467fc178e23a32093e47c9a9e4cfb07495a"
+checksum = "8143883cb89f148aaed60ec512c2d05c49c1521556690d447e8107b1fc55c7c9"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -4457,9 +4457,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-oauth-provider"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13a870506377bdecc971ebc4cd8b96decad6042150a15c918170bac526df9106"
+checksum = "4f8cf2d828fb80cfed39fac7061f856f0399a58604539fad24f558a092f8ca34"
 dependencies = [
  "humantime-serde",
  "oauth2",
@@ -4474,9 +4474,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-oauth-resource-server"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47eae830fa43bd5dead83c2771fab21b6aa76a3433dc2c006ef13cc07947b306"
+checksum = "4188aa1928d83386dfcdb160de28fe350f201df8543293140a2776392694e4b3"
 dependencies = [
  "chrono",
  "http",
@@ -4496,9 +4496,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-oidc-client"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44861e8cb91a57c0c380dfc369b9e3eedc33ae9ad4522891e46ee003e2c78171"
+checksum = "9f512d24e44b47337e8a64840e198c922fde1ae5dbc8e9bebbbce4da9869baae"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4519,9 +4519,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-token-set-context"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5db2178e3dd7106de4b80e8437dc095f81017b70d565409b30b2c11adeaff52a"
+checksum = "cffdfde71a072aaa65000600c503a905ff1501f1a0fa77b972268b524a735ebc"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4549,9 +4549,9 @@ dependencies = [
 
 [[package]]
 name = "securitydept-utils"
-version = "0.3.0-beta.2"
+version = "0.3.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b356a35b1a64dc1ccbc61490cd8a79fb8f216274c95dab77adc653b4f69d9063"
+checksum = "c897c6d1ecd73975b9ef2fc3aa69b97458f0b5aad0086c3407fc9ca5fab135db"
 dependencies = [
  "http",
  "iri-string",
@@ -4914,7 +4914,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -6418,7 +6418,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

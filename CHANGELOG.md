@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.8
+
+- **Securitydept** — upgraded all four frontend SDK packages (`@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, `@securitydept/token-set-context-client-angular`) from local `link:` references to published `0.3.0-beta.3`; adopted `ClientEnvironmentService` + `createFrontendOidcModeWebClientEnvironment(...)` composition root, `providePageClientEnvironment()`, and `provideAuthPlannerHost()` from the new SDK surface.
+- **Docs** — refreshed English and Chinese auth integration guidance to reflect the `0.3.0-beta.3` API surface and updated dependency version examples.
+- **Release** — bumped package and crate version metadata to `0.3.8`; upgraded `securitydept-core` backend crate to `0.3.0-beta.3`.
+
 ## 0.3.7
 
 - **Securitydept** — upgraded frontend packages and backend crate to `0.3.0-beta.2`.

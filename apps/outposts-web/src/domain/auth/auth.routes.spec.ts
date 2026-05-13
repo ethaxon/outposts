@@ -17,7 +17,7 @@ import { AuthCallbackRouteSegment, AuthClientKey } from "./auth.defs";
 // mode focused on routing intent rather than DI bootstrap problems.
 
 async function loadRoutes() {
-  const mod = await import("@/app/app.routes");
+  const mod = await import("../../app/app.routes");
   return mod.routes;
 }
 

@@ -4,14 +4,19 @@ import {
   type Provider,
   provideEnvironmentInitializer,
 } from "@angular/core";
-import { provideAuthPlannerHost } from "@securitydept/client-angular";
-import { createWebRuntime } from "@securitydept/client/web";
+import { provideAuthPlannerHost, providePageClientEnvironment } from "@securitydept/client-angular";
 import {
   createLocalStorageStore,
   createSessionStorageStore,
 } from "@securitydept/client/persistence/web";
 import {
+  ClientEnvironmentService,
+  createBrowserPageClientEnvironment,
+  deriveClientEnvironment,
+} from "@securitydept/client/web";
+import {
   createFrontendOidcModeClient,
+  createFrontendOidcModeWebClientEnvironment,
   resolveConfigProjection,
 } from "@securitydept/token-set-context-client/frontend-oidc-mode";
 import {
@@ -54,9 +59,26 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
   const appOrigin = browserWindow?.location?.origin ?? `https://${environment.APP_HOST}`;
   const redirectUri = `${appOrigin}${AuthCallbackPath}`;
   const persistentStore = createLocalStorageStore("outposts.web.auth.");
+  const sessionStore = createSessionStorageStore("outposts.web.auth.");
+  const pageEnvironmentService = new ClientEnvironmentService({
+    createClientEnvironment: () =>
+      createFrontendOidcModeWebClientEnvironment({
+        origin: appOrigin,
+        fetch: resolveBrowserFetch(browserWindow),
+        persistentStoragePrefix: "outposts.web.auth.",
+        persistentStore,
+        sessionStore,
+      }),
+    createPageEnvironment: async (webEnvironment) =>
+      createBrowserPageClientEnvironment({
+        ...deriveClientEnvironment(webEnvironment),
+        pageCapability: requireBrowserPageCapability(browserWindow),
+      }),
+  });
 
   return [
     provideAuthPlannerHost(),
+    providePageClientEnvironment({ environment: pageEnvironmentService }),
     ...provideTokenSetAuth({
       clients: [
         {
@@ -99,15 +121,14 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
               });
             }
 
+            const frontendEnvironment = await pageEnvironmentService.resolveClientEnvironment();
+
             return createFrontendOidcModeClient(
               {
                 ...resolved.config,
                 persistentStateKey: "confluence",
               },
-              createWebRuntime({
-                persistentStore,
-                sessionStore: createSessionStorageStore("outposts.web.auth."),
-              }),
+              deriveClientEnvironment(frontendEnvironment),
             );
           },
           urlPatterns: [apiEndpoint],
@@ -124,4 +145,35 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
     }),
     provideTokenSetBearerInterceptor({ strictUrlMatch: true }),
   ];
+}
+
+function resolveBrowserFetch(browserWindow: Window): typeof globalThis.fetch {
+  if (typeof browserWindow?.fetch === "function") {
+    return browserWindow.fetch.bind(browserWindow);
+  }
+
+  if (typeof globalThis.fetch === "function") {
+    return globalThis.fetch.bind(globalThis);
+  }
+
+  throw new Error(
+    "Outposts auth requires a fetch implementation to create the frontend OIDC web environment.",
+  );
+}
+
+function requireBrowserPageCapability(browserWindow: Window): Pick<Window, "history" | "location"> {
+  if (
+    browserWindow?.location &&
+    browserWindow?.history &&
+    typeof browserWindow.history.replaceState === "function"
+  ) {
+    return {
+      location: browserWindow.location,
+      history: browserWindow.history,
+    };
+  }
+
+  throw new Error(
+    "Outposts auth redirect flows require a browser page environment with location and history.",
+  );
 }
