@@ -2,6 +2,8 @@
 
 export type ProxyServerNameserverPolicySource =
   | "auto"
+  | "proxy_server_nameserver_policy"
+  | "nameserver_policy"
   | "proxy_server_nameserver"
   | "nameserver"
   | "none";

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.9
+
+- **Clash DNS** — added direct `proxy-server-nameserver-policy` / `nameserver-policy` source merge modes and tightened `auto` precedence to prefer non-empty policy maps before generated nameserver rules.
+- **Subscribe source UI** — exposed the new DNS policy source options for subscribe source create/edit flows.
+- **Release** — bumped package and crate version metadata to `0.3.9`.
+
 ## 0.3.8
 
 - **Securitydept** — upgraded all four frontend SDK packages (`@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, `@securitydept/token-set-context-client-angular`) from local `link:` references to published `0.3.0-beta.3`; adopted `ClientEnvironmentService` + `createFrontendOidcModeWebClientEnvironment(...)` composition root, `providePageClientEnvironment()`, and `provideAuthPlannerHost()` from the new SDK surface.

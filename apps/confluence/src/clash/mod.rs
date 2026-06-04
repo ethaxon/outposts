@@ -20,6 +20,9 @@ pub struct DnsConfig {
     #[serde(default, rename = "proxy-server-nameserver-policy")]
     pub proxy_server_nameserver_policy: HashMap<String, Value>,
 
+    #[serde(default, rename = "nameserver-policy")]
+    pub nameserver_policy: HashMap<String, Value>,
+
     #[serde(default)]
     pub nameserver: Vec<String>,
 
@@ -29,6 +32,34 @@ pub struct DnsConfig {
 }
 
 impl DnsConfig {
+    /// Return the source policy map that should be merged into
+    /// `proxy-server-nameserver-policy`, if the current source selection points
+    /// at an existing policy map.
+    pub fn policy_entries_for_proxy_server_nameserver_policy(
+        &self,
+        source: &ProxyServerNameserverPolicySource,
+    ) -> Option<&HashMap<String, Value>> {
+        match source {
+            ProxyServerNameserverPolicySource::Auto => {
+                if !self.proxy_server_nameserver_policy.is_empty() {
+                    Some(&self.proxy_server_nameserver_policy)
+                } else if !self.nameserver_policy.is_empty() {
+                    Some(&self.nameserver_policy)
+                } else {
+                    None
+                }
+            }
+            ProxyServerNameserverPolicySource::ProxyServerNameserverPolicy => {
+                Some(&self.proxy_server_nameserver_policy)
+            }
+            ProxyServerNameserverPolicySource::NameserverPolicy => Some(&self.nameserver_policy),
+            ProxyServerNameserverPolicySource::ProxyServerNameserver
+            | ProxyServerNameserverPolicySource::Nameserver
+            | ProxyServerNameserverPolicySource::None => None,
+        }
+        .filter(|policy| !policy.is_empty())
+    }
+
     /// Return the nameserver list that should be used for generating
     /// `proxy-server-nameserver-policy` entries, determined by the given
     /// policy source.
@@ -38,7 +69,12 @@ impl DnsConfig {
     ) -> &[String] {
         match source {
             ProxyServerNameserverPolicySource::Auto => {
-                if !self.proxy_server_nameserver.is_empty() {
+                if self
+                    .policy_entries_for_proxy_server_nameserver_policy(source)
+                    .is_some()
+                {
+                    &[]
+                } else if !self.proxy_server_nameserver.is_empty() {
                     &self.proxy_server_nameserver
                 } else if !self.nameserver.is_empty() {
                     &self.nameserver
@@ -46,6 +82,8 @@ impl DnsConfig {
                     &[]
                 }
             }
+            ProxyServerNameserverPolicySource::ProxyServerNameserverPolicy
+            | ProxyServerNameserverPolicySource::NameserverPolicy => &[],
             ProxyServerNameserverPolicySource::ProxyServerNameserver => {
                 &self.proxy_server_nameserver
             }
@@ -63,6 +101,8 @@ impl DnsConfig {
 pub enum ProxyServerNameserverPolicySource {
     #[default]
     Auto,
+    ProxyServerNameserverPolicy,
+    NameserverPolicy,
     ProxyServerNameserver,
     Nameserver,
     None,
@@ -213,7 +253,9 @@ pub struct ClashConfig {
 #[cfg(test)]
 mod tests {
     use super::{ClashConfig, DnsConfig, Proxy, ProxyServerNameserverPolicySource};
+    use serde_yaml::Value;
     use std::assert_matches;
+    use std::collections::HashMap;
 
     #[test]
     fn test_model() -> Result<(), Box<dyn std::error::Error>> {
@@ -291,14 +333,17 @@ proxies: []
 proxy-groups: []
 rules: []
 dns:
-  enable: true
-  nameserver:
-    - https://doh.pub/dns-query
-    - https://dns.alidns.com/dns-query
-  proxy-server-nameserver:
-    - https://doh.pub/dns-query
-  proxy-server-nameserver-policy:
-    'www.mynode.com': '114.114.114.114'
+    enable: true
+    nameserver:
+        - https://doh.pub/dns-query
+        - https://dns.alidns.com/dns-query
+    proxy-server-nameserver:
+        - https://doh.pub/dns-query
+    proxy-server-nameserver-policy:
+        'www.mynode.com': '114.114.114.114'
+    nameserver-policy:
+        'geosite:cn':
+            - https://dns.alidns.com/dns-query
 "#;
         let config: ClashConfig = serde_yaml::from_str(yaml).unwrap();
         let dns = config.dns.unwrap();
@@ -318,6 +363,7 @@ dns:
             dns.proxy_server_nameserver_policy
                 .contains_key("www.mynode.com")
         );
+        assert!(dns.nameserver_policy.contains_key("geosite:cn"));
         // Extra DNS fields are preserved in `others`
         assert_eq!(
             dns.others.get("enable"),
@@ -358,9 +404,55 @@ rules: []
         );
         assert!(
             dns.nameservers_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::ProxyServerNameserverPolicy
+            )
+            .is_empty(),
+        );
+        assert!(
+            dns.nameservers_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::NameserverPolicy
+            )
+            .is_empty(),
+        );
+        assert!(
+            dns.nameservers_for_proxy_server_nameserver_policy(
                 &ProxyServerNameserverPolicySource::None
             )
             .is_empty(),
+        );
+    }
+
+    #[test]
+    fn test_policy_entries_for_proxy_server_nameserver_policy() {
+        let dns = DnsConfig {
+            proxy_server_nameserver_policy: HashMap::from([(
+                "+.proxy.example".to_string(),
+                Value::String("https://proxy.example/dns-query".to_string()),
+            )]),
+            nameserver_policy: HashMap::from([(
+                "geosite:cn".to_string(),
+                Value::String("https://nameserver.example/dns-query".to_string()),
+            )]),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            dns.policy_entries_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::Auto
+            ),
+            Some(&dns.proxy_server_nameserver_policy),
+        );
+        assert_eq!(
+            dns.policy_entries_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::ProxyServerNameserverPolicy
+            ),
+            Some(&dns.proxy_server_nameserver_policy),
+        );
+        assert_eq!(
+            dns.policy_entries_for_proxy_server_nameserver_policy(
+                &ProxyServerNameserverPolicySource::NameserverPolicy
+            ),
+            Some(&dns.nameserver_policy),
         );
     }
 }

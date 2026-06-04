@@ -162,7 +162,9 @@
       "nameserverPolicySource": {
         "auto": "自动",
         "nameserver": "nameserver",
+        "nameserver_policy": "nameserver-policy",
         "none": "无",
+        "proxy_server_nameserver_policy": "proxy-server-nameserver-policy",
         "proxy_server_nameserver": "proxy-server-nameserver"
       },
       "profileTransformPreview": {

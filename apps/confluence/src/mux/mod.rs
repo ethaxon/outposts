@@ -43,6 +43,32 @@ fn resolve_policy_source(model: &subscribe_source::Model) -> ProxyServerNameserv
         .unwrap_or_default()
 }
 
+fn parse_policy_nameservers(value: &Value) -> Result<Vec<String>, ConfigError> {
+    serde_yaml::from_value::<Vec<String>>(value.clone())
+        .or_else(|_| {
+            serde_yaml::from_value::<String>(value.clone()).map(|nameserver| vec![nameserver])
+        })
+        .map_err(|source| ConfigError::Other {
+            message: format!("invalid nameserver policy value {value:?}: {source}"),
+        })
+}
+
+fn merge_dns_policy_entries(
+    merged_dns_ns_policy: &mut HashMap<String, Vec<String>>,
+    policy: &HashMap<String, Value>,
+) -> Result<(), ConfigError> {
+    for (key, value) in policy {
+        let entry = merged_dns_ns_policy.entry(key.clone()).or_default();
+        for nameserver in parse_policy_nameservers(value)? {
+            if !entry.contains(&nameserver) {
+                entry.push(nameserver);
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub fn mux_configs(
     template_name: &str,
     template: &ClashConfig,
@@ -84,13 +110,26 @@ pub fn mux_configs(
     for (source_model, source_config) in sources {
         let source_name = source_model.name.as_str();
         let policy_source = resolve_policy_source(source_model);
+        let dns = source_config.dns.as_ref();
 
-        // Collect "per-source proxy server domain → nameserver" mappings.
-        let nameservers: &[String] = source_config
-            .dns
-            .as_ref()
-            .map(|dns| dns.nameservers_for_proxy_server_nameserver_policy(&policy_source))
-            .unwrap_or(&[]);
+        if let Some(policy) = dns
+            .and_then(|dns| dns.policy_entries_for_proxy_server_nameserver_policy(&policy_source))
+        {
+            merge_dns_policy_entries(&mut merged_dns_ns_policy, policy)?;
+        }
+
+        // Collect "per-source proxy server domain → nameserver" mappings when
+        // the chosen source mode still requires generating policy entries from
+        // nameserver lists.
+        let nameservers: &[String] = if dns
+            .and_then(|dns| dns.policy_entries_for_proxy_server_nameserver_policy(&policy_source))
+            .is_some()
+        {
+            &[]
+        } else {
+            dns.map(|dns| dns.nameservers_for_proxy_server_nameserver_policy(&policy_source))
+                .unwrap_or(&[])
+        };
 
         for p in &source_config.proxies {
             {
@@ -214,9 +253,11 @@ pub fn mux_configs(
     } else {
         let mut dns = template.dns.clone().unwrap_or_default();
         for (k, ns_list) in merged_dns_ns_policy {
-            dns.proxy_server_nameserver_policy.entry(k).or_insert_with(|| {
-                serde_yaml::to_value(&ns_list).unwrap_or(Value::Sequence(vec![]))
-            });
+            dns.proxy_server_nameserver_policy
+                .entry(k)
+                .or_insert_with(|| {
+                    serde_yaml::to_value(&ns_list).unwrap_or(Value::Sequence(vec![]))
+                });
         }
         Some(dns)
     };
@@ -466,6 +507,50 @@ dns:
     }
 
     #[test]
+    fn test_mux_dns_nameserver_policy_from_proxy_server_nameserver_policy()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let template = parse_config(
+            r#"
+proxies: []
+proxy-groups:
+    - { name: "PROXY", type: "select", proxies: ["<mux>"] }
+rules: []
+"#,
+        );
+        let source = parse_config(
+            r#"
+proxies:
+    - { name: "A", type: "ss", server: "node1.example.com", port: 443 }
+proxy-groups: []
+rules: []
+dns:
+    proxy-server-nameserver-policy:
+        'geosite:openai':
+            - https://doh.pub/dns-query
+    proxy-server-nameserver:
+        - https://should-not-be-used.example/dns-query
+"#,
+        );
+
+        let m = stub_model("src", Some("proxy_server_nameserver_policy"));
+        let result = mux_configs("tmpl", &template, &[(&m, source)])?;
+        let dns = result.dns.unwrap();
+        let policy_entry = dns
+            .proxy_server_nameserver_policy
+            .get("geosite:openai")
+            .expect("policy entry for geosite:openai should exist");
+
+        let ns: Vec<String> = serde_yaml::from_value(policy_entry.clone())?;
+        assert_eq!(ns, vec!["https://doh.pub/dns-query"]);
+        assert!(
+            !dns.proxy_server_nameserver_policy
+                .contains_key("+.example.com")
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn test_mux_dns_nameserver_policy_from_nameserver() -> Result<(), Box<dyn std::error::Error>> {
         let template = parse_config(
             r#"
@@ -503,6 +588,49 @@ dns:
     }
 
     #[test]
+    fn test_mux_dns_nameserver_policy_from_nameserver_policy()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let template = parse_config(
+            r#"
+proxies: []
+proxy-groups:
+    - { name: "PROXY", type: "select", proxies: ["<mux>"] }
+rules: []
+"#,
+        );
+        let source = parse_config(
+            r#"
+proxies:
+    - { name: "A", type: "ss", server: "node1.example.com", port: 443 }
+proxy-groups: []
+rules: []
+dns:
+    nameserver-policy:
+        'geosite:cn': https://dns.alidns.com/dns-query
+    nameserver:
+        - https://should-not-be-used.example/dns-query
+"#,
+        );
+
+        let m = stub_model("src", Some("nameserver_policy"));
+        let result = mux_configs("tmpl", &template, &[(&m, source)])?;
+        let dns = result.dns.unwrap();
+        let policy_entry = dns
+            .proxy_server_nameserver_policy
+            .get("geosite:cn")
+            .expect("policy entry for geosite:cn should exist");
+
+        let ns: Vec<String> = serde_yaml::from_value(policy_entry.clone())?;
+        assert_eq!(ns, vec!["https://dns.alidns.com/dns-query"]);
+        assert!(
+            !dns.proxy_server_nameserver_policy
+                .contains_key("+.example.com")
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn test_mux_dns_nameserver_policy_none() -> Result<(), Box<dyn std::error::Error>> {
         let template = parse_config(
             r#"
@@ -528,6 +656,107 @@ dns:
         let result = mux_configs("tmpl", &template, &[(&m, source)])?;
         // No DNS policy should be generated
         assert!(result.dns.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mux_dns_nameserver_policy_auto_prefers_proxy_server_nameserver_policy()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let template = parse_config(
+            r#"
+proxies: []
+proxy-groups:
+    - { name: "PROXY", type: "select", proxies: ["<mux>"] }
+rules: []
+"#,
+        );
+        let source = parse_config(
+            r#"
+proxies:
+    - { name: "A", type: "ss", server: "node1.example.com", port: 443 }
+proxy-groups: []
+rules: []
+dns:
+    proxy-server-nameserver-policy:
+        'geosite:proxy': https://proxy-policy.example/dns-query
+    nameserver-policy:
+        'geosite:nameserver': https://nameserver-policy.example/dns-query
+    proxy-server-nameserver:
+        - https://proxy-list.example/dns-query
+    nameserver:
+        - https://nameserver-list.example/dns-query
+"#,
+        );
+
+        let m = stub_model("src", Some("auto"));
+        let result = mux_configs("tmpl", &template, &[(&m, source)])?;
+        let dns = result.dns.unwrap();
+
+        let ns: Vec<String> = serde_yaml::from_value(
+            dns.proxy_server_nameserver_policy
+                .get("geosite:proxy")
+                .expect("proxy-server-nameserver-policy should win in auto mode")
+                .clone(),
+        )?;
+
+        assert_eq!(ns, vec!["https://proxy-policy.example/dns-query"]);
+        assert!(
+            !dns.proxy_server_nameserver_policy
+                .contains_key("geosite:nameserver")
+        );
+        assert!(
+            !dns.proxy_server_nameserver_policy
+                .contains_key("+.example.com")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mux_dns_nameserver_policy_auto_prefers_nameserver_policy_before_generation()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let template = parse_config(
+            r#"
+proxies: []
+proxy-groups:
+    - { name: "PROXY", type: "select", proxies: ["<mux>"] }
+rules: []
+"#,
+        );
+        let source = parse_config(
+            r#"
+proxies:
+    - { name: "A", type: "ss", server: "node1.example.com", port: 443 }
+proxy-groups: []
+rules: []
+dns:
+    nameserver-policy:
+        'geosite:nameserver':
+            - https://nameserver-policy.example/dns-query
+    proxy-server-nameserver:
+        - https://proxy-list.example/dns-query
+    nameserver:
+        - https://nameserver-list.example/dns-query
+"#,
+        );
+
+        let m = stub_model("src", None);
+        let result = mux_configs("tmpl", &template, &[(&m, source)])?;
+        let dns = result.dns.unwrap();
+
+        let ns: Vec<String> = serde_yaml::from_value(
+            dns.proxy_server_nameserver_policy
+                .get("geosite:nameserver")
+                .expect("nameserver-policy should win before generated list in auto mode")
+                .clone(),
+        )?;
+
+        assert_eq!(ns, vec!["https://nameserver-policy.example/dns-query"]);
+        assert!(
+            !dns.proxy_server_nameserver_policy
+                .contains_key("+.example.com")
+        );
 
         Ok(())
     }
@@ -632,10 +861,16 @@ dns:
         let dns = result.dns.unwrap();
 
         let ns_alpha: Vec<String> = serde_yaml::from_value(
-            dns.proxy_server_nameserver_policy.get("+.alpha.com").unwrap().clone(),
+            dns.proxy_server_nameserver_policy
+                .get("+.alpha.com")
+                .unwrap()
+                .clone(),
         )?;
         let ns_beta: Vec<String> = serde_yaml::from_value(
-            dns.proxy_server_nameserver_policy.get("+.beta.com").unwrap().clone(),
+            dns.proxy_server_nameserver_policy
+                .get("+.beta.com")
+                .unwrap()
+                .clone(),
         )?;
 
         assert_eq!(ns_alpha, vec!["https://shared-dns.example.com/dns-query"]);

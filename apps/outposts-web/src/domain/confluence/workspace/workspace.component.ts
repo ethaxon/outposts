@@ -120,6 +120,14 @@ export class WorkspaceComponent implements OnInit {
   policySourceOptions: { label: string; value: ProxyServerNameserverPolicySource }[] = [
     { label: "confluence.workspace.nameserverPolicySource.auto", value: "auto" },
     {
+      label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver_policy",
+      value: "proxy_server_nameserver_policy",
+    },
+    {
+      label: "confluence.workspace.nameserverPolicySource.nameserver_policy",
+      value: "nameserver_policy",
+    },
+    {
       label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver",
       value: "proxy_server_nameserver",
     },
