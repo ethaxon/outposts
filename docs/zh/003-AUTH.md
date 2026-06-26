@@ -174,11 +174,11 @@
 换句话说：
 
 - `outposts` 应先在应用层验证这套调度模型
-- 真正稳定的部分，后续再反哺到 `securitydept` SDK
+- 稳定的 requirement 与 lifecycle 能力现已由 `securitydept` 提供，应用 UI 策略仍保留在本仓库
 
 ## 对 `securitydept` 前端 SDK 抽象的直接反馈
 
-当前这条 `outposts-web -> confluence` 单链路已经直接消费 `@securitydept/client`、`@securitydept/client-angular`、`@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`（版本 `0.3.0-beta.3`）。组合根使用 `ClientEnvironmentService` + `createFrontendOidcModeWebClientEnvironment(...)` 承担浏览器页面与 Web 环境构造；`providePageClientEnvironment({ environment: pageEnvironmentService })` 把该 service 桥接到 Angular DI；`provideAuthPlannerHost()` 注册 SDK 路由 requirement 规划器；`provideTokenSetAuth(...)` 接入带键 client 注册表；`provideTokenSetBearerInterceptor({ strictUrlMatch: true })` 把 bearer 注入边界硬限制为命中 `urlPatterns` 的请求 —— `CONFLUENCE_API_ENDPOINT` 之外（包括任意第三方 host）的请求都不会拿到 token；callback 路由由 SDK 提供的 `TokenSetCallbackComponent` 承担，没有任何 app-local 手写 `Authorization` header。在这条真实链路上，SDK 的下一层规划方向也更清晰：
+当前这条 `outposts-web -> confluence` 链路直接消费 `@securitydept/client`、`@securitydept/client-angular`、`@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`（版本 `0.3.0-beta.6`）。组合根使用 `provideEnvironment({ createBaseEnvironment: createEnvironmentForNativeWeb })` 安装唯一、显式的 `FoundationEnvironment`；native-web adapter 负责发现并校验浏览器 storage，web host 则把注入的 projection 写入 Securitydept 默认 Realm key。Angular router adapter 让应用内导航继续走 Angular Router，并把外部重定向交给 native-web routing。`provideTokenSetClientRegistry(...)` 负责 keyed client 生命周期；`createFrontendOidcModeClientFactory(...)` 与 `resolveFrontendOidcModeConfigProjection(...)` 按 realm、持久化缓存、网络的顺序物化浏览器 OIDC client。`provideTokenSetClientRegistryAuthorizationInterceptor()` 只在请求命中已注册 `urlPatterns` 时注入 bearer，因此 `CONFLUENCE_API_ENDPOINT` 之外的请求不会拿到 token。路由使用 `TokenSetClientRegistryAuthRequirement` 与 `secureTokenSetRouteRoot(...)`。应用自有 callback host 内嵌 `TokenSetFrontendCallbackComponent`，再通过 Angular Router 执行其返回的 post-auth redirect。
 
 1. **通用 token orchestration 层**
    - 管 `access_token` / `id_token` / `refresh_token` 的组合状态
@@ -193,11 +193,11 @@
    - 管 metadata redemption
    - 管 token-set 特定的 redirect recovery / flow-state 存储
 
-这意味着，后续不应再把 `token-set-context-client` 继续读成“既是通用 token 管理层，又是 token-set 特定 browser flow 层”的单体包。
-更合理的方向是：
+beta.5 的 SDK surface 已落实这层拆分，因此本仓库按以下边界消费：
 
-- 把通用 token orchestration 尽量从 token-set 特定流程里剥离出来
-- 再让 token-set sealed + metadata 逻辑收口到更窄的 adapter / subpath
+- `BaseOidcModeClient`、Resource snapshot、持久化、刷新与 authorization projection 属于通用 orchestration 层
+- frontend/backend OIDC mode package 负责协议特定 client
+- `TokenSetClientRegistry` 只承担 keyed lifecycle owner，不再维护第二份 auth state
 
 ## 近期实施阶段
 
@@ -209,7 +209,7 @@
 
 - 当前单 `confluence` 主链路已切到标准 OIDC driver（`@securitydept/token-set-context-client/frontend-oidc-mode`）
 - 前端配置命名已收口到 `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests 已锁住 callback / redirect contract（见 `apps/outposts-web/src/domain/auth/auth.routes.spec.ts`、`auth.bearer-interceptor.spec.ts`、`auth.defs.spec.ts`、`auth-config-projection.spec.ts`）
+- focused tests 已在 `apps/outposts-web/src/domain/auth/__tests__/` 下锁住 config、provider、route 与 redirect contract
 - 已移除向 Provider 发送的 RFC 8707 `resource` 参数（Authentik 不支持）
 - `CONFLUENCE_OIDC_AUDIENCE` 已改为可选，缺失时跳过 audience 校验
 
@@ -222,21 +222,20 @@
 - 每个服务自己的 `issuer` / `audience` / `required scopes` 由配置承载，audience 缺失即跳过校验
 - backend 测试覆盖 audience 可选 / 必选 / 缺失 scope 三种语义（见 `apps/confluence/src/auth/tests.rs`）
 
-### 阶段 3：route-level requirement orchestration 原型
+### 阶段 3：route-level requirement orchestration（已完成）
 
-目标：
+现状：
 
-- 先在 `outposts-web` 里做应用侧原型
-- 不急着上升为 SDK
-- 重点验证“多 requirement 时，headless scheduler + chooser UI”的组合是否合理
+- 路由元数据使用 `TokenSetClientRegistryAuthRequirement`
+- `secureTokenSetRouteRoot(...)` 安装 Angular guard 与 registry-backed planner host
+- registry 的 Resource readiness boundary 取代应用侧 service wrapper 状态
 
-### 阶段 4：反哺 `securitydept`
+### 阶段 4：消费稳定 SDK 边界（已完成）
 
-目标：
+现状：
 
-- 把真正稳定的 requirement model / scheduler 抽象回 `securitydept`
-- 把“通用 token orchestration”与“token-set sealed + metadata adapter”两层边界明确写进 SDK 规划
-- 保留 chooser UI、router glue 在 `outposts` 侧
+- requirement planning、registry lifecycle、callback selection 与 framework adapter 由 `securitydept` 提供
+- 应用路由策略与 UI 继续由 `outposts` 负责
 
 ## 本地工作区依赖规则
 
@@ -246,7 +245,7 @@
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { version = "=0.2.0-beta.1" }
+securitydept-core = { version = "0.3.0-beta.6" }
 
 # 仅在本地联调 securitydept workspace 时临时启用：
 # [patch.crates-io]
@@ -255,7 +254,7 @@ securitydept-core = { version = "=0.2.0-beta.1" }
 
 规则：
 
-- 默认依赖应固定到已发布版本，例如 `=0.2.0-beta.1`
+- 默认依赖使用已发布版本，例如 `0.3.0-beta.6`
 - 只有在本地联调 `securitydept` workspace 时才临时启用 `[patch.crates-io]`
 - 联调结束后恢复发布版依赖，避免把本地路径覆盖带进常规协作流
 
@@ -266,10 +265,10 @@ securitydept-core = { version = "=0.2.0-beta.1" }
 ```json
 {
   "dependencies": {
-      "@securitydept/client": "0.3.0-beta.3",
-      "@securitydept/client-angular": "0.3.0-beta.3",
-      "@securitydept/token-set-context-client": "0.3.0-beta.3",
-      "@securitydept/token-set-context-client-angular": "0.3.0-beta.3"
+      "@securitydept/client": "0.3.0-beta.6",
+      "@securitydept/client-angular": "0.3.0-beta.6",
+      "@securitydept/token-set-context-client": "0.3.0-beta.6",
+      "@securitydept/token-set-context-client-angular": "0.3.0-beta.6"
   }
 }
 ```

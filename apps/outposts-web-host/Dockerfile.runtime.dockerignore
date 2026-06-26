@@ -1,3 +1,4 @@
 **
 !dist/apps/outposts-web/
 !apps/outposts-web-host/inject.ts
+!apps/outposts-web-host/config-projection-bootstrap.ts

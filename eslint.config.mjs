@@ -24,12 +24,6 @@ const jsFiles = ["**/*.{js,mjs}"];
 const commonJsFiles = ["**/*.cjs", "transloco.config.js"];
 const tsFiles = ["**/*.{ts,mts,cts}"];
 const angularTsFiles = ["apps/outposts-web/src/**/*.ts"];
-const angularTsIgnores = [
-  "apps/outposts-web/src/**/*.server.ts",
-  "apps/outposts-web/src/server.ts",
-  "apps/outposts-web/src/main.server.ts",
-  "apps/outposts-web/src/app/*.server.ts",
-];
 const templateFiles = ["apps/outposts-web/src/**/*.component.html"];
 const oxlintFiles = ["**/*.{js,cjs,mjs}"];
 
@@ -87,7 +81,6 @@ export default defineConfig(
   },
   {
     files: angularTsFiles,
-    ignores: angularTsIgnores,
     extends: [...angular.configs.tsRecommended],
     processor: angular.processInlineTemplates,
     languageOptions: {

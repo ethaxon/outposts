@@ -1,18 +1,16 @@
 import type { Routes } from "@angular/router";
 import { AppMainComponent } from "@/components/layout/app.main.component";
-import {
-  createTokenSetOidcLoginRedirectHandler,
-  TokenSetCallbackComponent,
-  secureRouteRoot,
-} from "@securitydept/token-set-context-client-angular";
+import { secureTokenSetRouteRoot } from "@securitydept/token-set-context-client-angular";
+import { TokenSetClientRegistryAuthRequirement } from "@securitydept/token-set-context-client/registry";
 import { LandingComponent } from "@/pages/landing/landing.component";
 import { AuthCallbackRouteSegment, AuthClientKey } from "@/domain/auth/auth.defs";
+import { AuthCallbackComponent } from "@/domain/auth/auth-callback.component";
 
 export const routes: Routes = [
   { path: "", component: LandingComponent, pathMatch: "full" },
-  { path: AuthCallbackRouteSegment, component: TokenSetCallbackComponent },
+  { path: AuthCallbackRouteSegment, component: AuthCallbackComponent },
   { path: "apps", redirectTo: "/confluence", pathMatch: "full" },
-  // Secured route tree using the canonical secureRouteRoot() / secureRoute()
+  // Secured route tree using the canonical secureTokenSetRouteRoot() contract.
   // contract from @securitydept/token-set-context-client-angular.
   //
   // Root-level runtime policy (requirementHandlers, onUnauthenticated) lives
@@ -21,20 +19,15 @@ export const routes: Routes = [
     path: "",
     component: AppMainComponent,
     children: [
-      secureRouteRoot(
+      secureTokenSetRouteRoot(
         "confluence",
         {
-          requirementHandlers: {
-            frontend_oidc: createTokenSetOidcLoginRedirectHandler({
-              clientKey: AuthClientKey.Confluence,
-            }),
-          },
           requirements: [
-            {
+            TokenSetClientRegistryAuthRequirement.create({
               id: "confluence-oidc",
-              kind: "frontend_oidc",
               label: "Confluence OIDC",
-            },
+              query: { clientKey: AuthClientKey.Confluence },
+            }),
           ],
         },
         {

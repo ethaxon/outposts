@@ -10,6 +10,6 @@ allowBuilds:
   "@swc/core": true
   esbuild: true
   lmdb: true
-  meta-json-schema: true
+  meta-json-schema: false
   msgpackr-extract: true
   nx: true

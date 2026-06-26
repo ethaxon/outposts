@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Securitydept** — upgraded the Rust crate and four frontend SDK packages to `0.3.0-beta.6`; migrated auth composition to `FoundationEnvironment`, Resource-backed `TokenSetClientRegistry`, the new frontend callback and secure-route adapters, and the registry authorization interceptor. External IdP navigation now uses the Angular adapter's built-in native-web routing support.
+
 ## 0.3.9
 
 - **Clash DNS** — added direct `proxy-server-nameserver-policy` / `nameserver-policy` source merge modes and tightened `auto` precedence to prefer non-empty policy maps before generated nameserver rules.

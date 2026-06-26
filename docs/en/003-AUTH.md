@@ -173,11 +173,11 @@ Given the current `securitydept` direction, the boundary should be:
 In other words:
 
 - `outposts` should validate this orchestration model at the app layer first
-- only the stable parts should later move back into `securitydept`
+- the stable requirement and lifecycle parts now come from `securitydept`, while application UI policy stays local
 
 ## Direct Feedback For `securitydept` Frontend SDK Design
 
-The current `outposts-web -> confluence` path now consumes `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular` at `0.3.0-beta.3` directly. The composition root uses `ClientEnvironmentService` with `createFrontendOidcModeWebClientEnvironment(...)` to own browser page and web environment construction; `providePageClientEnvironment({ environment: pageEnvironmentService })` bridges that service into Angular DI. `provideAuthPlannerHost()` registers the SDK route-requirement planner. `provideTokenSetAuth(...)` wires the keyed client registry and `provideTokenSetBearerInterceptor({ strictUrlMatch: true })` hard-bounds bearer injection to registered `urlPatterns` — anything outside `CONFLUENCE_API_ENDPOINT` (including any third-party host) receives no token. The callback route is served by the SDK-supplied `TokenSetCallbackComponent`. From that real integration the next SDK-planning direction is also clearer:
+The current `outposts-web -> confluence` path consumes `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular` at `0.3.0-beta.6`. The composition root uses `provideEnvironment({ createBaseEnvironment: createEnvironmentForNativeWeb })` to install one explicit `FoundationEnvironment`. The native-web adapter discovers and validates browser storage. The web host writes injected projections to Securitydept's default Realm keys. The Angular router adapter keeps in-app navigation in Angular Router and delegates external redirects to native-web routing. `provideTokenSetClientRegistry(...)` owns the keyed client lifecycle, while `createFrontendOidcModeClientFactory(...)` and `resolveFrontendOidcModeConfigProjection(...)` materialize the browser OIDC client from ordered realm, persisted, and network sources. `provideTokenSetClientRegistryAuthorizationInterceptor()` injects bearer credentials only when a registered `urlPatterns` query matches, so anything outside `CONFLUENCE_API_ENDPOINT` receives no token. Routes use `TokenSetClientRegistryAuthRequirement` with `secureTokenSetRouteRoot(...)`. The app-owned callback host embeds `TokenSetFrontendCallbackComponent` and applies the returned post-auth redirect through Angular Router.
 
 1. **generic token orchestration layer**
    - owns combined `access_token` / `id_token` / `refresh_token` state
@@ -192,11 +192,11 @@ The current `outposts-web -> confluence` path now consumes `@securitydept/client
    - owns metadata redemption
    - owns token-set-specific redirect recovery / flow-state storage
 
-That means `token-set-context-client` should no longer be read as a permanent monolith that is simultaneously the generic token-management layer and the token-set-specific browser-flow layer.
-The more appropriate direction is:
+The beta.5 SDK surface now implements this separation. The integration therefore treats:
 
-- peel generic token orchestration away from token-set-specific flow concerns
-- then narrow token-set sealed + metadata logic into a smaller adapter / subpath
+- `BaseOidcModeClient`, Resource snapshots, persistence, refresh, and authorization projection as the generic orchestration layer
+- frontend/backend OIDC mode packages as protocol-specific clients
+- `TokenSetClientRegistry` as the keyed lifecycle owner rather than a second auth-state model
 
 ## Near-Term Delivery Stages
 
@@ -208,7 +208,7 @@ Status:
 
 - the current single-`confluence` flow is on the standard OIDC driver (`@securitydept/token-set-context-client/frontend-oidc-mode`)
 - frontend config naming is narrowed to `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests lock callback / redirect contract (see `apps/outposts-web/src/domain/auth/auth.routes.spec.ts`, `auth.bearer-interceptor.spec.ts`, `auth.defs.spec.ts`, `auth-config-projection.spec.ts`)
+- focused tests lock the config, provider, route, and redirect contracts under `apps/outposts-web/src/domain/auth/__tests__/`
 - removed the RFC 8707 `resource` parameter from provider requests (Authentik does not support Resource Indicators)
 - `CONFLUENCE_OIDC_AUDIENCE` is optional; when absent, audience validation is skipped
 
@@ -221,21 +221,20 @@ Status:
 - each service's `issuer` / `audience` / `required scopes` is config-driven; missing audience skips audience validation
 - backend tests cover audience-optional, audience-required, and missing-scope semantics (see `apps/confluence/src/auth/tests.rs`)
 
-### Stage 3: route-level requirement orchestration prototype
+### Stage 3: route-level requirement orchestration (done)
 
-Goal:
+Status:
 
-- build the first prototype in `outposts-web` itself
-- do not rush it into the SDK
-- validate whether the combination of headless scheduler + chooser UI is actually workable
+- route metadata uses `TokenSetClientRegistryAuthRequirement`
+- `secureTokenSetRouteRoot(...)` installs the Angular guards and registry-backed planner host
+- the registry's Resource readiness boundary replaces app-local service-wrapper state
 
-### Stage 4: feed stable parts back into `securitydept`
+### Stage 4: consume the stable SDK boundary (done)
 
-Goal:
+Status:
 
-- promote only the stable requirement model / scheduler abstractions into `securitydept`
-- write the split between “generic token orchestration” and “token-set sealed + metadata adapter” into the SDK plan explicitly
-- keep chooser UI and router glue in `outposts`
+- requirement planning, registry lifecycle, callback selection, and framework adapters come from `securitydept`
+- application route policy and UI remain in `outposts`
 
 ## Local Workspace Dependency Rules
 
@@ -245,7 +244,7 @@ Published versions should be the default for both release and normal local devel
 
 ```toml
 [workspace.dependencies]
-securitydept-core = { version = "=0.2.0-beta.1" }
+securitydept-core = { version = "0.3.0-beta.6" }
 
 # Enable only for local securitydept workspace integration:
 # [patch.crates-io]
@@ -254,7 +253,7 @@ securitydept-core = { version = "=0.2.0-beta.1" }
 
 Rules:
 
-- keep the default dependency pinned to the published version, for example `=0.2.0-beta.1`
+- keep the default dependency on the published version, for example `0.3.0-beta.6`
 - use `[patch.crates-io]` only for temporary local workspace integration
 - remove the local override after the integration loop so normal collaboration stays on published artifacts
 
@@ -265,10 +264,10 @@ Use published npm packages by default. Switch to local `link:` references only f
 ```json
 {
   "dependencies": {
-      "@securitydept/client": "0.3.0-beta.3",
-      "@securitydept/client-angular": "0.3.0-beta.3",
-      "@securitydept/token-set-context-client": "0.3.0-beta.3",
-      "@securitydept/token-set-context-client-angular": "0.3.0-beta.3"
+      "@securitydept/client": "0.3.0-beta.6",
+      "@securitydept/client-angular": "0.3.0-beta.6",
+      "@securitydept/token-set-context-client": "0.3.0-beta.6",
+      "@securitydept/token-set-context-client-angular": "0.3.0-beta.6"
   }
 }
 ```

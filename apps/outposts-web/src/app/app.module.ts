@@ -96,7 +96,7 @@ function configureMonacoTypes() {
       useFactory: windowProvider,
       deps: [DOCUMENT],
     },
-    ...provideAuth(typeof document !== "undefined" ? document.defaultView! : ({} as Window)),
+    ...provideAuth(window),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,

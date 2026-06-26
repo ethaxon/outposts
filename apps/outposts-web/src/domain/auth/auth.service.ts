@@ -1,14 +1,12 @@
 import { Injectable, inject } from "@angular/core";
 import { Router } from "@angular/router";
-import {
-  PAGE_CLIENT_ENVIRONMENT,
-  resolvePageClientEnvironmentSource,
-} from "@securitydept/client-angular";
-import { TokenSetAuthRegistry } from "@securitydept/token-set-context-client-angular";
-import type { OidcRedirectLoginClient } from "@securitydept/token-set-context-client/registry";
+import type { IdentityPrincipal } from "@securitydept/client";
+import type { BaseOidcModeClient } from "@securitydept/token-set-context-client/orchestration";
+import type { TokenSetClientRegistry } from "@securitydept/token-set-context-client/registry";
+import { TOKEN_SET_CLIENT_REGISTRY } from "@securitydept/token-set-context-client-angular";
 import {
   EMPTY,
-  Observable,
+  type Observable,
   defer,
   distinctUntilChanged,
   from,
@@ -16,114 +14,54 @@ import {
   shareReplay,
   switchMap,
 } from "rxjs";
-import { AuthPrincipal } from "@securitydept/token-set-context-client/orchestration";
 import { AuthClientKey } from "./auth.defs";
 
 @Injectable({
   providedIn: "root",
 })
 export class AuthService {
-  private readonly registry = inject(TokenSetAuthRegistry);
+  private readonly registry: TokenSetClientRegistry<BaseOidcModeClient> =
+    inject(TOKEN_SET_CLIENT_REGISTRY);
   private readonly router = inject(Router);
-  private readonly pageEnvironmentSource = inject(PAGE_CLIENT_ENVIRONMENT, {
-    optional: true,
-  });
 
-  // Streams keyed by client — lazily resolved once whenReady() resolves.
-  // Using defer() + from(whenReady()) means the Observable is not subscribed
-  // until something subscribes to it, at which point the auth service awaits
-  // client readiness naturally rather than assuming it is synchronously available.
   readonly isAuthenticated$: Map<AuthClientKey, Observable<boolean>> = new Map(
     (Object.values(AuthClientKey) as AuthClientKey[]).map((key) => [
       key,
-      defer(() =>
-        from(this.registry.whenReady(key)).pipe(
-          switchMap((service) =>
-            service.authState$.pipe(
-              map((s) => s !== null),
-              distinctUntilChanged(),
-            ),
-          ),
-          shareReplay(1),
-        ),
+      defer(() => from(this.registry.clientResourceFor(key).whenValue())).pipe(
+        switchMap((client) => from(client.isAuthenticated.value)),
+        distinctUntilChanged(),
+        shareReplay({ bufferSize: 1, refCount: true }),
       ),
     ]),
   );
 
-  readonly userInfo$: Map<AuthClientKey, Observable<AuthPrincipal | null>> = new Map(
+  readonly userInfo$: Map<AuthClientKey, Observable<IdentityPrincipal | null>> = new Map(
     (Object.values(AuthClientKey) as AuthClientKey[]).map((key) => [
       key,
-      defer(() =>
-        from(this.registry.whenReady(key)).pipe(
-          switchMap((service) =>
-            service.authState$.pipe(map((s) => s?.metadata?.principal ?? null)),
-          ),
-          shareReplay(1),
-        ),
+      defer(() => from(this.registry.clientResourceFor(key).whenValue())).pipe(
+        switchMap((client) => from(client.authResource.value)),
+        map((snapshot) => snapshot?.metadata.principal ?? null),
+        distinctUntilChanged(),
+        shareReplay({ bufferSize: 1, refCount: true }),
       ),
     ]),
   );
 
-  /**
-   * Get the shared redirect-login client for a key once it has materialized.
-   *
-   * Returns a Promise so callers can await client readiness rather than
-   * assuming the client is synchronously available.
-   */
-  async getClient(key: AuthClientKey): Promise<OidcRedirectLoginClient | null> {
-    const service = await this.registry.whenReady(key);
-    if (isOidcRedirectLoginClient(service.client)) {
-      return service.client;
-    }
-    return null;
+  async getClient(key: AuthClientKey): Promise<BaseOidcModeClient> {
+    return await this.registry.clientResourceFor(key).whenValue();
   }
 
-  /**
-   * Redirect to the IdP login page, recording the current route so it can
-   * be resumed after successful authentication.
-   *
-   * Intended for use inside an `onUnauthenticated` handler passed to
-   * `createTokenSetRouteAggregationGuard()`.
-   */
+  /** Redirect to the IdP and preserve the attempted application URL. */
   redirectToLogin(
     clientKey: AuthClientKey,
     postAuthRedirectUri: string = this.router.url,
   ): Observable<never> {
     return defer(() =>
       from(this.getClient(clientKey)).pipe(
-        switchMap((client) => {
-          if (!client) return EMPTY;
-          return from(
-            resolvePageClientEnvironmentSource(
-              this.pageEnvironmentSource ?? undefined,
-              failMissingPageEnvironment,
-            ),
-          ).pipe(
-            switchMap((environment) =>
-              from(
-                client.loginWithRedirect({
-                  environment,
-                  postAuthRedirectUri,
-                }),
-              ).pipe(switchMap(() => EMPTY)),
-            ),
-          );
-        }),
+        switchMap((client) =>
+          from(client.loginWithRedirect({ postAuthRedirectUri })).pipe(switchMap(() => EMPTY)),
+        ),
       ),
     );
   }
-}
-
-function isOidcRedirectLoginClient(client: unknown): client is OidcRedirectLoginClient {
-  return (
-    typeof client === "object" &&
-    client !== null &&
-    typeof (client as { loginWithRedirect?: unknown }).loginWithRedirect === "function"
-  );
-}
-
-function failMissingPageEnvironment(): never {
-  throw new Error(
-    "AuthService.redirectToLogin requires a page environment. Ensure provideAuth() registers providePageClientEnvironment({ environment }).",
-  );
 }

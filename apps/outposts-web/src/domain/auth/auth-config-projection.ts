@@ -1,61 +1,66 @@
-/**
- * Backend-driven OIDC config projection loader.
- *
- * This module is now a thin convenience wrapper around the SDK's canonical
- * `resolveConfigProjection` + `networkConfigSource` from
- * `@securitydept/token-set-context-client/frontend-oidc-mode`.
- *
- * For new code, prefer importing from the SDK directly:
- *
- * ```ts
- * import { resolveConfigProjection, networkConfigSource }
- *   from "@securitydept/token-set-context-client/frontend-oidc-mode";
- * ```
- *
- * This file is retained for the application-level test suite which validates
- * the network fetch path end-to-end with mocked fetch.
- */
-
+import type { CancellationTokenTrait, FoundationEnvironment } from "@securitydept/client";
 import {
-  resolveConfigProjection,
-  networkConfigSource,
   type FrontendOidcModeClientConfig,
+  FrontendOidcModeConfigProjectionSourceKind,
+  resolveFrontendOidcModeConfigProjection,
 } from "@securitydept/token-set-context-client/frontend-oidc-mode";
 
-export interface FetchOidcConfigOptions {
+export interface ResolveConfluenceOidcConfigProjectionOptions {
+  /** Angular-adapted environment shared by the client registry. */
+  environment: FoundationEnvironment;
+  clientKey: string;
   /** Base URL of the Confluence API (e.g. `https://confluence.example.com/api`). */
   apiEndpoint: string;
-  /**
-   * The redirect URI this browser client will use for the OIDC callback.
-   */
+  /** The redirect URI this browser client will use for the OIDC callback. */
   redirectUri: string;
-  /**
-   * Default app-level URI to redirect the user to after authentication.
-   * Defaults to `"/"`.
-   */
+  /** Default app-level URI after authentication. Defaults to `/`. */
   defaultPostAuthRedirectUri?: string;
+  /** Persistent projection cache key. */
+  storageKey?: string;
+  cancellationToken?: CancellationTokenTrait;
 }
 
-/**
- * Fetch and validate the OIDC client config projection from the backend.
- *
- * Delegates entirely to the SDK's `resolveConfigProjection([networkConfigSource(...)])`.
- *
- * @throws when the HTTP request fails, or when the projection body is
- * structurally invalid (missing required fields or wrong types).
- */
-export async function fetchOidcConfigProjection(
-  options: FetchOidcConfigOptions,
-): Promise<FrontendOidcModeClientConfig> {
-  const { apiEndpoint, redirectUri, defaultPostAuthRedirectUri = "/" } = options;
+export function createOidcConfigProjectionEndpoint(
+  apiEndpoint: string,
+  redirectUri: string,
+): string {
+  const url = new URL(`${apiEndpoint.replace(/\/+$/, "")}/auth/config`);
+  url.searchParams.set("redirect_uri", redirectUri);
+  return url.toString();
+}
 
-  const resolved = await resolveConfigProjection([
-    networkConfigSource({
-      apiEndpoint,
-      redirectUri,
-      defaultPostAuthRedirectUri,
-    }),
-  ]);
+/** Resolve and validate the Confluence OIDC projection using the shared environment. */
+export async function resolveConfluenceOidcConfigProjection(
+  options: ResolveConfluenceOidcConfigProjectionOptions,
+): Promise<FrontendOidcModeClientConfig> {
+  const {
+    environment,
+    clientKey,
+    apiEndpoint,
+    redirectUri,
+    defaultPostAuthRedirectUri = "/",
+    storageKey,
+    cancellationToken,
+  } = options;
+  const resolved = await resolveFrontendOidcModeConfigProjection({
+    clientKey,
+    environment,
+    cancellationToken,
+    sources: [
+      {
+        kind: FrontendOidcModeConfigProjectionSourceKind.Realm,
+      },
+      {
+        kind: FrontendOidcModeConfigProjectionSourceKind.Persisted,
+        storageKey,
+      },
+      {
+        kind: FrontendOidcModeConfigProjectionSourceKind.Network,
+        endpoint: createOidcConfigProjectionEndpoint(apiEndpoint, redirectUri),
+      },
+    ],
+    overrides: { redirectUri, defaultPostAuthRedirectUri },
+  });
 
   return resolved.config;
 }

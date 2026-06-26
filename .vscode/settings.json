@@ -34,5 +34,6 @@
       "database": "confluence",
       "username": "outposts"
     }
-  ]
+  ],
+  "js/ts.experimental.useTsgo": false
 }

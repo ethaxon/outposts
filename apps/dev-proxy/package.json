@@ -9,7 +9,7 @@
     "start": "whistle run -p 8899 -t 30000 -M \"keepXFF|prod|capture\" -D . --no-global-plugins"
   },
   "dependencies": {
-    "whistle": "^2.10.2"
+    "whistle": "^2.10.7"
   },
   "engines": {
     "node": ">=24.0.0"

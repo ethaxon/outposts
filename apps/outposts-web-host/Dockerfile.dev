@@ -1,4 +1,4 @@
-FROM node:24-slim AS web-builder
+FROM node:26-slim AS web-builder
 RUN npm install -g pnpm@11.0.3
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -10,5 +10,6 @@ RUN --mount=type=cache,id=angular,target=/usr/src/app/.angular pnpm run build:ou
 FROM oven/bun:1-alpine
 WORKDIR /injector
 COPY ./apps/outposts-web-host/inject.ts ./inject.ts
+COPY ./apps/outposts-web-host/config-projection-bootstrap.ts ./config-projection-bootstrap.ts
 COPY --from=web-builder /usr/src/app/dist/apps/outposts-web /app
 CMD ["bun", "run", "inject.ts"]

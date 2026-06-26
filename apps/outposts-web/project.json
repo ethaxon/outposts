@@ -11,7 +11,7 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "plugins": ["outposts-web/env-var-plugin"],
-        "preserveSymlinks": true,
+        "preserveSymlinks": false,
         "outputPath": "dist/apps/outposts-web",
         "index": "apps/outposts-web/src/index.html",
         "main": "apps/outposts-web/src/main.ts",

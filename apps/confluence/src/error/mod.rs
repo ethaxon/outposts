@@ -110,7 +110,8 @@ impl From<OAuthResourceServerError> for AppError {
         match source {
             OAuthResourceServerError::InvalidConfig { message }
             | OAuthResourceServerError::Metadata { message }
-            | OAuthResourceServerError::HttpClient { message } => Self::Internal { message },
+            | OAuthResourceServerError::HttpClient { message }
+            | OAuthResourceServerError::JweKey { message } => Self::Internal { message },
             OAuthResourceServerError::Introspection { message }
             | OAuthResourceServerError::PolicyViolation { message } => {
                 Self::Unauthorized { message }

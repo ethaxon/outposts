@@ -27,6 +27,8 @@
  *   TEMPLATE_PATH            - Path to the original index.html (default: /app/index.html)
  *   OUTPUT_PATH              - Path to write injected index.html (default: /shared/index.html)
  */
+import { createConfigProjectionBootstrapScript } from "./config-projection-bootstrap";
+
 // ---------------------------------------------------------------------------
 // Host port — minimal interface for runtime-specific capabilities
 // ---------------------------------------------------------------------------
@@ -137,7 +139,7 @@ function createHostPort(): HostPort {
 
 /** A single projection endpoint to fetch and inject. */
 interface ProjectionSourceDescriptor {
-  /** Key under which the projection is placed in the global payload (e.g. "confluence"). */
+  /** Client key used for the Securitydept config-projection Realm entry. */
   key: string;
   /** Backend API base URL (e.g. "http://confluence:8080/api"). */
   endpoint: string;
@@ -251,25 +253,12 @@ function extractGeneratedAt(projection: unknown): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the injected payload from all successfully fetched projections.
- *
- * Payload shape:
- *   window.__OUTPOSTS_CONFIG__ = {
- *     confluence: { ...projectionA },
- *     otherService: { ...projectionB },
- *   };
- *
- * Each key corresponds to a `ProjectionSourceDescriptor.key`.
- * The `generatedAt` is embedded in each projection itself.
+ * Inject each projection using Securitydept's default Realm Symbol key.
  */
-function injectBootstrapScript(
-  html: string,
-  projections: Record<string, unknown>,
-): string {
+function injectBootstrapScript(html: string, projections: Record<string, unknown>): string {
   if (Object.keys(projections).length === 0) return html;
 
-  const payload = JSON.stringify(projections);
-  const script = `<script>window.__OUTPOSTS_CONFIG__=${payload};</script>`;
+  const script = createConfigProjectionBootstrapScript(Object.entries(projections));
 
   const headCloseIndex = html.indexOf("</head>");
   if (headCloseIndex === -1) {
@@ -288,9 +277,8 @@ async function writeOutput(
   projections: Record<string, unknown>,
 ): Promise<void> {
   const template = await host.readFile(config.templatePath);
-  const output = Object.keys(projections).length > 0
-    ? injectBootstrapScript(template, projections)
-    : template;
+  const output =
+    Object.keys(projections).length > 0 ? injectBootstrapScript(template, projections) : template;
   await host.writeFile(config.outputPath, output);
 }
 
@@ -298,10 +286,7 @@ async function writeOutput(
 // Main refresh cycle
 // ---------------------------------------------------------------------------
 
-async function createRefreshCycle(
-  host: HostPort,
-  config: InjectorConfig,
-): Promise<void> {
+async function createRefreshCycle(host: HostPort, config: InjectorConfig): Promise<void> {
   /** Per-source failure counters. */
   const failureCounts = new Map<string, number>();
   /** Last successfully fetched projections. */

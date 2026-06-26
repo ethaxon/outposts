@@ -22,6 +22,7 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Buffer } from "node:buffer";
+import { createConfigProjectionBootstrapScript } from "../../outposts-web-host/config-projection-bootstrap";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -101,12 +102,7 @@ async function refreshAll(): Promise<void> {
 }
 
 function buildBootstrapScript(): string {
-  if (cachedProjections.size === 0) return "";
-  const payload: Record<string, unknown> = {};
-  for (const [key, proj] of cachedProjections) {
-    payload[key] = proj;
-  }
-  return `<script>window.__OUTPOSTS_CONFIG__=${JSON.stringify(payload)};</script>`;
+  return createConfigProjectionBootstrapScript(cachedProjections);
 }
 
 // Initial fetch on module load
