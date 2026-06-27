@@ -231,3 +231,5 @@ vite.config.*.timestamp*
 temp/
 !temp/.gitkeep
 **/.DS_Store
+
+.nx/migrate-runs

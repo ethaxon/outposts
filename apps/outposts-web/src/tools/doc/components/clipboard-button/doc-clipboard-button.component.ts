@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject } from "@angular/core";
+import { Component, DestroyRef, inject, ChangeDetectionStrategy } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TranslocoService } from "@jsverse/transloco";
 import { take } from "rxjs/operators";
@@ -7,6 +7,7 @@ import { AppOverlayService } from "@/core/servces/app-overlay.service";
 @Component({
   standalone: false,
   selector: "app-doc-section-clipboard-button",
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./doc-clipboard-button.component.html",
 })
 export class DocClipboardButtonComponent {

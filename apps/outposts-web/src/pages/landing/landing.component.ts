@@ -1,5 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, DestroyRef, inject, type OnInit } from "@angular/core";
+import {
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  type OnInit,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TranslocoService } from "@jsverse/transloco";
 import { Meta, Title } from "@angular/platform-browser";
@@ -16,6 +23,7 @@ import { HeroSectionComponent } from "./herosection.component";
   selector: "app-landing",
   standalone: true,
   templateUrl: "./landing.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     AppNewsComponent,

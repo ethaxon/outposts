@@ -1,7 +1,13 @@
-import { Component, DestroyRef, Input, inject, type OnInit } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  Input,
+  inject,
+  type OnInit,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { isNil } from "es-toolkit";
-import type { KatexOptions } from "ngx-markdown";
 import {
   combineLatest,
   distinctUntilChanged,
@@ -23,6 +29,7 @@ import { DocService } from "../../services/doc.service";
   standalone: false,
   selector: "app-doc-section",
   templateUrl: "./doc-section.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: [
     "./doc-section.component.scss",
     // only works on direct child
@@ -69,7 +76,7 @@ export class DocSectionComponent implements OnInit {
     this.propData$,
     this.propSrcData$.pipe(filter((data) => !isNil(data))) as Observable<string>,
   ]).pipe(
-    map(([data, srcData]) => data ?? srcData),
+    map(([data, srcData]) => this.normalizeKatexSyntax(data ?? srcData)),
     shareReplay(1),
   );
 
@@ -97,13 +104,9 @@ export class DocSectionComponent implements OnInit {
     ),
   );
 
-  katexOptions: KatexOptions = {
-    // fix error trans
-    // @ts-ignore
-    preProcess: (math: string) => {
-      return math.replace(/\\\r?\n/g, "\\\\\n");
-    },
-  };
+  private normalizeKatexSyntax(data: string): string {
+    return data.replace(/\\\r?\n/g, "\\\\\n");
+  }
 
   detectMermaid(data: string) {
     return /```mermaid/.test(data);

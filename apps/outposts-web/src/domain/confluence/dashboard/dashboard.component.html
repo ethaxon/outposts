@@ -1,4 +1,4 @@
-<p-dataView #dv [value]="confluences()">
+<p-dataview #dv [value]="confluences()">
   <ng-template #emptymessage>
     @if (overlayService.loading$$ | async) {
       <div class="p-4">
@@ -70,4 +70,4 @@
       </div>
     }
   </ng-template>
-</p-dataView>
+</p-dataview>

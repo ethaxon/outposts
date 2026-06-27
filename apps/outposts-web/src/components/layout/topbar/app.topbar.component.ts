@@ -9,6 +9,7 @@ import {
   inject,
   type OnDestroy,
   Renderer2,
+  ChangeDetectionStrategy,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { TranslocoModule } from "@jsverse/transloco";
@@ -25,6 +26,7 @@ import { AppI18nService } from "@/core/servces/app-i18n.service";
   selector: "app-topbar",
   standalone: true,
   imports: [CommonModule, FormsModule, StyleClass, RouterModule, TranslocoModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./app.topbar.component.html",
 })
 export class AppTopBarComponent implements OnDestroy {

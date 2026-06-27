@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import { TranslocoModule } from "@jsverse/transloco";
 import { RouterModule } from "@angular/router";
 
@@ -6,6 +6,7 @@ import { RouterModule } from "@angular/router";
   selector: "app-footer-section",
   standalone: true,
   imports: [RouterModule, TranslocoModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./footersection.component.html",
 })
 export class FooterSectionComponent {}

@@ -1,4 +1,12 @@
-import { type AfterViewInit, Component, computed, ElementRef, Input, inject } from "@angular/core";
+import {
+  type AfterViewInit,
+  Component,
+  computed,
+  ElementRef,
+  Input,
+  inject,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import {
   type DocTableOfContentsItem,
   DocTableOfContentsLevel,
@@ -9,6 +17,7 @@ import { DocTableOfContentsSpy } from "@/tools/doc/services/doc-table-of-content
 @Component({
   standalone: false,
   selector: "app-doc-toc",
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./doc-table-of-contents.component.html",
 })
 export class DocTableOfContentsComponent implements AfterViewInit {

@@ -22,7 +22,7 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Buffer } from "node:buffer";
-import { createConfigProjectionBootstrapScript } from "../../outposts-web-host/config-projection-bootstrap";
+import { createConfigProjectionBootstrapScript } from "../../outposts-web-host/config-projection-bootstrap.ts";
 
 // ---------------------------------------------------------------------------
 // Types

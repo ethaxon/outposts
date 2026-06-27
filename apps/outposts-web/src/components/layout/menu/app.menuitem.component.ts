@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { booleanAttribute, Component, Input, inject } from "@angular/core";
+import { booleanAttribute, Component, Input, inject, ChangeDetectionStrategy } from "@angular/core";
 import { TranslocoModule } from "@jsverse/transloco";
 import { Router, RouterModule } from "@angular/router";
 import { StyleClass } from "primeng/styleclass";
@@ -10,6 +10,7 @@ import type { MenuItem } from "./app.menu.component";
   selector: "[app-menuitem]",
   templateUrl: "./app.menuitem.component.html",
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [CommonModule, StyleClass, RouterModule, Tag, TranslocoModule],
 })
 export class AppMenuItemComponent {

@@ -89,7 +89,7 @@
           ></p-button>
         </div>
       </div>
-      <p-dataView #dv [value]="subscribeSources" class="mt-6" [emptyMessage]="' '">
+      <p-dataview #dv [value]="subscribeSources" class="mt-6" [emptyMessage]="' '">
         <ng-template #list let-items>
           <div class="workspace-card-grid workspace-subscribe-source-grid text-center">
             <div>
@@ -186,7 +186,7 @@
                     <p-progressbar
                       [value]="subscribeSourceUsagePercent(item)"
                       [showValue]="false"
-                      [styleClass]="subscribeSourceUsageProgressClass(item)"
+                      [class]="subscribeSourceUsageProgressClass(item)"
                     ></p-progressbar>
                   </div>
                 </p-card>
@@ -194,7 +194,7 @@
             }
           </div>
         </ng-template>
-      </p-dataView>
+      </p-dataview>
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
@@ -216,7 +216,7 @@
           ></p-button>
         </div>
       </div>
-      <p-dataView #dv [value]="profiles" class="mt-6" [emptyMessage]="' '">
+      <p-dataview #dv [value]="profiles" class="mt-6" [emptyMessage]="' '">
         <ng-template #list let-items>
           <div class="workspace-card-grid workspace-profile-grid text-center">
             <p-card
@@ -271,7 +271,7 @@
             }
           </div>
         </ng-template>
-      </p-dataView>
+      </p-dataview>
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
@@ -393,7 +393,7 @@
             id="subscribe-source-creation-{{ control.key }}"
           >
             <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label | transloco }}
+              {{ selectedOption?.label ?? null | transloco }}
             </ng-template>
             <ng-template #item let-option>
               {{ option.label | transloco }}
@@ -408,7 +408,7 @@
             id="subscribe-source-creation-{{ control.key }}"
           >
             <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label | transloco }}
+              {{ selectedOption?.label ?? null | transloco }}
             </ng-template>
             <ng-template #item let-option>
               {{ option.label | transloco }}
@@ -550,7 +550,7 @@
             id="subscribe-source-creation-{{ control.key }}"
           >
             <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label | transloco }}
+              {{ selectedOption?.label ?? null | transloco }}
             </ng-template>
             <ng-template #item let-option>
               {{ option.label | transloco }}
@@ -565,7 +565,7 @@
             id="subscribe-source-creation-{{ control.key }}"
           >
             <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label | transloco }}
+              {{ selectedOption?.label ?? null | transloco }}
             </ng-template>
             <ng-template #item let-option>
               {{ option.label | transloco }}

@@ -1,10 +1,11 @@
-import { afterNextRender, Component, inject } from "@angular/core";
+import { afterNextRender, Component, inject, ChangeDetectionStrategy } from "@angular/core";
 import { environment } from "@/environments/environment";
 import { AppI18nService } from "@/core/servces/app-i18n.service";
 
 @Component({
   selector: "app-root",
   templateUrl: "./app.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class AppComponent {

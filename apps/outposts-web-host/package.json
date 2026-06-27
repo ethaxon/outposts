@@ -1,7 +1,7 @@
 {
   "name": "outposts-web-host",
   "private": true,
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Outposts Web projection config injector — production host sidecar",
   "type": "module",
   "engines": {

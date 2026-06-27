@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, ChangeDetectionStrategy } from "@angular/core";
 import { TranslocoModule } from "@jsverse/transloco";
 import { FormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
@@ -32,6 +32,7 @@ import { AppConfigService } from "@/core/servces/app-config.service";
     ButtonModule,
     TranslocoModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./herosection.component.html",
 })
 export class HeroSectionComponent {

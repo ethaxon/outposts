@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   type OnDestroy,
+  ChangeDetectionStrategy,
 } from "@angular/core";
 import { NavigationEnd, Router, RouterModule } from "@angular/router";
 import { DomHandler } from "primeng/dom";
@@ -30,6 +31,7 @@ export interface MenuItem {
     "[class.active]": "isActive()",
   },
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [RouterModule, AppMenuItemComponent],
 })
 export class AppMenuComponent implements OnDestroy {

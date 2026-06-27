@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.10
 
 - **Securitydept** — upgraded the Rust crate and four frontend SDK packages to `0.3.0-beta.6`; migrated auth composition to `FoundationEnvironment`, Resource-backed `TokenSetClientRegistry`, the new frontend callback and secure-route adapters, and the registry authorization interceptor. External IdP navigation now uses the Angular adapter's built-in native-web routing support.
+- **Frontend** — migrated the web application to Angular 22, Nx 23, PrimeNG 22, and the corresponding ngx-markdown/ngx-monaco-editor integrations; updated auth configuration and callback flows for the current SDK APIs.
+- **Tooling** — upgraded the safe patch-level tooling and Markdown dependencies, removed unused build integrations, and aligned the Angular application build target with the esbuild-based builder.
+- **Development server** — restored the Angular dev-server compatibility dependency and fixed ESM loading for the development projection-injection middleware.
+- **Release** — bumped package and crate version metadata to `0.3.10`.
 
 ## 0.3.9
 

@@ -7,14 +7,16 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/angular:browser-esbuild",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/angular:application",
+      "outputs": ["{options.outputPath.base}"],
+      "defaultConfiguration": "production",
       "options": {
         "plugins": ["outposts-web/env-var-plugin"],
         "preserveSymlinks": false,
-        "outputPath": "dist/apps/outposts-web",
+        "outputPath": {
+          "base": "dist/apps/outposts-web"
+        },
         "index": "apps/outposts-web/src/index.html",
-        "main": "apps/outposts-web/src/main.ts",
         "polyfills": ["zone.js"],
         "tsConfig": "apps/outposts-web/tsconfig.app.json",
         "allowedCommonJsDependencies": ["camelcase-keys", "qrcode", "@datasert/cronjs-parser"],
@@ -109,7 +111,8 @@
             "inject": false,
             "input": "node_modules/katex/dist/contrib/auto-render.min.js"
           }
-        ]
+        ],
+        "browser": "apps/outposts-web/src/main.ts"
       },
       "configurations": {
         "production": {
@@ -138,11 +141,18 @@
             }
           ]
         }
-      },
-      "defaultConfiguration": "production"
+      }
     },
     "serve": {
       "executor": "@nx/angular:dev-server",
+      "defaultConfiguration": "development",
+      "continuous": true,
+      "options": {
+        "host": "127.0.0.1",
+        "hmr": false,
+        "liveReload": false,
+        "esbuildMiddleware": ["outposts-web/dev-inject-middleware"]
+      },
       "configurations": {
         "production": {
           "buildTarget": "outposts-web:build:production"
@@ -150,15 +160,7 @@
         "development": {
           "buildTarget": "outposts-web:build:development"
         }
-      },
-      "defaultConfiguration": "development",
-      "options": {
-        "host": "127.0.0.1",
-        "hmr": false,
-        "liveReload": false,
-        "esbuildMiddleware": ["outposts-web/dev-inject-middleware"]
-      },
-      "continuous": true
+      }
     },
     "extract-i18n": {
       "executor": "@nx/angular:extract-i18n",

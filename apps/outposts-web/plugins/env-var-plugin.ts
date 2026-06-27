@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-import { version } from "../package.json";
+import packageJson from "../package.json" with { type: "json" };
+
+const { version } = packageJson;
 
 const REQUIRED_ENV_NAMES = [
   "OUTPOSTS_WEB_HOST",

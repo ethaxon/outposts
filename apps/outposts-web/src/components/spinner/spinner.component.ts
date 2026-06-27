@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, inject } from "@angular/core";
+import { Component, inject, ChangeDetectionStrategy } from "@angular/core";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { AppOverlayService } from "../../core/servces/app-overlay.service";
 
@@ -8,6 +8,7 @@ import { AppOverlayService } from "../../core/servces/app-overlay.service";
   standalone: true,
   templateUrl: "./spinner.component.html",
   styleUrl: "./spinner.component.scss",
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [CommonModule, ProgressSpinnerModule],
 })
 export class SpinnerComponent {

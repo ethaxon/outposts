@@ -1,4 +1,11 @@
-import { Component, computed, DestroyRef, inject, type OnInit } from "@angular/core";
+import {
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  type OnInit,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, type FormControl, type FormGroup, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -55,6 +62,7 @@ type ProfileTransformRequest = {
   standalone: false,
   selector: "app-confluence-workspace",
   templateUrl: "./workspace.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./workspace.component.scss",
 })
 export class WorkspaceComponent implements OnInit {

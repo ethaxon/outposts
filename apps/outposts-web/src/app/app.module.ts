@@ -2,7 +2,7 @@ import { IMAGE_CONFIG } from "@angular/common";
 import { provideHttpClient, withFetch, withInterceptorsFromDi } from "@angular/common/http";
 import { DOCUMENT, NgModule, provideZoneChangeDetection } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { BrowserModule, provideClientHydration, withEventReplay } from "@angular/platform-browser";
+import { BrowserModule } from "@angular/platform-browser";
 import { provideRouter, RouterOutlet, withInMemoryScrolling } from "@angular/router";
 import { MonacoEditorModule } from "ngx-monaco-editor-v2";
 import type * as Monaco from "monaco-editor";
@@ -16,7 +16,6 @@ import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { PlatformService } from "@/core/servces/platform.service";
 import { provideAuth } from "@/domain/auth/auth.providers";
 import { CLASH_META_CONFIG_TYPES } from "@/domain/confluence/types/clash-meta-config.extra-lib";
-import { environment } from "@/environments/environment";
 import { AppComponent } from "./app.component";
 import { routes } from "./app.routes";
 import Noir from "./app-theme";
@@ -90,7 +89,6 @@ function configureMonacoTypes() {
     RouterOutlet,
   ],
   providers: [
-    ...(environment.ssr ? [provideClientHydration(withEventReplay())] : []),
     {
       provide: WINDOW,
       useFactory: windowProvider,

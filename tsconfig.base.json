@@ -21,6 +21,10 @@
     ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "noUncheckedSideEffectImports": false,
+    "types": [
+      "*"
+    ]
   }
 }

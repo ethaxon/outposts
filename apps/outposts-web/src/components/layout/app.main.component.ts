@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, inject, ChangeDetectionStrategy } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
 import { PrimeNG } from "primeng/config";
 import { DomHandler } from "primeng/dom";
@@ -15,6 +15,7 @@ import { AppTopBarComponent } from "./topbar/app.topbar.component";
   selector: "app-main",
   templateUrl: "./app.main.component.html",
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     RouterOutlet,
     AppFooterComponent,

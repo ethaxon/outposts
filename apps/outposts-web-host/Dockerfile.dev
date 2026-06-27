@@ -11,5 +11,5 @@ FROM oven/bun:1-alpine
 WORKDIR /injector
 COPY ./apps/outposts-web-host/inject.ts ./inject.ts
 COPY ./apps/outposts-web-host/config-projection-bootstrap.ts ./config-projection-bootstrap.ts
-COPY --from=web-builder /usr/src/app/dist/apps/outposts-web /app
+COPY --from=web-builder /usr/src/app/dist/apps/outposts-web/browser /app
 CMD ["bun", "run", "inject.ts"]

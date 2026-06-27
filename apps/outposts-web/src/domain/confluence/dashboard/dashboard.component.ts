@@ -1,4 +1,11 @@
-import { Component, DestroyRef, inject, type OnInit, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  inject,
+  type OnInit,
+  signal,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { switchMap } from "rxjs";
 import { AppI18nService } from "@/core/servces/app-i18n.service";
@@ -10,6 +17,7 @@ import { ConfluenceService } from "../confluence.service";
   standalone: false,
   selector: "app-confluence-dashboard",
   templateUrl: "./dashboard.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [],
 })
 export class DashboardComponent implements OnInit {
