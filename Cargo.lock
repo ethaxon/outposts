@@ -1110,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "confluence"
-version = "0.3.10"
+version = "0.4.0"
 dependencies = [
  "addr",
  "axum",

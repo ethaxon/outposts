@@ -68,9 +68,9 @@ export class AppConfigService {
 
   private toggleDarkMode(state: AppState): void {
     if (state.darkTheme) {
-      this.document.documentElement.classList.add("p-dark");
+      this.document.documentElement.classList.add("dark");
     } else {
-      this.document.documentElement.classList.remove("p-dark");
+      this.document.documentElement.classList.remove("dark");
     }
   }
 

@@ -2,6 +2,7 @@
   "recommendations": [
     "oxc.oxc-vscode",
     "mtxr.sqltools",
-    "mtxr.sqltools-driver-pg"
+    "mtxr.sqltools-driver-pg",
+    "esbenp.prettier-vscode"
   ]
 }

@@ -85,7 +85,11 @@ async function fetchProjection(source: ProjectionSourceDescriptor): Promise<unkn
 // Refresh all sources
 // ---------------------------------------------------------------------------
 
-const sources = readSources();
+const sources = process.env["AUTH_TYPE"] === "DEV" ? [] : readSources();
+
+if (process.env["AUTH_TYPE"] === "DEV") {
+  console.warn("[dev-inject] AUTH_TYPE=DEV — skipping OIDC config injection");
+}
 
 async function refreshAll(): Promise<void> {
   for (const source of sources) {

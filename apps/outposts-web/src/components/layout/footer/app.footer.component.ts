@@ -6,7 +6,7 @@ import { environment } from "@/environments/environment";
   selector: "app-footer",
   standalone: true,
   imports: [TranslocoModule],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./app.footer.component.html",
 })
 export class AppFooterComponent {

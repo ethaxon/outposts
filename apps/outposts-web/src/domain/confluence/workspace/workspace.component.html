@@ -1,23 +1,35 @@
-<p-breadcrumb
-  class="max-w-full"
-  [model]="breadcrumb().items"
-  [home]="breadcrumb().home"
-></p-breadcrumb>
+<nav hlmBreadcrumb [attr.aria-label]="'common.navigation.breadcrumb' | transloco">
+  <ol hlmBreadcrumbList>
+    <li hlmBreadcrumbItem>
+      <a hlmBreadcrumbLink [link]="['/']" [attr.aria-label]="'common.navigation.home' | transloco">
+        <ng-icon name="lucideHouse" aria-hidden="true" />
+      </a>
+    </li>
+    <li hlmBreadcrumbSeparator></li>
+    <li hlmBreadcrumbItem>
+      <a hlmBreadcrumbLink [link]="['/confluence']">{{ confluenceCrumbLabel() }}</a>
+    </li>
+    <li hlmBreadcrumbSeparator></li>
+    <li hlmBreadcrumbItem>
+      <span hlmBreadcrumbPage>{{ workspaceCrumbLabel() }}</span>
+    </li>
+  </ol>
+</nav>
 <div class="card flex-1 min-w-0 mt-2">
-  <p-panel class="flex-1 min-w-0">
-    <ng-template #header>
+  <section class="flex-1 min-w-0 rounded-lg border bg-card p-6">
+    <header class="mb-4 flex items-center">
       <div
-        class="flex items-center gap-2 px-2 absolute pt-4"
+        class="flex items-center gap-2 px-2"
         style="cursor: pointer"
         tabindex="0"
         (click)="openUpdateNameDialog()"
         (keyup)="openUpdateNameDialog()"
       >
         <span class="font-bold text-2xl">{{ (confluenceName$ | async)! }}</span>
-        <i class="pi pi-pencil text-sm text-surface-500"></i>
+        <ng-icon name="lucidePencil" class="text-sm text-muted-foreground" aria-hidden="true" />
       </div>
-    </ng-template>
-    <ng-template #content>
+    </header>
+    <div>
       @if (confluence$ | async; as confluence) {
         <div class="workspace-metadata">
           <div class="workspace-metadata-item">
@@ -45,23 +57,25 @@
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
-        <div class="text-xl">{{ "confluence.workspace.sections.template" | transloco }}</div>
+        <div class="text-xl">
+          {{ "confluence.workspace.sections.template" | transloco }}
+        </div>
         <div class="flex gap-2">
-          <p-button
+          <app-action
             size="small"
             [label]="'common.actions.save' | transloco"
-            icon="pi pi-check"
+            icon="lucideCheck"
             (click)="saveTmpl()"
             [outlined]="true"
-          ></p-button>
-          <p-button
+          ></app-action>
+          <app-action
             size="small"
             [label]="'common.actions.reset' | transloco"
-            icon="pi pi-times"
+            icon="lucideX"
             (click)="resetTmpl()"
             [outlined]="true"
             severity="secondary"
-          ></p-button>
+          ></app-action>
         </div>
       </div>
       <div
@@ -80,222 +94,252 @@
           {{ "confluence.workspace.sections.subscribeSources" | transloco }}
         </div>
         <div class="flex gap-2">
-          <p-button
+          <app-action
             size="small"
             [label]="'common.actions.sync' | transloco"
-            icon="pi pi-sync"
+            icon="lucideRefreshCw"
             (click)="syncConfluence()"
             [outlined]="true"
-          ></p-button>
+          ></app-action>
         </div>
       </div>
-      <p-dataview #dv [value]="subscribeSources" class="mt-6" [emptyMessage]="' '">
-        <ng-template #list let-items>
-          <div class="workspace-card-grid workspace-subscribe-source-grid text-center">
-            <div>
-              <p-card
-                class="cursor-pointer text-center relative confluence-subscribe-source-item confluence-subscribe-source-create h-full dark:bg-surface-950"
-                (click)="openCreateSubscribeSourceDialog()"
-              >
-                <div>{{ "confluence.workspace.cards.import" | transloco }}</div>
-                <div class="flex items-center justify-center gap-1 mt-2">
-                  <i class="pi pi-plus p-1"></i>
-                </div>
-              </p-card>
-            </div>
+      <div class="mt-6">
+        <div class="workspace-card-grid workspace-subscribe-source-grid text-center">
+          <div>
+            <app-card
+              class="cursor-pointer text-center relative confluence-subscribe-source-item confluence-subscribe-source-create h-full dark:bg-surface-950"
+              (click)="openCreateSubscribeSourceDialog()"
+            >
+              <div>{{ "confluence.workspace.cards.import" | transloco }}</div>
+              <div class="flex items-center justify-center gap-1 mt-2">
+                <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
+              </div>
+            </app-card>
+          </div>
 
-            @for (item of items; track item.id) {
-              <div>
-                <p-card
-                  class="cursor-pointer text-center relative confluence-subscribe-source-item h-full dark:bg-surface-950"
-                >
-                  <div>{{ item.name }}</div>
-                  <div class="flex items-center justify-center gap-1 mt-2">
-                    <i
-                      class="pi pi-eye p-1 cursor-pointer"
-                      role="button"
-                      tabindex="0"
-                      (click)="openPreviewSubscribeSourceContentDialog(item)"
-                      (keyup)="openPreviewSubscribeSourceContentDialog(item)"
-                    ></i>
-                    <i
-                      class="pi pi-file-edit p-1 cursor-pointer"
-                      role="button"
-                      tabindex="0"
-                      (click)="openUpdateSubscribeSourceDialog(item)"
-                      (keyup)="openUpdateSubscribeSourceDialog(item)"
-                    ></i>
-                    <i
-                      class="pi pi-times p-1 cursor-pointer"
-                      role="button"
-                      tabindex="0"
-                      (click)="removeSubscribeSource(item.id)"
-                      (keyup)="removeSubscribeSource(item.id)"
-                    ></i>
-                    <i
-                      class="pi pi-sync p-1 cursor-pointer"
-                      role="button"
-                      tabindex="0"
-                      (click)="syncSubscribeSource(item.id)"
-                      (keyup)="syncSubscribeSource(item.id)"
-                    ></i>
+          @for (item of subscribeSources; track item.id) {
+            <div>
+              <app-card
+                class="cursor-pointer text-center relative confluence-subscribe-source-item h-full dark:bg-surface-950"
+              >
+                <div>{{ item.name }}</div>
+                <div class="flex items-center justify-center gap-1 mt-2">
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.preview' | transloco"
+                    (click)="openPreviewSubscribeSourceContentDialog(item)"
+                  >
+                    <ng-icon name="lucideEye" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.edit' | transloco"
+                    (click)="openUpdateSubscribeSourceDialog(item)"
+                  >
+                    <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.delete' | transloco"
+                    (click)="removeSubscribeSource(item.id)"
+                  >
+                    <ng-icon name="lucideTrash2" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.sync' | transloco"
+                    (click)="syncSubscribeSource(item.id)"
+                  >
+                    <ng-icon name="lucideRefreshCw" aria-hidden="true" />
+                  </button>
+                </div>
+                <div
+                  class="absolute rounded-full"
+                  [style]="{
+                    background: item.content
+                      ? 'oklch(0.627 0.194 149.214)'
+                      : 'var(--muted-foreground)',
+                    height: '0.5em',
+                    width: '0.5em',
+                    right: '0.5em',
+                    top: '0.5em',
+                  }"
+                ></div>
+                <div class="subscription-source-meta">
+                  <div class="subscription-source-meta-row">
+                    <span>{{ "confluence.workspace.subscription.updatedAt" | transloco }}</span>
+                    <strong>{{ formatTime(item.updated_at, "MM-dd HH:mm") }}</strong>
+                  </div>
+                  <div class="subscription-source-meta-row">
+                    <span>{{ "confluence.workspace.subscription.expireAt" | transloco }}</span>
+                    <strong>{{ formatOptionalTime(item.sub_expire) }}</strong>
+                  </div>
+                  <div class="subscription-source-meta-row">
+                    <span>{{ "confluence.workspace.subscription.usedTraffic" | transloco }}</span>
+                    <strong>{{ formatTrafficGb(usedTraffic(item)) }}</strong>
+                  </div>
+                  <div class="subscription-source-meta-row">
+                    <span>{{ "confluence.workspace.subscription.totalTraffic" | transloco }}</span>
+                    <strong>{{ formatTrafficGb(item.sub_total) }}</strong>
+                  </div>
+                  <div class="subscription-source-meta-row">
+                    <span>{{
+                      "confluence.workspace.subscription.trafficResetPolicy" | transloco
+                    }}</span>
+                    <strong>{{
+                      trafficResetPolicyLabelKey(item.traffic_reset_policy) | transloco
+                    }}</strong>
+                  </div>
+                  <div class="subscription-source-meta-row">
+                    <span>{{
+                      "confluence.workspace.subscription.trafficNextResetAt" | transloco
+                    }}</span>
+                    <strong>{{ formatOptionalTime(item.traffic_next_reset_at) }}</strong>
                   </div>
                   <div
-                    class="absolute rounded-full"
-                    [style]="{
-                      background: item.content ? 'var(--p-green-400)' : 'var(--p-surface-400)',
-                      height: '0.5em',
-                      width: '0.5em',
-                      right: '0.5em',
-                      top: '0.5em',
-                    }"
-                  ></div>
-                  <div class="subscription-source-meta">
-                    <div class="subscription-source-meta-row">
-                      <span>{{ "confluence.workspace.subscription.updatedAt" | transloco }}</span>
-                      <strong>{{ formatTime(item.updated_at, "MM-dd HH:mm") }}</strong>
-                    </div>
-                    <div class="subscription-source-meta-row">
-                      <span>{{ "confluence.workspace.subscription.expireAt" | transloco }}</span>
-                      <strong>{{ formatOptionalTime(item.sub_expire) }}</strong>
-                    </div>
-                    <div class="subscription-source-meta-row">
-                      <span>{{ "confluence.workspace.subscription.usedTraffic" | transloco }}</span>
-                      <strong>{{ formatTrafficGb(usedTraffic(item)) }}</strong>
-                    </div>
-                    <div class="subscription-source-meta-row">
-                      <span>{{
-                        "confluence.workspace.subscription.totalTraffic" | transloco
-                      }}</span>
-                      <strong>{{ formatTrafficGb(item.sub_total) }}</strong>
-                    </div>
-                    <div class="subscription-source-meta-row">
-                      <span>{{
-                        "confluence.workspace.subscription.trafficResetPolicy" | transloco
-                      }}</span>
-                      <strong>{{
-                        trafficResetPolicyLabelKey(item.traffic_reset_policy) | transloco
-                      }}</strong>
-                    </div>
-                    <div class="subscription-source-meta-row">
-                      <span>{{
-                        "confluence.workspace.subscription.trafficNextResetAt" | transloco
-                      }}</span>
-                      <strong>{{ formatOptionalTime(item.traffic_next_reset_at) }}</strong>
-                    </div>
-                    <p-progressbar
-                      [value]="subscribeSourceUsagePercent(item)"
-                      [showValue]="false"
-                      [class]="subscribeSourceUsageProgressClass(item)"
-                    ></p-progressbar>
+                    hlmProgress
+                    [value]="subscribeSourceUsagePercent(item)"
+                    [class]="subscribeSourceUsageProgressClass(item)"
+                  >
+                    <div hlmProgressIndicator></div>
                   </div>
-                </p-card>
-              </div>
-            }
-          </div>
-        </ng-template>
-      </p-dataview>
-      <div
-        class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
-      >
-        <div class="text-xl">{{ "confluence.workspace.sections.profiles" | transloco }}</div>
-        <div class="flex items-center justify-center gap-1 mt-2">
-          <p-button
-            size="small"
-            [label]="'common.actions.mux' | transloco"
-            icon="pi pi-sliders-v"
-            (click)="muxConfluence()"
-            [outlined]="true"
-          ></p-button>
-          <p-button
-            size="small"
-            [label]="'common.actions.preview' | transloco"
-            icon="pi pi-eye"
-            (click)="openPreviewMuxContentDialog()"
-            [outlined]="true"
-          ></p-button>
+                </div>
+              </app-card>
+            </div>
+          }
         </div>
       </div>
-      <p-dataview #dv [value]="profiles" class="mt-6" [emptyMessage]="' '">
-        <ng-template #list let-items>
-          <div class="workspace-card-grid workspace-profile-grid text-center">
-            <p-card
-              class="cursor-pointer confluence-profile-item h-full dark:bg-surface-950"
-              (click)="createProfile()"
-            >
-              <div>
-                {{ "confluence.workspace.cards.newProfilePrefix" | transloco }}
-                <br />
-                {{ "confluence.workspace.cards.newProfileSuffix" | transloco }}
-              </div>
-              <div class="profile-card-actions">
-                <i class="pi pi-plus p-1"></i>
-              </div>
-            </p-card>
-            @for (item of items; track item.id) {
-              <p-card
-                class="confluence-profile-item h-full text-center relative dark:bg-surface-950"
-              >
-                <time style="word-wrap: pre-wrap">
-                  {{ formatTime(item.updated_at, "MM-dd") }}
-                  <br />
-                  {{ formatTime(item.updated_at, "HH:mm") }}
-                </time>
-                <div class="profile-card-actions">
-                  <i
-                    class="pi pi-copy p-1 cursor-pointer"
-                    tabindex="0"
-                    (click)="copyProfileUrl(item)"
-                    (keyup)="copyProfileUrl(item)"
-                  ></i>
-                  <i
-                    class="pi pi-file-edit p-1 cursor-pointer"
-                    tabindex="0"
-                    (click)="openUpdateProfileDialog(item)"
-                    (keyup)="openUpdateProfileDialog(item)"
-                  ></i>
-                  <i
-                    class="pi pi-play p-1 cursor-pointer"
-                    tabindex="0"
-                    (click)="openProfileTransformPreviewDialog(item)"
-                    (keyup)="openProfileTransformPreviewDialog(item)"
-                  ></i>
-                  <i
-                    class="pi pi-times p-1 cursor-pointer"
-                    tabindex="0"
-                    (click)="removeProfile(item.id)"
-                    (keyup)="removeProfile(item.id)"
-                  ></i>
-                </div>
-              </p-card>
-            }
-          </div>
-        </ng-template>
-      </p-dataview>
       <div
         class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
       >
-        <div class="text-xl">{{ "confluence.workspace.sections.syncSchedule" | transloco }}</div>
+        <div class="text-xl">
+          {{ "confluence.workspace.sections.profiles" | transloco }}
+        </div>
+        <div class="flex items-center justify-center gap-1 mt-2">
+          <app-action
+            size="small"
+            [label]="'common.actions.mux' | transloco"
+            icon="lucideSlidersVertical"
+            (click)="muxConfluence()"
+            [outlined]="true"
+          ></app-action>
+          <app-action
+            size="small"
+            [label]="'common.actions.preview' | transloco"
+            icon="lucideEye"
+            (click)="openPreviewMuxContentDialog()"
+            [outlined]="true"
+          ></app-action>
+        </div>
+      </div>
+      <div class="mt-6">
+        <div class="workspace-card-grid workspace-profile-grid text-center">
+          <app-card
+            class="cursor-pointer confluence-profile-item h-full dark:bg-surface-950"
+            (click)="createProfile()"
+          >
+            <div>
+              {{ "confluence.workspace.cards.newProfilePrefix" | transloco }}
+              <br />
+              {{ "confluence.workspace.cards.newProfileSuffix" | transloco }}
+            </div>
+            <div class="profile-card-actions">
+              <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
+            </div>
+          </app-card>
+          @for (item of profiles; track item.id) {
+            <app-card
+              class="confluence-profile-item h-full text-center relative dark:bg-surface-950"
+            >
+              <time style="word-wrap: pre-wrap">
+                {{ formatTime(item.updated_at, "MM-dd") }}
+                <br />
+                {{ formatTime(item.updated_at, "HH:mm") }}
+              </time>
+              <div class="profile-card-actions">
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.copy' | transloco"
+                  (click)="copyProfileUrl(item)"
+                >
+                  <ng-icon name="lucideCopy" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.edit' | transloco"
+                  (click)="openUpdateProfileDialog(item)"
+                >
+                  <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.preview' | transloco"
+                  (click)="openProfileTransformPreviewDialog(item)"
+                >
+                  <ng-icon name="lucidePlay" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.delete' | transloco"
+                  (click)="removeProfile(item.id)"
+                >
+                  <ng-icon name="lucideTrash2" aria-hidden="true" />
+                </button>
+              </div>
+            </app-card>
+          }
+        </div>
+      </div>
+      <div
+        class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
+      >
+        <div class="text-xl">
+          {{ "confluence.workspace.sections.syncSchedule" | transloco }}
+        </div>
         <div class="flex gap-2">
-          <p-button
+          <app-action
             size="small"
             [label]="'common.actions.save' | transloco"
-            icon="pi pi-check"
+            icon="lucideCheck"
             (click)="saveCron()"
             [outlined]="true"
-          ></p-button>
+          ></app-action>
         </div>
       </div>
       <div class="m-0">
         <form [formGroup]="cronUpdateForm" class="w-full flex flex-col" onsubmit="return false;">
           <input
+            hlmInput
             [ngClass]="{
               'ng-invalid': cronUpdateForm.controls.cronExpr.invalid,
               'ng-dirty': cronUpdateForm.controls.cronExpr.touched,
             }"
             type="text"
             id="cron-update-cron-expr"
-            pInputText
             formControlName="cronExpr"
             autocomplete="off"
           />
@@ -312,9 +356,7 @@
               cronUpdateForm.controls.cronExpr.invalid &&
               !cronUpdateForm.controls.cronExpr.errors?.["emptyCronExpr"]
             ) {
-              <span style="text-transform: capitalize">
-                {{ cronUpdateForm.controls.cronExpr.errors?.["message"] || "123" }}
-              </span>
+              <span>{{ cronUpdateForm.controls.cronExpr.errors?.["messageKey"] | transloco }}</span>
             } @else {
               {{ "confluence.workspace.cronHint" | transloco }}
               <code>0 0 8 * * *</code>
@@ -323,46 +365,43 @@
         </form>
       </div>
       <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-        <div class="text-xl">{{ "confluence.workspace.sections.syncUserAgent" | transloco }}</div>
+        <div class="text-xl">
+          {{ "confluence.workspace.sections.syncUserAgent" | transloco }}
+        </div>
         <div class="flex gap-2">
-          <p-button
+          <app-action
             size="small"
             [label]="'common.actions.save' | transloco"
-            icon="pi pi-check"
+            icon="lucideCheck"
             (click)="saveUA()"
             [outlined]="true"
-          ></p-button>
+          ></app-action>
         </div>
       </div>
       <div class="m-0">
         <form [formGroup]="uaUpdateForm" class="w-full flex flex-col" onsubmit="return false;">
           <input
+            hlmInput
             [ngClass]="{
               'ng-invalid': uaUpdateForm.controls.userAgent.invalid,
               'ng-dirty': uaUpdateForm.controls.userAgent.touched,
             }"
             type="text"
             id="ua-update-user-agent"
-            pInputText
             formControlName="userAgent"
             autocomplete="off"
             [placeholder]="'confluence.workspace.userAgentPlaceholder' | transloco"
           />
         </form>
       </div>
-    </ng-template>
-  </p-panel>
+    </div>
+  </section>
 </div>
 @if (subscribeSourceCreation) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.newSubscribeSource' | transloco"
     [visible]="true"
     (visibleChange)="cancelCreateSubscribeSourceDialog()"
-    [modal]="true"
-    [style]="{ width: '50vw', minWidth: '300px' }"
-    [draggable]="false"
-    [resizable]="false"
-    [baseZIndex]="100"
   >
     <form
       [formGroup]="subscribeSourceCreation.form"
@@ -378,44 +417,46 @@
           {{ "confluence.workspace.fields." + control.key | transloco }}
         </label>
         @if (control.key === "passive_sync") {
-          <p-checkbox
+          <hlm-checkbox
             class="mt-2"
             [formControlName]="control.key"
-            [binary]="true"
-            id="subscribe-source-creation-{{ control.key }}"
+            [inputId]="'subscribe-source-creation-' + control.key"
           />
         } @else if (control.key === "proxy_server_nameserver_policy_source") {
-          <p-select
-            class="mt-2 w-full"
-            [formControlName]="control.key"
-            [options]="policySourceOptions"
-            optionValue="value"
-            id="subscribe-source-creation-{{ control.key }}"
-          >
-            <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label ?? null | transloco }}
-            </ng-template>
-            <ng-template #item let-option>
-              {{ option.label | transloco }}
-            </ng-template>
-          </p-select>
+          <hlm-select class="mt-2" [formControlName]="control.key">
+            <hlm-select-trigger
+              class="w-full"
+              [buttonId]="'subscribe-source-creation-' + control.key"
+            >
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content *hlmSelectPortal>
+              @for (option of policySourceOptions; track option.value) {
+                <hlm-select-item [value]="option.value">{{
+                  option.label | transloco
+                }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </hlm-select>
         } @else if (control.key === "traffic_reset_policy") {
-          <p-select
-            class="mt-2 w-full"
-            [formControlName]="control.key"
-            [options]="trafficResetPolicyOptions"
-            optionValue="value"
-            id="subscribe-source-creation-{{ control.key }}"
-          >
-            <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label ?? null | transloco }}
-            </ng-template>
-            <ng-template #item let-option>
-              {{ option.label | transloco }}
-            </ng-template>
-          </p-select>
+          <hlm-select class="mt-2" [formControlName]="control.key">
+            <hlm-select-trigger
+              class="w-full"
+              [buttonId]="'subscribe-source-creation-' + control.key"
+            >
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content *hlmSelectPortal>
+              @for (option of trafficResetPolicyOptions; track option.value) {
+                <hlm-select-item [value]="option.value">{{
+                  option.label | transloco
+                }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </hlm-select>
         } @else {
           <input
+            hlmInput
             class="mt-2"
             [ngClass]="{
               'ng-invalid': control.value.invalid,
@@ -423,40 +464,34 @@
             }"
             type="text"
             id="subscribe-source-creation-{{ control.key }}"
-            pInputText
             [formControlName]="control.key"
             autocomplete="off"
           />
         }
       }
       <div class="flex justify-end gap-2 mt-6">
-        <p-button
+        <app-action
           size="small"
           [label]="'common.actions.cancel' | transloco"
-          icon="pi pi-times"
+          icon="lucideX"
           [outlined]="true"
           (click)="cancelCreateSubscribeSourceDialog()"
-        ></p-button>
-        <p-button
+        ></app-action>
+        <app-action
           size="small"
           [label]="'common.actions.create' | transloco"
-          icon="pi pi-check"
+          icon="lucideCheck"
           (click)="acceptCreateSubscribeSourceDialog()"
-        ></p-button>
+        ></app-action>
       </div>
     </form>
-  </p-dialog>
+  </app-dialog>
 }
 @if (nameUpdateDialog) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.rename' | transloco"
     [visible]="true"
     (visibleChange)="cancelUpdateNameDialog()"
-    [modal]="true"
-    [style]="{ width: '50vw', minWidth: '300px' }"
-    [draggable]="false"
-    [resizable]="false"
-    [baseZIndex]="100"
   >
     <form [formGroup]="nameUpdateDialog.form" class="w-full flex flex-col" onsubmit="return false;">
       @for (item of nameUpdateDialog.form.controls | keyvalue; track item.key) {
@@ -468,6 +503,7 @@
           {{ "confluence.workspace.fields." + item.key | transloco }}
         </label>
         <input
+          hlmInput
           class="mt-2"
           [ngClass]="{
             'ng-invalid': item.value.invalid,
@@ -475,39 +511,33 @@
           }"
           type="text"
           id="update-name-{{ item.key }}"
-          pInputText
           [formControlName]="item.key"
           autocomplete="off"
         />
       }
       <div class="flex justify-end gap-2 mt-6">
-        <p-button
+        <app-action
           size="small"
           [label]="'common.actions.cancel' | transloco"
-          icon="pi pi-times"
+          icon="lucideX"
           [outlined]="true"
           (click)="cancelUpdateNameDialog()"
-        ></p-button>
-        <p-button
+        ></app-action>
+        <app-action
           size="small"
           [label]="'common.actions.save' | transloco"
-          icon="pi pi-check"
+          icon="lucideCheck"
           (click)="acceptUpdateNameDialog()"
-        ></p-button>
+        ></app-action>
       </div>
     </form>
-  </p-dialog>
+  </app-dialog>
 }
 @if (subscribeSourceUpdate) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.editSubscribeSource' | transloco"
     [visible]="true"
     (visibleChange)="cancelUpdateSubscribeSourceDialog()"
-    [modal]="true"
-    [style]="{ width: '50vw', minWidth: '300px' }"
-    [draggable]="false"
-    [resizable]="false"
-    [baseZIndex]="100"
   >
     <form
       [formGroup]="subscribeSourceUpdate.form"
@@ -518,10 +548,10 @@
         {{ "confluence.workspace.fields.id" | transloco }}
       </label>
       <input
+        hlmInput
         class="mt-2"
         type="text"
         id="subscribe-source-creation-id"
-        pInputText
         [value]="subscribeSourceUpdate.value.id"
         autocomplete="off"
         [disabled]="true"
@@ -535,44 +565,46 @@
           {{ "confluence.workspace.fields." + control.key | transloco }}
         </label>
         @if (control.key === "passive_sync") {
-          <p-checkbox
+          <hlm-checkbox
             class="mt-2"
             [formControlName]="control.key"
-            [binary]="true"
-            id="subscribe-source-creation-{{ control.key }}"
+            [inputId]="'subscribe-source-creation-' + control.key"
           />
         } @else if (control.key === "proxy_server_nameserver_policy_source") {
-          <p-select
-            class="mt-2 w-full"
-            [formControlName]="control.key"
-            [options]="policySourceOptions"
-            optionValue="value"
-            id="subscribe-source-creation-{{ control.key }}"
-          >
-            <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label ?? null | transloco }}
-            </ng-template>
-            <ng-template #item let-option>
-              {{ option.label | transloco }}
-            </ng-template>
-          </p-select>
+          <hlm-select class="mt-2" [formControlName]="control.key">
+            <hlm-select-trigger
+              class="w-full"
+              [buttonId]="'subscribe-source-creation-' + control.key"
+            >
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content *hlmSelectPortal>
+              @for (option of policySourceOptions; track option.value) {
+                <hlm-select-item [value]="option.value">{{
+                  option.label | transloco
+                }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </hlm-select>
         } @else if (control.key === "traffic_reset_policy") {
-          <p-select
-            class="mt-2 w-full"
-            [formControlName]="control.key"
-            [options]="trafficResetPolicyOptions"
-            optionValue="value"
-            id="subscribe-source-creation-{{ control.key }}"
-          >
-            <ng-template #selectedItem let-selectedOption>
-              {{ selectedOption?.label ?? null | transloco }}
-            </ng-template>
-            <ng-template #item let-option>
-              {{ option.label | transloco }}
-            </ng-template>
-          </p-select>
+          <hlm-select class="mt-2" [formControlName]="control.key">
+            <hlm-select-trigger
+              class="w-full"
+              [buttonId]="'subscribe-source-creation-' + control.key"
+            >
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content *hlmSelectPortal>
+              @for (option of trafficResetPolicyOptions; track option.value) {
+                <hlm-select-item [value]="option.value">{{
+                  option.label | transloco
+                }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </hlm-select>
         } @else {
           <input
+            hlmInput
             class="mt-2"
             [ngClass]="{
               'ng-invalid': control.value.invalid,
@@ -580,31 +612,30 @@
             }"
             type="text"
             id="subscribe-source-creation-{{ control.key }}"
-            pInputText
             [formControlName]="control.key"
             autocomplete="off"
           />
         }
       }
       <div class="flex justify-end gap-2 mt-6">
-        <p-button
+        <app-action
           size="small"
           [label]="'common.actions.cancel' | transloco"
-          icon="pi pi-times"
+          icon="lucideX"
           [outlined]="true"
           (click)="cancelUpdateSubscribeSourceDialog()"
-        ></p-button>
-        <p-button
+        ></app-action>
+        <app-action
           size="small"
           [label]="'common.actions.save' | transloco"
-          icon="pi pi-check"
+          icon="lucideCheck"
           (click)="acceptUpdateSubscribeSourceDialog()"
-        ></p-button>
+        ></app-action>
       </div>
     </form>
-  </p-dialog>
+  </app-dialog>
 } @else if (muxContentPreview) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.previewMuxContent' | transloco"
     [visible]="true"
     styleClass="workspace-monaco-dialog"
@@ -623,9 +654,9 @@
         style="min-height: 200px; height: 50vh"
       ></ngx-monaco-editor>
     </div>
-  </p-dialog>
+  </app-dialog>
 } @else if (subscribeSourceContentPreview) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.previewSubscribeSourceContent' | transloco"
     [visible]="true"
     styleClass="workspace-monaco-dialog"
@@ -644,24 +675,24 @@
       ></ngx-monaco-editor>
     </div>
     <div class="flex justify-end gap-2 mt-6">
-      <p-button
+      <app-action
         size="small"
         [label]="'common.actions.cancel' | transloco"
-        icon="pi pi-times"
+        icon="lucideX"
         [outlined]="true"
         (click)="cancelPreviewSubscribeSourceContentDialog()"
-      ></p-button>
-      <p-button
+      ></app-action>
+      <app-action
         size="small"
         [label]="'common.actions.save' | transloco"
-        icon="pi pi-check"
+        icon="lucideCheck"
         (click)="acceptUpdateSubscribeSourceContentDialog()"
-      ></p-button>
+      ></app-action>
     </div>
-  </p-dialog>
+  </app-dialog>
 }
 @if (profileUpdate) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.editProfile' | transloco"
     [visible]="true"
     styleClass="workspace-monaco-dialog"
@@ -697,24 +728,24 @@
       ></ngx-monaco-editor>
     </div>
     <div class="flex justify-end gap-2 mt-6">
-      <p-button
+      <app-action
         size="small"
         [label]="'common.actions.cancel' | transloco"
-        icon="pi pi-times"
+        icon="lucideX"
         [outlined]="true"
         (click)="cancelUpdateProfileDialog()"
-      ></p-button>
-      <p-button
+      ></app-action>
+      <app-action
         size="small"
         [label]="'common.actions.save' | transloco"
-        icon="pi pi-check"
+        icon="lucideCheck"
         (click)="acceptUpdateProfileDialog()"
-      ></p-button>
+      ></app-action>
     </div>
-  </p-dialog>
+  </app-dialog>
 }
 @if (profileTransformPreview) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.testProfileTransform' | transloco"
     [visible]="true"
     styleClass="workspace-monaco-dialog"
@@ -730,8 +761,8 @@
         {{ "confluence.workspace.fields.requestUrl" | transloco }}
       </label>
       <input
+        hlmInput
         id="profile-transform-preview-url"
-        pInputText
         class="w-full"
         [ngModel]="profileTransformPreview.url"
         (ngModelChange)="updateProfileTransformPreviewUrl($event)"
@@ -758,7 +789,9 @@
             {{ "confluence.workspace.fields.transformResult" | transloco }}
           </label>
           @if (profileTransformPreview.error) {
-            <p class="profile-transform-preview-error">{{ profileTransformPreview.error }}</p>
+            <p class="profile-transform-preview-error">
+              {{ profileTransformPreview.error }}
+            </p>
           }
           <div class="profile-transform-preview-editor-shell profile-transform-preview-result">
             <ngx-monaco-editor
@@ -772,10 +805,10 @@
         </div>
       </div>
     </div>
-  </p-dialog>
+  </app-dialog>
 }
 @if (urlPreview) {
-  <p-dialog
+  <app-dialog
     [header]="'confluence.workspace.dialogs.previewProfileContent' | transloco"
     [visible]="true"
     (visibleChange)="cancelUrlPreviewDialog()"
@@ -795,8 +828,12 @@
         {{ urlPreview.url }}
       </a>
       @if (urlPreview.qrcodeDataUrl) {
-        <img [src]="urlPreview.qrcodeDataUrl" alt="qrcode" class="mx-auto mt-4" />
+        <img
+          [src]="urlPreview.qrcodeDataUrl"
+          [attr.alt]="'confluence.workspace.qrcodeAlt' | transloco"
+          class="mx-auto mt-4"
+        />
       }
     </div>
-  </p-dialog>
+  </app-dialog>
 }

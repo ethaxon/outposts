@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- **Breaking UI** — replaced PrimeNG/PrimeUI with Spartan NG, Helm primitives, Lucide icons, Tailwind v4 theming, and the application `.dark` theme state; removed the PrimeUI license path while retaining existing business layouts and workflows.
+- **Authentication and development** — aligned the Angular adapter integration with Securitydept `0.3.0-beta.6`, added development auth mode, and removed the unused redirect service.
+- **UX and i18n** — restored loading, dialog, action, QR code, document, and accessibility copy behavior; added matching English and Chinese translation coverage.
+- **Performance and tooling** — upgraded the Angular/Nx toolchain, moved Prism assets to document-level on-demand loading, and raised the initial bundle budget to 2 MB.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.0`.
+
 ## 0.3.10
 
 - **Securitydept** — upgraded the Rust crate and four frontend SDK packages to `0.3.0-beta.6`; migrated auth composition to `FoundationEnvironment`, Resource-backed `TokenSetClientRegistry`, the new frontend callback and secure-route adapters, and the registry authorization interceptor. External IdP navigation now uses the Angular adapter's built-in native-web routing support.

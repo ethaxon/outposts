@@ -29,7 +29,7 @@ import { DocService } from "../../services/doc.service";
   standalone: false,
   selector: "app-doc-section",
   templateUrl: "./doc-section.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: [
     "./doc-section.component.scss",
     // only works on direct child
@@ -85,6 +85,8 @@ export class DocSectionComponent implements OnInit {
     this.propSrc$.pipe(map((data) => !isNil(data))),
   ]).pipe(map(([dataReady, srcReady]) => dataReady || srcReady));
 
+  isPrismLoaded$: Observable<boolean> = this.docService.isPrismLoaded$();
+
   isMermaidRequired$: Observable<boolean> = this.data$.pipe(map(this.detectMermaid.bind(this)));
   isMermaidLoaded$: Observable<boolean> = this.docService.isMermaidLoaded$();
 
@@ -92,6 +94,7 @@ export class DocSectionComponent implements OnInit {
   isKatexLoaded$: Observable<boolean> = this.docService.isKatexLoaded$();
 
   isResourceReady$: Observable<boolean> = combineLatest([
+    this.isPrismLoaded$,
     this.isMermaidRequired$,
     this.isMermaidLoaded$,
     this.isKatexRequired$,
@@ -99,8 +102,8 @@ export class DocSectionComponent implements OnInit {
     this.data$,
   ]).pipe(
     map(
-      ([mermaidRequired, mermaidLoaded, katexRequired, katexLoaded]) =>
-        (!mermaidRequired || mermaidLoaded) && (!katexRequired || katexLoaded),
+      ([prismLoaded, mermaidRequired, mermaidLoaded, katexRequired, katexLoaded]) =>
+        prismLoaded && (!mermaidRequired || mermaidLoaded) && (!katexRequired || katexLoaded),
     ),
   );
 
@@ -117,6 +120,7 @@ export class DocSectionComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.docService.loadPrism().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.isMermaidRequired$
       .pipe(
         filter((hasMermaid) => hasMermaid),

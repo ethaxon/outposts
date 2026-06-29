@@ -1,6 +1,6 @@
 export const environment = {
-  APP_HOST: process.env["OUTPOSTS_WEB_HOST"] as string,
   APP_VERSION: process.env["APP_VERSION"] as string,
   CONFLUENCE_API_ENDPOINT: process.env["CONFLUENCE_API_ENDPOINT"] as string,
+  AUTH_TYPE: process.env["AUTH_TYPE"] as string,
   production: false,
 } as const;

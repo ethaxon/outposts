@@ -13,7 +13,7 @@
     <div class="flex items-center gap-6">
       <a routerLink="/apps" class="linkbox linkbox-primary">
         <span>{{ "landing.hero.primaryAction" | transloco }}</span>
-        <i class="pi pi-arrow-right ms-4"></i>
+        <ng-icon name="lucideArrowRight" class="ms-4" aria-hidden="true" />
       </a>
       <a
         href="https://github.com/ethaxon/outposts"
@@ -22,7 +22,11 @@
         class="linkbox"
       >
         <span>{{ "landing.hero.secondaryAction" | transloco }}</span>
-        <i class="pi pi-star-fill ms-4 text-yellow-500"></i>
+        <ng-icon
+          name="lucideStar"
+          class="ms-4 fill-yellow-500 text-yellow-500"
+          aria-hidden="true"
+        />
       </a>
     </div>
   </div>

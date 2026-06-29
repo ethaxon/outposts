@@ -1,76 +1,55 @@
 :host ::ng-deep {
-  .p-breadcrumb {
-    background-color: transparent;
-    border: none;
-  }
-
-  // PrimeNG's p-panel wraps content in .p-panel-content-wrapper which defaults
-  // to display:block with no min-width constraint. Inside a flex container this
-  // prevents the panel from shrinking, causing overflow. Setting min-width: 0
-  // restores normal flex shrink behaviour.
-  .p-panel {
-    min-width: 0;
-    width: 100%;
-
-    .p-panel-content-wrapper {
-      min-width: 0;
-      width: 100%;
-    }
-  }
-
   .confluence-subscribe-source-item {
+    display: block;
     width: 100%;
     min-height: 16.5rem;
-
-    .p-card-content {
-      padding: 0;
-    }
   }
 
-  .confluence-subscribe-source-item .p-card-body,
-  .confluence-subscribe-source-item .p-card-content {
+  .confluence-subscribe-source-item > article {
     height: 100%;
   }
 
-  .subscription-usage-progress.p-progressbar {
+  .confluence-subscribe-source-create > article {
+    display: flex;
+    min-height: 16.5rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .subscription-usage-progress {
     height: 0.5rem;
     border-radius: 999px;
-    background: var(--p-surface-200);
+    background: var(--border);
   }
 
-  .subscription-usage-progress .p-progressbar-value {
+  .subscription-usage-progress [data-slot="progress-indicator"] {
     border-radius: 999px;
   }
 
-  .subscription-usage-progress-ok .p-progressbar-value {
-    background: var(--p-green-500);
+  .subscription-usage-progress-ok [data-slot="progress-indicator"] {
+    background: oklch(0.627 0.194 149.214);
   }
 
-  .subscription-usage-progress-warning .p-progressbar-value {
-    background: var(--p-orange-500);
+  .subscription-usage-progress-warning [data-slot="progress-indicator"] {
+    background: oklch(0.705 0.213 47.604);
   }
 
   .confluence-profile-item {
+    display: block;
     width: 100%;
     min-height: 6.75rem;
-
-    .p-card-content {
-      padding: 0;
-    }
   }
 
   // Allow Monaco suggest/hover widgets to escape dialog content clipping.
-  .workspace-monaco-dialog.p-dialog {
-    overflow: visible;
-  }
-
-  .workspace-monaco-dialog .p-dialog-content {
+  .workspace-monaco-dialog {
     overflow: visible;
   }
 }
 
 .confluence-subscribe-source-item {
-  p-button {
+  app-action {
+    position: absolute;
     right: 0;
     top: 0;
   }
@@ -104,13 +83,13 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem 0.875rem;
-  border: 1px solid var(--p-surface-200);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--p-surface-50);
+  background: var(--muted);
 
   span {
     min-width: 0;
-    color: var(--p-surface-500);
+    color: var(--muted-foreground);
     font-size: 0.75rem;
     line-height: 1rem;
   }
@@ -118,20 +97,12 @@
   strong {
     min-width: 0;
     overflow: hidden;
-    color: var(--p-surface-900);
+    color: var(--foreground);
     font-size: 0.9375rem;
     line-height: 1.375rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-}
-
-.confluence-subscribe-source-create .p-card-content {
-  display: flex;
-  min-height: 11.25rem;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .profile-card-actions {
@@ -160,7 +131,7 @@
   min-width: 0;
   font-size: 0.8125rem;
   line-height: 1.25rem;
-  color: var(--p-surface-600);
+  color: var(--muted-foreground);
 
   span,
   strong {
@@ -168,7 +139,7 @@
   }
 
   strong {
-    color: var(--p-surface-900);
+    color: var(--foreground);
     font-weight: 700;
     white-space: nowrap;
   }
@@ -185,16 +156,16 @@
   gap: 0.375rem;
   margin-bottom: 0.75rem;
   padding: 0.75rem 0.875rem;
-  border: 1px solid var(--p-surface-200);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--p-surface-50);
+  background: var(--muted);
 }
 
 .profile-script-editor-label {
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.25rem;
-  color: var(--p-surface-900);
+  color: var(--foreground);
 }
 
 .profile-script-editor-hint {
@@ -202,12 +173,12 @@
   max-width: 72rem;
   font-size: 0.8125rem;
   line-height: 1.35rem;
-  color: var(--p-surface-600);
+  color: var(--muted-foreground);
 }
 
 .profile-script-schema-link {
   margin-left: 0.375rem;
-  color: var(--p-primary-600);
+  color: var(--primary);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -216,7 +187,7 @@
   margin: 0;
   position: relative;
   overflow: visible;
-  border: 1px solid var(--p-surface-200);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
 }
 
@@ -259,16 +230,16 @@
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.25rem;
-  color: var(--p-surface-700);
+  color: var(--foreground);
 }
 
 .profile-transform-preview-error {
   margin: 0;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--p-red-200);
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, var(--border));
   border-radius: 0.375rem;
-  background: var(--p-red-50);
-  color: var(--p-red-700);
+  background: color-mix(in oklab, var(--destructive) 10%, var(--background));
+  color: var(--destructive);
   font-size: 0.8125rem;
   line-height: 1.25rem;
 }
@@ -276,7 +247,7 @@
 .profile-transform-preview-editor-shell {
   position: relative;
   overflow: visible;
-  border: 1px solid var(--p-surface-200);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
 }
 
@@ -286,60 +257,60 @@
   }
 }
 
-:host-context(.p-dark) {
+:host-context(.dark) {
   .profile-script-editor-header {
-    border-color: var(--p-surface-700);
-    background: var(--p-surface-900);
+    border-color: var(--foreground);
+    background: var(--muted);
   }
 
   .workspace-metadata-item {
-    border-color: var(--p-surface-700);
-    background: var(--p-surface-900);
+    border-color: var(--foreground);
+    background: var(--card);
 
     span {
-      color: var(--p-surface-400);
+      color: var(--muted-foreground);
     }
 
     strong {
-      color: var(--p-surface-0);
+      color: var(--foreground);
     }
   }
 
   .profile-script-editor-label {
-    color: var(--p-surface-0);
+    color: var(--foreground);
   }
 
   .profile-script-editor-hint {
-    color: var(--p-surface-300);
+    color: var(--muted-foreground);
   }
 
   .subscription-source-meta-row {
-    color: var(--p-surface-300);
+    color: var(--muted-foreground);
 
     strong {
-      color: var(--p-surface-0);
+      color: var(--foreground);
     }
   }
 
   .profile-script-schema-link {
-    color: var(--p-primary-300);
+    color: var(--primary);
   }
 
   .profile-script-editor-shell {
-    border-color: var(--p-surface-700);
+    border-color: var(--foreground);
   }
 
   .profile-transform-preview-label {
-    color: var(--p-surface-200);
+    color: var(--border);
   }
 
   .profile-transform-preview-error {
-    border-color: var(--p-red-900);
+    border-color: var(--destructive);
     background: rgb(69 10 10 / 0.35);
-    color: var(--p-red-200);
+    color: color-mix(in oklab, var(--destructive) 35%, var(--border));
   }
 
   .profile-transform-preview-editor-shell {
-    border-color: var(--p-surface-700);
+    border-color: var(--foreground);
   }
 }

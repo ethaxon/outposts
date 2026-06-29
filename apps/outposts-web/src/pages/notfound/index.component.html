@@ -5,13 +5,13 @@
       <div
         class="flex items-center justify-center bg-primary text-primary-contrast rounded-full w-24 h-24"
       >
-        <img src="/image/logo-512.png" alt="logo-512" />
+        <img src="/image/logo-512.png" alt="" />
       </div>
       <span class="font-bold text-9xl"> 4 </span>
     </div>
     <div class="font-bold text-center text-4xl border-t border-surface pt-20">
       {{ "notfound.title" | transloco }}
     </div>
-    <p-button [label]="'notfound.action' | transloco" routerLink="/" />
+    <a hlmBtn routerLink="/">{{ "notfound.action" | transloco }}</a>
   </div>
 </div>

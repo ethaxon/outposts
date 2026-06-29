@@ -49,6 +49,11 @@
     },
     "e2e-ci--**/*": {
       "dependsOn": ["^build"]
+    },
+    "@nx/angular:ng-packagr-lite": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     }
   },
   "generators": {
@@ -59,6 +64,7 @@
       "unitTestRunner": "none"
     },
     "@nx/angular:component": {
+      "style": "css",
       "type": "component"
     },
     "@schematics/angular:component": {
@@ -111,6 +117,10 @@
     },
     "@schematics/angular:resolver": {
       "typeSeparator": "."
+    },
+    "@nx/angular:library": {
+      "linter": "eslint",
+      "unitTestRunner": "none"
     }
   },
   "neverConnectToCloud": true,

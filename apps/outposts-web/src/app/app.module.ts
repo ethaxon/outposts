@@ -6,19 +6,17 @@ import { BrowserModule } from "@angular/platform-browser";
 import { provideRouter, RouterOutlet, withInMemoryScrolling } from "@angular/router";
 import { MonacoEditorModule } from "ngx-monaco-editor-v2";
 import type * as Monaco from "monaco-editor";
-import { MessageService } from "primeng/api";
-import { providePrimeNG } from "primeng/config";
-import { ToastModule } from "primeng/toast";
 import { SpinnerComponent } from "@/components/spinner/spinner.component";
 import { WINDOW, windowProvider } from "@/core/providers/window";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import { PlatformService } from "@/core/servces/platform.service";
-import { provideAuth } from "@/domain/auth/auth.providers";
+import { provideAuth, provideDevAuth } from "@/domain/auth/auth.providers";
+import { isDevAuthEnabled } from "@/domain/auth/auth.defs";
+import { environment } from "@/environments/environment";
 import { CLASH_META_CONFIG_TYPES } from "@/domain/confluence/types/clash-meta-config.extra-lib";
 import { AppComponent } from "./app.component";
 import { routes } from "./app.routes";
-import Noir from "./app-theme";
 import { TranslocoRootModule } from "./transloco-root.module";
 
 const PROFILE_SCRIPT_TYPES = `${CLASH_META_CONFIG_TYPES.replace(/^export /gm, "")}
@@ -80,7 +78,6 @@ function configureMonacoTypes() {
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
-    ToastModule,
     SpinnerComponent,
     TranslocoRootModule,
     MonacoEditorModule.forRoot({
@@ -94,7 +91,9 @@ function configureMonacoTypes() {
       useFactory: windowProvider,
       deps: [DOCUMENT],
     },
-    ...provideAuth(window),
+    ...(isDevAuthEnabled(environment.AUTH_TYPE, environment.production)
+      ? provideDevAuth()
+      : provideAuth(window)),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,
@@ -104,12 +103,7 @@ function configureMonacoTypes() {
       }),
     ),
     provideHttpClient(withInterceptorsFromDi(), withFetch()),
-    providePrimeNG({
-      theme: Noir,
-      ripple: false,
-    }),
     PlatformService,
-    MessageService,
     AppOverlayService,
     AppConfigService,
     {

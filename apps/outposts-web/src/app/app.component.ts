@@ -5,7 +5,7 @@ import { AppI18nService } from "@/core/servces/app-i18n.service";
 @Component({
   selector: "app-root",
   templateUrl: "./app.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class AppComponent {

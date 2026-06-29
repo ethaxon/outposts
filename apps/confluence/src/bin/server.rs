@@ -6,7 +6,7 @@ use confluence::auth::auth;
 use confluence::auth::config_projection::get_oidc_config;
 
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
-use confluence::config::{AppConfig, AuthConfig, parse_scopes};
+use confluence::config::{AppConfig, AuthConfig, assert_dev_auth_allowed, parse_scopes};
 use confluence::error::AppError;
 use confluence::migrations;
 use confluence::services::{
@@ -71,13 +71,15 @@ async fn main() -> Result<(), AppError> {
     }
 
     let (auth, oidc_verifier, substrate_runtime) = match &auth_type as &str {
-        "BASIC" => {
-            tracing::info!("using basic authentication");
-            let username =
-                env::var("AUTH_BASIC_USERNAME").expect("AUTH_BASIC_USERNAME is not set in env");
-            let password =
-                env::var("AUTH_BASIC_PASSWORD").expect("AUTH_BASIC_PASSWORD is not set in env");
-            (AuthConfig::BASIC { username, password }, None, None)
+        "DEV" => {
+            assert_dev_auth_allowed().unwrap_or_else(|reason| panic!("{reason}"));
+            let user_id =
+                env::var("AUTH_DEV_USER_ID").unwrap_or_else(|_| String::from("dev"));
+            tracing::warn!(
+                user_id = %user_id,
+                "DEV auth enabled — all requests are accepted without credentials (development build only)"
+            );
+            (AuthConfig::DEV { user_id }, None, None)
         }
         "OIDC" => {
             tracing::info!("using OIDC authentication with access-token substrate");

@@ -1,17 +1,43 @@
 import { CommonModule } from "@angular/common";
-import { booleanAttribute, Component, Input, inject, ChangeDetectionStrategy } from "@angular/core";
+import {
+  booleanAttribute,
+  Component,
+  Input,
+  inject,
+  ChangeDetectionStrategy,
+  signal,
+} from "@angular/core";
 import { TranslocoModule } from "@jsverse/transloco";
 import { Router, RouterModule } from "@angular/router";
-import { StyleClass } from "primeng/styleclass";
-import { Tag } from "primeng/tag";
+import { NgIcon, provideIcons } from "@ng-icons/core";
+import {
+  lucideChevronDown,
+  lucideCircleHelp,
+  lucideCompass,
+  lucideHouse,
+  lucidePaperclip,
+  lucideSearch,
+  lucideUsers,
+} from "@ng-icons/lucide";
 import type { MenuItem } from "./app.menu.component";
 
 @Component({
   selector: "[app-menuitem]",
   templateUrl: "./app.menuitem.component.html",
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [CommonModule, StyleClass, RouterModule, Tag, TranslocoModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, RouterModule, TranslocoModule, NgIcon],
+  providers: [
+    provideIcons({
+      lucideChevronDown,
+      lucideCircleHelp,
+      lucideCompass,
+      lucideHouse,
+      lucidePaperclip,
+      lucideSearch,
+      lucideUsers,
+    }),
+  ],
 })
 export class AppMenuItemComponent {
   @Input() item?: MenuItem;
@@ -19,6 +45,8 @@ export class AppMenuItemComponent {
   @Input({ transform: booleanAttribute }) root = true;
 
   private router: Router = inject(Router);
+
+  readonly expanded = signal(false);
 
   isActiveRootMenuItem(menuitem: MenuItem): boolean {
     const url = this.router.url.split("#")[0];

@@ -53,7 +53,7 @@
             border-start-end-radius: 6px;
             border-start-start-radius: 6px;
             white-space: nowrap;
-            --p-focus-ring-offset: -1px;
+            --focus-ring-offset: -1px;
             @include mixins.focus-visible();
 
             &:hover {
@@ -219,7 +219,7 @@
                 outline-color: transparent;
                 cursor: pointer;
                 user-select: none;
-                --p-focus-ring-offset: -1px;
+                --focus-ring-offset: -1px;
                 @include mixins.focus-visible();
             }
 
@@ -310,7 +310,7 @@
     }
 }
 
-.doc-section-code-tooltip .p-tooltip-text {
+.doc-section-code-tooltip [role="tooltip"] {
     padding: 0.5rem;
     font-size: 11px;
 }

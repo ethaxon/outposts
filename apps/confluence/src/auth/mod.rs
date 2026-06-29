@@ -7,7 +7,6 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use securitydept_core::creds::basic::parse_basic_auth_header;
 use std::sync::Arc;
 
 pub mod config_projection;
@@ -31,15 +30,18 @@ pub async fn authorize_current_user(
     auth_header: Option<&str>,
     state: Arc<AppState>,
 ) -> Result<CurrentUser, AppError> {
-    let auth_header =
-        auth_header.ok_or_else(|| AppError::unauthorized_str("missing authorization header"))?;
-
     match state.config.auth {
+        AuthConfig::DEV { ref user_id } => Ok(CurrentUser {
+            user_id: user_id.clone(),
+        }),
         AuthConfig::OIDC {
             ref user_claim,
             ref required_scopes,
             ..
         } => {
+            let auth_header = auth_header
+                .ok_or_else(|| AppError::unauthorized_str("missing authorization header"))?;
+
             // Use the access-token substrate resource service for bearer verification.
             // This aligns the backend with the frontend-oidc-mode contract: the
             // frontend produces OIDC access tokens; the substrate layer verifies them.
@@ -88,21 +90,6 @@ pub async fn authorize_current_user(
             };
 
             Ok(CurrentUser { user_id })
-        }
-        AuthConfig::BASIC {
-            ref username,
-            ref password,
-        } => {
-            let (provided_username, provided_password) =
-                parse_basic_auth_header(auth_header).map_err(AppError::unauthorized)?;
-
-            if provided_username != username.as_str() || provided_password != password.as_str() {
-                return Err(AppError::unauthorized_str("invalid username or password"));
-            }
-
-            Ok(CurrentUser {
-                user_id: username.clone(),
-            })
         }
     }
 }

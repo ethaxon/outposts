@@ -3,13 +3,13 @@ import packageJson from "../package.json" with { type: "json" };
 
 const { version } = packageJson;
 
-const REQUIRED_ENV_NAMES = [
-  "OUTPOSTS_WEB_HOST",
-  "CONFLUENCE_API_ENDPOINT",
+const OIDC_ENV_NAMES = [
   "CONFLUENCE_OIDC_SCOPES",
   "OIDC_ISSUER",
   "OUTPOSTS_WEB_OIDC_CLIENT_ID",
-];
+] as const;
+
+const REQUIRED_ENV_NAMES = ["OUTPOSTS_WEB_HOST", "CONFLUENCE_API_ENDPOINT", "AUTH_TYPE"];
 
 const envVarPlugin = {
   name: "env-var-plugin",
@@ -18,10 +18,19 @@ const envVarPlugin = {
 
     dotenv.config();
 
+    const authType = process.env["AUTH_TYPE"];
     const missingEnvNames = [];
     for (const envName of REQUIRED_ENV_NAMES) {
       if (!process.env[envName]) {
         missingEnvNames.push(envName);
+      }
+    }
+
+    if (authType !== "DEV") {
+      for (const envName of OIDC_ENV_NAMES) {
+        if (!process.env[envName]) {
+          missingEnvNames.push(envName);
+        }
       }
     }
 
@@ -32,6 +41,7 @@ const envVarPlugin = {
 
     options.define["process.env"] = JSON.stringify({
       APP_VERSION: version,
+      AUTH_TYPE: process.env.AUTH_TYPE,
       OIDC_ISSUER: process.env.OIDC_ISSUER,
       OUTPOSTS_WEB_HOST: process.env.OUTPOSTS_WEB_HOST,
       OUTPOSTS_WEB_OIDC_CLIENT_ID: process.env.OUTPOSTS_WEB_OIDC_CLIENT_ID,

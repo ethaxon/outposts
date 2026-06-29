@@ -32,8 +32,8 @@ pub struct OidcConfigQuery {
 /// Return the OIDC client configuration projection for the frontend.
 ///
 /// Only available when `AUTH_TYPE=OIDC`. Returns 400 when the server is
-/// running in BASIC auth mode (the frontend config projection is an OIDC
-/// concept with no counterpart in BASIC auth).
+/// running in DEV auth mode (the frontend config projection is an OIDC
+/// concept with no counterpart in DEV mode).
 pub async fn get_oidc_config(
     Query(query): Query<OidcConfigQuery>,
     State(state): State<Arc<AppState>>,
@@ -47,7 +47,7 @@ pub async fn get_oidc_config(
     else {
         return Err(AppError::BadRequest {
             message:
-                "OIDC config projection is not available: server is running in BASIC auth mode"
+                "OIDC config projection is not available: server is running in DEV auth mode"
                     .to_string(),
         });
     };

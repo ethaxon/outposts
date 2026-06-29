@@ -58,12 +58,6 @@ fn bearer_header(token: &str) -> String {
     format!("Bearer {}", token)
 }
 
-fn basic_header(username: &str, password: &str) -> String {
-    use base64::{Engine as _, engine::general_purpose};
-    let credentials = format!("{}:{}", username, password);
-    format!("Basic {}", general_purpose::STANDARD.encode(credentials))
-}
-
 fn future_exp() -> usize {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -141,40 +135,25 @@ async fn oidc_state(
 }
 
 #[tokio::test]
-async fn authorize_current_user_accepts_basic_credentials() {
-    let state = mock_state(
-        AuthConfig::BASIC {
-            username: "demo".to_string(),
-            password: "secret".to_string(),
-        },
-        None,
-    );
-    let auth_header = basic_header("demo", "secret");
+async fn authorize_current_user_accepts_dev_mode_without_credentials() {
+    let state = mock_state(AuthConfig::DEV { user_id: "dev".to_string() }, None);
 
-    let current_user = authorize_current_user(Some(&auth_header), state)
+    let current_user = authorize_current_user(None, state)
         .await
-        .expect("basic auth should succeed");
+        .expect("dev auth should succeed without credentials");
 
-    assert_eq!(current_user.user_id, "demo");
+    assert_eq!(current_user.user_id, "dev");
 }
 
 #[tokio::test]
-async fn authorize_current_user_rejects_invalid_basic_credentials() {
-    let state = mock_state(
-        AuthConfig::BASIC {
-            username: "demo".to_string(),
-            password: "secret".to_string(),
-        },
-        None,
-    );
-    let auth_header = basic_header("demo", "wrong");
+async fn authorize_current_user_ignores_credentials_in_dev_mode() {
+    let state = mock_state(AuthConfig::DEV { user_id: "dev".to_string() }, None);
 
-    let err = authorize_current_user(Some(&auth_header), state)
+    let current_user = authorize_current_user(Some("Bearer ignored"), state)
         .await
-        .err()
-        .expect("invalid password should be rejected");
+        .expect("dev auth should ignore provided credentials");
 
-    assert!(err.to_string().contains("invalid username or password"));
+    assert_eq!(current_user.user_id, "dev");
 }
 
 #[tokio::test]
@@ -392,21 +371,15 @@ async fn get_oidc_config_returns_projection_for_oidc_mode() {
 }
 
 #[tokio::test]
-async fn get_oidc_config_rejects_basic_auth_mode() {
-    let state = mock_state(
-        AuthConfig::BASIC {
-            username: "demo".to_string(),
-            password: "secret".to_string(),
-        },
-        None,
-    );
+async fn get_oidc_config_rejects_dev_auth_mode() {
+    let state = mock_state(AuthConfig::DEV { user_id: "dev".to_string() }, None);
     let query = OidcConfigQuery {
         redirect_uri: "https://app.example.test/auth/callback".to_string(),
     };
 
     let err = get_oidc_config(axum::extract::Query(query), axum::extract::State(state))
         .await
-        .expect_err("BASIC mode should return an error for config projection");
+        .expect_err("DEV mode should return an error for config projection");
 
     assert!(matches!(err, AppError::BadRequest { .. }));
 }

@@ -2,13 +2,23 @@
   "common": {
     "actions": {
       "add": "新增",
+      "backToTop": "返回顶部",
       "cancel": "取消",
+      "close": "关闭",
+      "copy": "复制",
       "create": "创建",
+      "delete": "删除",
+      "edit": "编辑",
       "mux": "聚合",
       "preview": "预览",
       "reset": "重置",
       "save": "保存",
       "sync": "同步"
+    },
+    "loading": "加载中",
+    "navigation": {
+      "breadcrumb": "面包屑导航",
+      "home": "首页"
     },
     "toast": {
       "copied": "复制成功",
@@ -101,6 +111,11 @@
       "title": "成功"
     }
   },
+  "news": {
+    "passiveSync": {
+      "content": "Confluence 现已支持被动同步 🚀"
+    }
+  },
   "confluence": {
     "dashboard": {
       "status": {
@@ -126,6 +141,7 @@
       "cronHint": "支持 Unix 风格 cron 表达式，最小粒度为小时，例如",
       "profileScriptHint": "脚本接收 ProfileTransformContext，并返回修改后的 ClashMetaConfig；ctx.request 包含 headers、url 与 body。",
       "profileScriptSchemaLink": "Schema 来源",
+      "qrcodeAlt": "配置链接的二维码",
       "dialogs": {
         "editSubscribeSource": "编辑订阅源",
         "editProfile": "编辑配置脚本",
@@ -198,7 +214,13 @@
         "reset": "模板已重置"
       },
       "updatedAt": "更新时间：",
-      "userAgentPlaceholder": "clash-verge/v2.0.3"
+      "userAgentPlaceholder": "clash-verge/v2.0.3",
+      "validation": {
+        "cron": {
+          "hourlyMinimum": "仅支持最小粒度为小时的 Unix 风格 cron 表达式。",
+          "invalidFormat": "请输入有效的 cron 表达式。"
+        }
+      }
     }
   }
 }

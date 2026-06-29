@@ -1,1 +1,9 @@
-<p-button icon="pi pi-copy" severity="secondary" (click)="onClick()"></p-button>
+<button
+  hlmBtn
+  variant="secondary"
+  size="icon"
+  (click)="onClick()"
+  [attr.aria-label]="'common.actions.copy' | transloco"
+>
+  <ng-icon name="lucideCopy" aria-hidden="true" />
+</button>

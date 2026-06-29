@@ -3,21 +3,36 @@ import { NgModule } from "@angular/core";
 import { TranslocoModule } from "@jsverse/transloco";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
+import { NgIcon, provideIcons } from "@ng-icons/core";
+import {
+  lucideCheck,
+  lucideCopy,
+  lucideEye,
+  lucideFilePenLine,
+  lucideHouse,
+  lucideInbox,
+  lucidePencil,
+  lucidePlay,
+  lucidePlus,
+  lucideRefreshCw,
+  lucideSlidersVertical,
+  lucideTrash2,
+  lucideUserRoundPen,
+  lucideX,
+} from "@ng-icons/lucide";
 import { MonacoEditorModule } from "ngx-monaco-editor-v2";
-import { AvatarModule } from "primeng/avatar";
-import { BreadcrumbModule } from "primeng/breadcrumb";
-import { ButtonModule } from "primeng/button";
-import { CardModule } from "primeng/card";
-import { CheckboxModule } from "primeng/checkbox";
-import { DataViewModule } from "primeng/dataview";
-import { DialogModule } from "primeng/dialog";
-import { InputTextModule } from "primeng/inputtext";
-import { PanelModule } from "primeng/panel";
-import { ProgressBarModule } from "primeng/progressbar";
-import { ScrollTopModule } from "primeng/scrolltop";
-import { SelectModule } from "primeng/select";
-import { SkeletonModule } from "primeng/skeleton";
-import { TagModule } from "primeng/tag";
+import { HlmAvatarImports } from "@/components/ui/avatar";
+import { HlmBadge } from "@/components/ui/badge";
+import { HlmButton } from "@/components/ui/button";
+import { HlmBreadcrumbImports } from "@/components/ui/breadcrumb";
+import { HlmCheckboxImports } from "@/components/ui/checkbox";
+import { HlmInputImports } from "@/components/ui/input";
+import { HlmSkeleton } from "@/components/ui/skeleton";
+import { HlmProgress, HlmProgressIndicator } from "@/components/ui/progress";
+import { HlmSelectImports } from "@/components/ui/select";
+import { AppDialogComponent } from "../../components/ui/app-dialog.component";
+import { AppActionComponent } from "../../components/ui/app-action.component";
+import { AppCardComponent } from "../../components/ui/app-card.component";
 import { ClipboardModule } from "@/tools/clipboard/clipboard.module";
 import { DocModule } from "@/tools/doc/doc.module";
 import { QrcodeModule } from "@/tools/qrcode/qrcode.module";
@@ -28,31 +43,49 @@ import { WorkspaceComponent } from "./workspace/workspace.component";
 
 @NgModule({
   declarations: [DashboardComponent, WorkspaceComponent],
-  providers: [ConfluenceService],
+  providers: [
+    ConfluenceService,
+    provideIcons({
+      lucideCheck,
+      lucideCopy,
+      lucideEye,
+      lucideFilePenLine,
+      lucideHouse,
+      lucideInbox,
+      lucidePencil,
+      lucidePlay,
+      lucidePlus,
+      lucideRefreshCw,
+      lucideSlidersVertical,
+      lucideTrash2,
+      lucideUserRoundPen,
+      lucideX,
+    }),
+  ],
   imports: [
-    BreadcrumbModule,
     CommonModule,
     ConfluenceRoutingModule,
     DocModule,
-    ScrollTopModule,
-    DataViewModule,
-    TagModule,
-    ButtonModule,
-    CardModule,
-    AvatarModule,
-    PanelModule,
-    ProgressBarModule,
+    ...HlmAvatarImports,
+    HlmBadge,
+    HlmButton,
+    ...HlmBreadcrumbImports,
+    ...HlmCheckboxImports,
+    ...HlmInputImports,
+    HlmSkeleton,
+    HlmProgress,
+    HlmProgressIndicator,
+    ...HlmSelectImports,
+    NgIcon,
+    AppDialogComponent,
+    AppActionComponent,
+    AppCardComponent,
     RouterModule,
     FormsModule,
     MonacoEditorModule,
-    DialogModule,
     ReactiveFormsModule,
-    InputTextModule,
     ClipboardModule,
     QrcodeModule,
-    SkeletonModule,
-    CheckboxModule,
-    SelectModule,
     TranslocoModule,
   ],
 })

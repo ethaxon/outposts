@@ -17,7 +17,7 @@ import { DocTableOfContentsSpy } from "@/tools/doc/services/doc-table-of-content
 @Component({
   standalone: false,
   selector: "app-doc-toc",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./doc-table-of-contents.component.html",
 })
 export class DocTableOfContentsComponent implements AfterViewInit {

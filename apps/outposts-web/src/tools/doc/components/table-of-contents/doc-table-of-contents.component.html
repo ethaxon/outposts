@@ -20,13 +20,15 @@
     </ul>
   </nav>
   @if (shouldDisplayScrollOnTop()) {
-    <p-button
+    <button
+      hlmBtn
       class="doc-top-back"
-      icon="pi pi-arrow-up"
-      [rounded]="true"
-      [text]="true"
-      [raised]="true"
-      (onClick)="scrollToTop()"
-    ></p-button>
+      variant="ghost"
+      size="icon"
+      (click)="scrollToTop()"
+      [attr.aria-label]="'common.actions.backToTop' | transloco"
+    >
+      <ng-icon name="lucideArrowUp" aria-hidden="true" />
+    </button>
   }
 </aside>

@@ -6,6 +6,9 @@ import {
   inject,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { NgIcon, provideIcons } from "@ng-icons/core";
+import { lucideX } from "@ng-icons/lucide";
+import { TranslocoModule } from "@jsverse/transloco";
 import News from "@/assets/data/news.json";
 import { AppConfigService } from "@/core/servces/app-config.service";
 
@@ -14,7 +17,8 @@ import { AppConfigService } from "@/core/servces/app-config.service";
   standalone: true,
   templateUrl: "./app.news.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, NgIcon, TranslocoModule],
+  providers: [provideIcons({ lucideX })],
 })
 export class AppNewsComponent {
   storageKey = "outposts-banner-news";

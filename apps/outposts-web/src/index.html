@@ -17,9 +17,9 @@
         if (storedConfig) {
           const parsedConfig = JSON.parse(storedConfig);
           if (parsedConfig.darkTheme) {
-            document.documentElement.classList.add("p-dark");
+            document.documentElement.classList.add("dark");
           } else {
-            document.documentElement.classList.remove("p-dark");
+            document.documentElement.classList.remove("dark");
           }
         }
       })();

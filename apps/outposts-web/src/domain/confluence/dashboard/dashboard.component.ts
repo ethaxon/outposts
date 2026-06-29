@@ -17,7 +17,7 @@ import { ConfluenceService } from "../confluence.service";
   standalone: false,
   selector: "app-confluence-dashboard",
   templateUrl: "./dashboard.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [],
 })
 export class DashboardComponent implements OnInit {
@@ -56,30 +56,14 @@ export class DashboardComponent implements OnInit {
   }
 
   getSeverityKey(item: ConfluenceDto): string {
-    if (item.mux_content && item.profiles.length) {
+    if (this.isActive(item)) {
       return "confluence.dashboard.status.active";
     }
     return "confluence.dashboard.status.inactive";
   }
 
-  getSeverity(_item: ConfluenceDto): "info" {
-    return "info";
-  }
-
-  getStatusTagStyle(item: ConfluenceDto): Record<string, string> {
-    if (item.mux_content && item.profiles.length) {
-      return {
-        background: "var(--p-green-500)",
-        color: "#ffffff",
-        borderColor: "transparent",
-      };
-    }
-
-    return {
-      background: "var(--p-surface-700)",
-      color: "var(--p-surface-0)",
-      borderColor: "transparent",
-    };
+  isActive(item: ConfluenceDto): boolean {
+    return Boolean(item.mux_content && item.profiles.length);
   }
 
   removeConfluence(id: number) {

@@ -10,8 +10,6 @@ import {
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TranslocoService } from "@jsverse/transloco";
 import { Meta, Title } from "@angular/platform-browser";
-import { ButtonModule } from "primeng/button";
-import { ToastModule } from "primeng/toast";
 import { combineLatest } from "rxjs";
 import { AppNewsComponent } from "@/components/layout/news/app.news.component";
 import { AppTopBarComponent } from "@/components/layout/topbar/app.topbar.component";
@@ -23,15 +21,13 @@ import { HeroSectionComponent } from "./herosection.component";
   selector: "app-landing",
   standalone: true,
   templateUrl: "./landing.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     AppNewsComponent,
     AppTopBarComponent,
-    ButtonModule,
     HeroSectionComponent,
     FooterSectionComponent,
-    ToastModule,
   ],
 })
 export class LandingComponent implements OnInit {

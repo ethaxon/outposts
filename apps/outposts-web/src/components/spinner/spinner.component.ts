@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, ChangeDetectionStrategy } from "@angular/core";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
+import { TranslocoModule } from "@jsverse/transloco";
+import { HlmSpinner } from "@/components/ui/spinner";
 import { AppOverlayService } from "../../core/servces/app-overlay.service";
 
 @Component({
@@ -8,8 +9,8 @@ import { AppOverlayService } from "../../core/servces/app-overlay.service";
   standalone: true,
   templateUrl: "./spinner.component.html",
   styleUrl: "./spinner.component.scss",
-  changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [CommonModule, ProgressSpinnerModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, HlmSpinner, TranslocoModule],
 })
 export class SpinnerComponent {
   readonly overlayService = inject(AppOverlayService);

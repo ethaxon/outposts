@@ -41,22 +41,22 @@
           "apps/outposts-web/src/styles.scss",
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prism-themes/themes/prism-atom-dark.min.css"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/command-line/prism-command-line.min.css"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/line-highlight/prism-line-highlight.min.css"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/line-numbers/prism-line-numbers.min.css"
           },
           {
@@ -68,27 +68,27 @@
         "scripts": [
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/prism.js"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/autoloader/prism-autoloader.min.js"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/command-line/prism-command-line.min.js"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/line-highlight/prism-line-highlight.min.js"
           },
           {
             "bundleName": "prism",
-            "inject": true,
+            "inject": false,
             "input": "node_modules/prismjs/plugins/line-numbers/prism-line-numbers.min.js"
           },
           {
@@ -119,7 +119,7 @@
           "budgets": [
             {
               "type": "initial",
-              "maximumWarning": "1mb",
+              "maximumWarning": "2mb",
               "maximumError": "2mb"
             },
             {

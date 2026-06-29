@@ -24,7 +24,7 @@
     {
       "ssh": "Disabled",
       "previewLimit": 50,
-      "server": "192.168.128.5",
+      "server": "192.168.128.2",
       "port": 9005,
       "sshOptions": {
         "port": 22

@@ -22,7 +22,8 @@
       "../../node_modules/@types"
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/components/ui/*": ["./src/components/ui/*/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.json"],

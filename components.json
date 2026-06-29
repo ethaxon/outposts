@@ -1,0 +1,5 @@
+{
+  "componentsPath": "apps/outposts-web/src/components/ui",
+  "importAlias": "@/components/ui",
+  "style": "nova"
+}

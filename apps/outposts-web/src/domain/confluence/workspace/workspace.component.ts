@@ -1,11 +1,4 @@
-import {
-  Component,
-  computed,
-  DestroyRef,
-  inject,
-  type OnInit,
-  ChangeDetectionStrategy,
-} from "@angular/core";
+import { Component, DestroyRef, inject, type OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, type FormControl, type FormGroup, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -62,7 +55,7 @@ type ProfileTransformRequest = {
   standalone: false,
   selector: "app-confluence-workspace",
   templateUrl: "./workspace.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: "./workspace.component.scss",
 })
 export class WorkspaceComponent implements OnInit {
@@ -125,8 +118,14 @@ export class WorkspaceComponent implements OnInit {
   tmpl = "";
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
-  policySourceOptions: { label: string; value: ProxyServerNameserverPolicySource }[] = [
-    { label: "confluence.workspace.nameserverPolicySource.auto", value: "auto" },
+  policySourceOptions: {
+    label: string;
+    value: ProxyServerNameserverPolicySource;
+  }[] = [
+    {
+      label: "confluence.workspace.nameserverPolicySource.auto",
+      value: "auto",
+    },
     {
       label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver_policy",
       value: "proxy_server_nameserver_policy",
@@ -139,15 +138,39 @@ export class WorkspaceComponent implements OnInit {
       label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver",
       value: "proxy_server_nameserver",
     },
-    { label: "confluence.workspace.nameserverPolicySource.nameserver", value: "nameserver" },
-    { label: "confluence.workspace.nameserverPolicySource.none", value: "none" },
+    {
+      label: "confluence.workspace.nameserverPolicySource.nameserver",
+      value: "nameserver",
+    },
+    {
+      label: "confluence.workspace.nameserverPolicySource.none",
+      value: "none",
+    },
   ];
-  trafficResetPolicyOptions: { label: string; value: SubscribeSourceTrafficResetPolicy }[] = [
-    { label: "confluence.workspace.trafficResetPolicy.default", value: "default" },
-    { label: "confluence.workspace.trafficResetPolicy.monthly", value: "monthly" },
-    { label: "confluence.workspace.trafficResetPolicy.quarterly", value: "quarterly" },
-    { label: "confluence.workspace.trafficResetPolicy.yearly", value: "yearly" },
-    { label: "confluence.workspace.trafficResetPolicy.one_time", value: "one_time" },
+  trafficResetPolicyOptions: {
+    label: string;
+    value: SubscribeSourceTrafficResetPolicy;
+  }[] = [
+    {
+      label: "confluence.workspace.trafficResetPolicy.default",
+      value: "default",
+    },
+    {
+      label: "confluence.workspace.trafficResetPolicy.monthly",
+      value: "monthly",
+    },
+    {
+      label: "confluence.workspace.trafficResetPolicy.quarterly",
+      value: "quarterly",
+    },
+    {
+      label: "confluence.workspace.trafficResetPolicy.yearly",
+      value: "yearly",
+    },
+    {
+      label: "confluence.workspace.trafficResetPolicy.one_time",
+      value: "one_time",
+    },
   ];
   subscribeSourceCreation?: {
     value: {
@@ -219,21 +242,6 @@ export class WorkspaceComponent implements OnInit {
   workspaceCrumbLabel = this.i18nService.translateSignal(
     "confluence.workspace.breadcrumb.workspace",
   );
-
-  breadcrumb = computed(() => {
-    return {
-      items: [
-        {
-          label: this.confluenceCrumbLabel(),
-          routerLink: ["/confluence"],
-        },
-        {
-          label: this.workspaceCrumbLabel(),
-        },
-      ],
-      home: { icon: "pi pi-home", routerLink: "/" },
-    };
-  });
 
   ngOnInit() {
     this.confluenceId$

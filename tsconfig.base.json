@@ -25,6 +25,71 @@
     "noUncheckedSideEffectImports": false,
     "types": [
       "*"
-    ]
+    ],
+    "paths": {
+      "@/components/ui/button": [
+        "./apps/outposts-web/src/components/ui/button/src/index.ts"
+      ],
+      "@/components/ui/utils": [
+        "./apps/outposts-web/src/components/ui/utils/src/index.ts"
+      ],
+      "@/components/ui/avatar": [
+        "./apps/outposts-web/src/components/ui/avatar/src/index.ts"
+      ],
+      "@/components/ui/badge": [
+        "./apps/outposts-web/src/components/ui/badge/src/index.ts"
+      ],
+      "@/components/ui/breadcrumb": [
+        "./apps/outposts-web/src/components/ui/breadcrumb/src/index.ts"
+      ],
+      "@/components/ui/card": [
+        "./apps/outposts-web/src/components/ui/card/src/index.ts"
+      ],
+      "@/components/ui/checkbox": [
+        "./apps/outposts-web/src/components/ui/checkbox/src/index.ts"
+      ],
+      "@/components/ui/dialog": [
+        "./apps/outposts-web/src/components/ui/dialog/src/index.ts"
+      ],
+      "@/components/ui/input": [
+        "./apps/outposts-web/src/components/ui/input/src/index.ts"
+      ],
+      "@/components/ui/select": [
+        "./apps/outposts-web/src/components/ui/select/src/index.ts"
+      ],
+      "@/components/ui/skeleton": [
+        "./apps/outposts-web/src/components/ui/skeleton/src/index.ts"
+      ],
+      "@/components/ui/progress": [
+        "./apps/outposts-web/src/components/ui/progress/src/index.ts"
+      ],
+      "@/components/ui/sheet": [
+        "./apps/outposts-web/src/components/ui/sheet/src/index.ts"
+      ],
+      "@/components/ui/tooltip": [
+        "./apps/outposts-web/src/components/ui/tooltip/src/index.ts"
+      ],
+      "@/components/ui/spinner": [
+        "./apps/outposts-web/src/components/ui/spinner/src/index.ts"
+      ],
+      "@/components/ui/sonner": [
+        "./apps/outposts-web/src/components/ui/sonner/src/index.ts"
+      ],
+      "@/components/ui/switch": [
+        "./apps/outposts-web/src/components/ui/switch/src/index.ts"
+      ],
+      "@/components/ui/sidebar": [
+        "./apps/outposts-web/src/components/ui/sidebar/src/index.ts"
+      ],
+      "@/components/ui/separator": [
+        "./apps/outposts-web/src/components/ui/separator/src/index.ts"
+      ],
+      "@/components/ui/field": [
+        "./apps/outposts-web/src/components/ui/field/src/index.ts"
+      ],
+      "@/components/ui/label": [
+        "./apps/outposts-web/src/components/ui/label/src/index.ts"
+      ]
+    }
   }
 }

@@ -6,14 +6,14 @@
         class="layout-topbar-logo"
         [attr.aria-label]="'topbar.logoAriaLabel' | transloco"
       >
-        <img width="150" height="30" src="image/logo-512-w.png" alt="logo" />
+        <img width="150" height="30" src="image/logo-512-w.png" alt="" />
       </a>
       <a
         [routerLink]="['/']"
         class="layout-topbar-icon"
         [attr.aria-label]="'topbar.logoAriaLabel' | transloco"
       >
-        <img width="30" height="30" src="image/logo-512.png" alt="logo" />
+        <img width="30" height="30" src="image/logo-512.png" alt="" />
       </a>
     </div>
 
@@ -26,7 +26,7 @@
           class="topbar-item"
           [attr.aria-label]="'topbar.links.github' | transloco"
         >
-          <i class="pi pi-github text-surface-700 dark:text-surface-100"></i>
+          <ng-icon name="lucideGithub" aria-hidden="true" />
         </a>
       </li>
       <li>
@@ -37,7 +37,7 @@
           class="topbar-item"
           [attr.aria-label]="'topbar.links.telegram' | transloco"
         >
-          <i class="pi pi-telegram text-surface-700 dark:text-surface-100"></i>
+          <ng-icon name="lucideSend" aria-hidden="true" />
         </a>
       </li>
       <li>
@@ -48,7 +48,7 @@
           class="topbar-item"
           [attr.aria-label]="'topbar.links.discord' | transloco"
         >
-          <i class="pi pi-discord text-surface-700 dark:text-surface-100"></i>
+          <ng-icon name="lucideMessageCircle" aria-hidden="true" />
         </a>
       </li>
       <li>
@@ -59,7 +59,7 @@
           class="topbar-item"
           [attr.aria-label]="'topbar.links.discussions' | transloco"
         >
-          <i class="pi pi-comments text-surface-700 dark:text-surface-100"></i>
+          <ng-icon name="lucideMessagesSquare" aria-hidden="true" />
         </a>
       </li>
       <li>
@@ -69,25 +69,21 @@
           (click)="toggleDarkMode()"
           [attr.aria-label]="'topbar.toggleTheme' | transloco"
         >
-          <i class="pi" [ngClass]="{ 'pi-moon': isDarkMode(), 'pi-sun': !isDarkMode() }"></i>
+          <ng-icon [name]="isDarkMode() ? 'lucideMoon' : 'lucideSun'" aria-hidden="true" />
         </button>
       </li>
-      <li>
+      <li data-topbar-panel>
         <button
-          pStyleClass="@next"
-          enterFromClass="hidden"
-          enterActiveClass="animate-scalein"
-          leaveToClass="hidden"
-          leaveActiveClass="animate-fadeout"
-          [hideOnOutsideClick]="true"
+          (click)="togglePanel('language')"
           type="button"
           class="topbar-item version-item"
           [attr.aria-label]="'topbar.language' | transloco"
+          [attr.aria-expanded]="activePanel() === 'language'"
         >
           <span class="version-text">{{ activeLangLabel() }}</span>
-          <span class="version-icon pi pi-angle-down"></span>
+          <ng-icon class="version-icon" name="lucideChevronDown" aria-hidden="true" />
         </button>
-        <div class="versions-panel hidden">
+        <div class="versions-panel" [class.hidden]="activePanel() !== 'language'">
           <ul>
             @for (lang of languages; track lang.id) {
               <li role="none">
@@ -104,23 +100,19 @@
           </ul>
         </div>
       </li>
-      <li>
+      <li data-topbar-panel>
         <button
-          pStyleClass="@next"
-          enterFromClass="hidden"
-          enterActiveClass="animate-scalein"
-          leaveToClass="hidden"
-          leaveActiveClass="animate-fadeout"
-          [hideOnOutsideClick]="true"
+          (click)="togglePanel('version')"
           type="button"
           class="topbar-item version-item"
+          [attr.aria-expanded]="activePanel() === 'version'"
         >
           <span class="version-text">{{
             versions ? versions[0].name : ("topbar.latest" | transloco)
           }}</span>
-          <span class="version-icon pi pi-angle-down"></span>
+          <ng-icon class="version-icon" name="lucideChevronDown" aria-hidden="true" />
         </button>
-        <div class="versions-panel hidden">
+        <div class="versions-panel" [class.hidden]="activePanel() !== 'version'">
           <ul>
             @for (v of versions; track v) {
               <li role="none">
@@ -140,7 +132,7 @@
             (click)="toggleMenu()"
             [attr.aria-label]="'topbar.menu' | transloco"
           >
-            <i class="pi pi-bars"></i>
+            <ng-icon name="lucideMenu" aria-hidden="true" />
           </button>
         </li>
       }

@@ -2,7 +2,7 @@
 	"data": [
 		{
 			"name": "menu.sections.gettingStarted",
-			"icon": "pi pi-home",
+			"icon": "lucideHouse",
 			"children": [
 				{
 					"name": "menu.links.home",
@@ -16,7 +16,7 @@
 		},
 		{
 			"name": "menu.sections.apps",
-			"icon": "pi pi-compass",
+			"icon": "lucideCompass",
 			"children": [
 				{
 					"name": "menu.links.confluence",
@@ -40,7 +40,7 @@
 		},
 		{
 			"name": "menu.sections.relatedProjects",
-			"icon": "pi pi-paperclip",
+			"icon": "lucidePaperclip",
 			"children": [
 				{
 					"name": "menu.links.konobangu",
@@ -54,7 +54,7 @@
 		},
 		{
 			"name": "menu.sections.support",
-			"icon": "pi pi-question",
+			"icon": "lucideCircleHelp",
 			"children": [
 				{
 					"name": "menu.links.forum",
@@ -77,12 +77,12 @@
 		{
 			"name": "menu.links.contribution",
 			"routerLink": "/contribution",
-			"icon": "pi pi-users",
+			"icon": "lucideUsers",
 			"badge": "menu.badges.new"
 		},
 		{
 			"name": "menu.sections.discover",
-			"icon": "pi pi-search",
+			"icon": "lucideSearch",
 			"children": [
 				{
 					"name": "menu.links.sourceCode",

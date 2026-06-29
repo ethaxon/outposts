@@ -8,7 +8,6 @@ import {
   ChangeDetectionStrategy,
 } from "@angular/core";
 import { NavigationEnd, Router, RouterModule } from "@angular/router";
-import { DomHandler } from "primeng/dom";
 import type { Subscription } from "rxjs";
 import { default as MenuData } from "@/assets/data/menu.json";
 import { AppConfigService } from "@/core/servces/app-config.service";
@@ -31,7 +30,7 @@ export interface MenuItem {
     "[class.active]": "isActive()",
   },
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, AppMenuItemComponent],
 })
 export class AppMenuComponent implements OnDestroy {
@@ -55,14 +54,14 @@ export class AppMenuComponent implements OnDestroy {
       this.routerSubscription = this.router.events.subscribe((event) => {
         if (event instanceof NavigationEnd && this.isActive()) {
           this.configService.hideMenu();
-          DomHandler.unblockBodyScroll("blocked-scroll");
+          document.body.classList.remove("blocked-scroll");
         }
       });
     });
   }
 
   scrollToActiveItem() {
-    const activeItem = DomHandler.findSingle(this.el.nativeElement, ".router-link-active");
+    const activeItem = this.el.nativeElement.querySelector(".router-link-active");
     if (activeItem && !this.isInViewport(activeItem)) {
       activeItem.scrollIntoView({ block: "center" });
     }

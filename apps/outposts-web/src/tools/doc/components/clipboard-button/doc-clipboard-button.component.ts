@@ -7,7 +7,7 @@ import { AppOverlayService } from "@/core/servces/app-overlay.service";
 @Component({
   standalone: false,
   selector: "app-doc-section-clipboard-button",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./doc-clipboard-button.component.html",
 })
 export class DocClipboardButtonComponent {

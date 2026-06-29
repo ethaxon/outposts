@@ -4,7 +4,7 @@ import { Component, ChangeDetectionStrategy } from "@angular/core";
   standalone: false,
   selector: "app-doc-layout",
   templateUrl: "./doc-layout.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: "flex",
   },

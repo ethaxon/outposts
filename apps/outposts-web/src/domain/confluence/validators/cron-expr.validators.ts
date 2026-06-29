@@ -6,7 +6,7 @@ export function hourPlusLevelCronExprValidator(
 ): ValidationErrors | null {
   const value = control.value;
   if (!value) {
-    return { emptyCronExpr: true, message: "empty cron expr." };
+    return { emptyCronExpr: true };
   }
   try {
     const parsedExpr = parseCron(value);
@@ -22,13 +22,13 @@ export function hourPlusLevelCronExprValidator(
     })
       ? {
           invalidCronExprSupportLevel: true,
-          message: "only hour plus level cron expression is supported.",
+          messageKey: "confluence.workspace.validation.cron.hourlyMinimum",
         }
       : null;
   } catch (e: unknown) {
     return {
       parseCronExprError: e,
-      message: (e as Error).message || "failed to parse cron expr.",
+      messageKey: "confluence.workspace.validation.cron.invalidFormat",
     };
   }
 }

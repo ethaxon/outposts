@@ -1,9 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, inject, ChangeDetectionStrategy } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
-import { PrimeNG } from "primeng/config";
-import { DomHandler } from "primeng/dom";
-import { ToastModule } from "primeng/toast";
+import { HlmToaster } from "@/components/ui/sonner";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { SpinnerComponent } from "../spinner/spinner.component";
 import { AppFooterComponent } from "./footer/app.footer.component";
@@ -15,7 +13,7 @@ import { AppTopBarComponent } from "./topbar/app.topbar.component";
   selector: "app-main",
   templateUrl: "./app.main.component.html",
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterOutlet,
     AppFooterComponent,
@@ -23,20 +21,16 @@ import { AppTopBarComponent } from "./topbar/app.topbar.component";
     AppNewsComponent,
     AppMenuComponent,
     AppTopBarComponent,
-    ToastModule,
+    HlmToaster,
     SpinnerComponent,
   ],
 })
 export class AppMainComponent {
   configService: AppConfigService = inject(AppConfigService);
 
-  primeng: PrimeNG = inject(PrimeNG);
-
   isNewsActive = computed(() => this.configService.newsActive());
 
   isMenuActive = computed(() => this.configService.appState().menuActive);
-
-  isRippleDisabled = computed(() => this.primeng.ripple());
 
   containerClass = computed(() => {
     return {
@@ -47,6 +41,6 @@ export class AppMainComponent {
 
   hideMenu() {
     this.configService.hideMenu();
-    DomHandler.unblockBodyScroll("blocked-scroll");
+    document.body.classList.remove("blocked-scroll");
   }
 }

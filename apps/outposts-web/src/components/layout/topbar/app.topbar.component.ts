@@ -4,18 +4,30 @@ import {
   booleanAttribute,
   Component,
   computed,
+  DOCUMENT,
   ElementRef,
+  HostListener,
   Input,
   inject,
   type OnDestroy,
   Renderer2,
+  signal,
   ChangeDetectionStrategy,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { TranslocoModule } from "@jsverse/transloco";
 import { RouterModule } from "@angular/router";
-import { DomHandler } from "primeng/dom";
-import { StyleClass } from "primeng/styleclass";
+import { NgIcon, provideIcons } from "@ng-icons/core";
+import {
+  lucideChevronDown,
+  lucideGithub,
+  lucideMenu,
+  lucideMessageCircle,
+  lucideMessagesSquare,
+  lucideMoon,
+  lucideSend,
+  lucideSun,
+} from "@ng-icons/lucide";
 import Versions from "@/assets/data/versions.json";
 import type { AppLang } from "@/app/transloco-config";
 import { WINDOW } from "@/core/providers/window";
@@ -25,8 +37,20 @@ import { AppI18nService } from "@/core/servces/app-i18n.service";
 @Component({
   selector: "app-topbar",
   standalone: true,
-  imports: [CommonModule, FormsModule, StyleClass, RouterModule, TranslocoModule],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  imports: [CommonModule, FormsModule, RouterModule, TranslocoModule, NgIcon],
+  providers: [
+    provideIcons({
+      lucideChevronDown,
+      lucideGithub,
+      lucideMenu,
+      lucideMessageCircle,
+      lucideMessagesSquare,
+      lucideMoon,
+      lucideSend,
+      lucideSun,
+    }),
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./app.topbar.component.html",
 })
 export class AppTopBarComponent implements OnDestroy {
@@ -41,6 +65,7 @@ export class AppTopBarComponent implements OnDestroy {
   private window: Window = inject(WINDOW);
   private renderer: Renderer2 = inject(Renderer2);
   private el: ElementRef = inject(ElementRef);
+  private document = inject(DOCUMENT);
   private configService: AppConfigService = inject(AppConfigService);
   private i18nService: AppI18nService = inject(AppI18nService);
 
@@ -60,13 +85,15 @@ export class AppTopBarComponent implements OnDestroy {
 
   languages = this.i18nService.availableLangs;
 
+  readonly activePanel = signal<"language" | "version" | null>(null);
+
   toggleMenu() {
     if (this.isMenuActive()) {
       this.configService.hideMenu();
-      DomHandler.unblockBodyScroll("blocked-scroll");
+      this.document.body.classList.remove("blocked-scroll");
     } else {
       this.configService.showMenu();
-      DomHandler.blockBodyScroll("blocked-scroll");
+      this.document.body.classList.add("blocked-scroll");
     }
   }
 
@@ -79,6 +106,19 @@ export class AppTopBarComponent implements OnDestroy {
 
   setLanguage(lang: AppLang) {
     this.i18nService.setLanguage(lang);
+    this.activePanel.set(null);
+  }
+
+  togglePanel(panel: "language" | "version") {
+    this.activePanel.update((active) => (active === panel ? null : panel));
+  }
+
+  @HostListener("document:click", ["$event"])
+  closePanelsOnOutsideClick(event: MouseEvent) {
+    const target = event.target as Element | null;
+    if (!target?.closest("[data-topbar-panel]")) {
+      this.activePanel.set(null);
+    }
   }
 
   bindScrollListener() {

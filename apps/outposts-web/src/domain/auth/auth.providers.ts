@@ -19,6 +19,11 @@ const PROJECTION_CACHE_KEY = "config.projection";
 
 const STORAGE_PREFIX = "outposts.web.auth.";
 
+/** No-op auth providers for local DEV mode (backend accepts unauthenticated requests). */
+export function provideDevAuth(): (Provider | EnvironmentProviders)[] {
+  return [];
+}
+
 /**
  * Create Angular providers for SDK-backed auth with backend-driven OIDC config.
  *

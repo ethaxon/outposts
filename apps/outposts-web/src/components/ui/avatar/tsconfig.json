@@ -1,0 +1,21 @@
+{
+  "extends": "../../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "isolatedModules": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "emitDecoratorMetadata": false
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

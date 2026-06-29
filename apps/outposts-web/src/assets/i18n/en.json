@@ -2,13 +2,23 @@
   "common": {
     "actions": {
       "add": "Add",
+      "backToTop": "Back to top",
       "cancel": "Cancel",
+      "close": "Close",
+      "copy": "Copy",
       "create": "Create",
+      "delete": "Delete",
+      "edit": "Edit",
       "mux": "Mux",
       "preview": "Preview",
       "reset": "Reset",
       "save": "Save",
       "sync": "Sync"
+    },
+    "loading": "Loading",
+    "navigation": {
+      "breadcrumb": "Breadcrumb",
+      "home": "Home"
     },
     "toast": {
       "copied": "Copied successfully",
@@ -101,6 +111,11 @@
       "title": "Success"
     }
   },
+  "news": {
+    "passiveSync": {
+      "content": "Confluence now supports passive sync 🚀"
+    }
+  },
   "confluence": {
     "dashboard": {
       "status": {
@@ -126,6 +141,7 @@
       "cronHint": "Supports Unix-style cron expressions with an hourly minimum interval, for example",
       "profileScriptHint": "The script receives ProfileTransformContext and returns the modified ClashMetaConfig; ctx.request contains headers, url, and body.",
       "profileScriptSchemaLink": "Schema source",
+      "qrcodeAlt": "QR code for the profile URL",
       "dialogs": {
         "editSubscribeSource": "Edit Subscribe Source",
         "editProfile": "Edit Profile Script",
@@ -198,7 +214,13 @@
         "reset": "Template reset successfully"
       },
       "updatedAt": "Updated at:",
-      "userAgentPlaceholder": "clash-verge/v2.0.3"
+      "userAgentPlaceholder": "clash-verge/v2.0.3",
+      "validation": {
+        "cron": {
+          "hourlyMinimum": "Only Unix-style cron expressions with an hourly minimum interval are supported.",
+          "invalidFormat": "Enter a valid cron expression."
+        }
+      }
     }
   }
 }

@@ -13,7 +13,20 @@ pub enum AuthConfig {
         /// does not perform its own OIDC flows.
         frontend_client_id: String,
     },
-    BASIC { username: String, password: String },
+    /// Local development only (debug builds): all requests are accepted without credentials.
+    DEV { user_id: String },
+}
+
+/// DEV auth is only permitted in development (debug) builds.
+pub fn assert_dev_auth_allowed() -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        Ok(())
+    } else {
+        Err(
+            "AUTH_TYPE=DEV is only permitted in development builds (compile with debug profile)"
+                .to_string(),
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -37,7 +50,17 @@ pub fn parse_scopes(raw: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_scopes;
+    use super::{assert_dev_auth_allowed, parse_scopes};
+
+    #[test]
+    fn assert_dev_auth_allowed_matches_build_profile() {
+        let result = assert_dev_auth_allowed();
+        if cfg!(debug_assertions) {
+            assert!(result.is_ok());
+        } else {
+            assert!(result.is_err());
+        }
+    }
 
     #[test]
     fn parse_scopes_accepts_space_and_comma_separated_values() {
