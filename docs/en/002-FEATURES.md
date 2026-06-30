@@ -1,46 +1,43 @@
 # Features
 
-## Confluence (Clash Subscription Manager)
+## Confluence
 
-**Purpose**: Manage and mux multiple Clash subscription sources into unified configs.
+Confluence is a Clash subscription manager and configuration muxer.
 
-### Core Features
+- Manage confluences, profiles, subscription sources, and profile transforms.
+- Refresh sources on configurable Cron schedules and display subscription usage
+  metadata where it is available.
+- Merge selected sources into Clash-compatible output profiles.
+- Edit YAML and transform scripts with Monaco.
+- Preview rendered documentation with Markdown, Mermaid diagrams, KaTeX, and
+  Prism syntax highlighting.
 
-- **Subscription Sources**: Add/remove/update subscription URLs with name and tags
-- **Passive Sync**: Auto-refresh subscriptions on configurable cron schedule
-- **Profile Management**: Create profiles (configs) linked to a confluence
-- **Config Muxing**: Merge multiple subscription sources into single Clash config
-- **Userinfo Extraction**: Parse Clash subscription userinfo from HTTP headers (upload/total/download/expiry)
-- **JWT Auth**: Validate tokens via biscuit JWT/JWK with JWKS caching
-- **OIDC SSO**: Authenticate through the standard OIDC / Authentik-first contract
+The API is served below `/api`; the web client uses `/api/auth/config` only to
+obtain public OIDC client configuration. It is excluded from Bearer-token
+interception.
 
-### API Endpoints
+## Authentication
 
-- `POST /api/confluences` — Create confluence
-- `GET /api/confluences` — List user's confluences
-- `GET /api/confluences/:id` — Get confluence with profiles & sources
-- `PUT /api/confluences/:id` — Update confluence
-- `DELETE /api/confluences/:id` — Delete confluence
-- `POST /api/confluences/:id/sources` — Add subscription source
-- `PUT /api/sources/:id` — Update source
-- `DELETE /api/sources/:id` — Remove source
-- `GET /api/confluences/:id/mux` — Get muxed Clash config
-- `POST /api/confluences/:id/profiles` — Create profile
-- `PUT /api/profiles/:id` — Update profile
-- `DELETE /api/profiles/:id` — Delete profile
+- `AUTH_TYPE=OIDC` uses Authorization Code with PKCE in the browser and
+  Securitydept resource-server validation in Confluence.
+- Route protection is declared with Securitydept token-set requirements rather
+  than an application-owned login wrapper.
+- The Angular authorization interceptor attaches a Bearer token only to the
+  configured Confluence API origin and path.
+- `AUTH_TYPE=DEV` is a local-development bypass; it is unavailable in
+  production frontend builds and release backend builds.
 
-## SSO / OIDC
+See [Authentication](003-AUTH.md) for required configuration.
 
-- The backend already follows standard OIDC discovery + JWKS + JWT validation
-- The frontend auth layer now uses a standard OIDC driver as the single-`confluence` baseline and keeps moving toward a provider-neutral boundary
-- The near-term target is supporting third-party OIDC providers such as Authentik without remaining coupled to one IdP SDK
+## Outposts-web
 
-## Outposts-web (Frontend Portal)
-
-- Angular 20 SPA
-- PrimeNG UI components
-- i18n via Transloco
-- Angular SSR for SEO
+- Angular 22 SPA with an Nx 23 workspace.
+- Spartan NG / Helm primitives, Tailwind CSS v4, and Lucide icons.
+- English and Simplified Chinese UI text via Transloco.
+- Responsive application shell, workspace forms, dialogs, toast feedback, and
+  loading states.
+- Feature-level loading for documentation assets so Prism, Mermaid, and KaTeX
+  do not inflate the initial page.
 
 ---
 

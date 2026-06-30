@@ -2,11 +2,11 @@
 
 ## Implemented
 
-| Component | Status |
-|-----------|--------|
-| Confluence | Core functionality complete |
-| SSO (standard OIDC / Authentik-first) | Integrated |
-| Outposts-web | Angular portal working |
+| Component                             | Status                      |
+| ------------------------------------- | --------------------------- |
+| Confluence                            | Core functionality complete |
+| SSO (standard OIDC / Authentik-first) | Integrated                  |
+| Outposts-web                          | Angular portal working      |
 
 ## Phase 1: Confluence Enhancements
 
@@ -15,9 +15,11 @@
 - [ ] Bulk source import/export
 - [ ] Usage statistics dashboard
 
-## Phase 2: SecurityDept
+## Phase 2: Securitydept
 
-MFA checkpoint for L4 services (RDP, SSH, etc.):
+Securitydept is the integrated security and authentication infrastructure
+toolkit. Its current OIDC capabilities are used by Outposts; planned L4 MFA
+gateway capabilities target services such as RDP and SSH:
 
 - [ ] Basic auth zone mode
 - [ ] MFA challenge integration

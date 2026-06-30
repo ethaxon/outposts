@@ -4,21 +4,25 @@ Outposts is a personal **Digital Outpost** for managing side projects and homela
 
 ## Components
 
-| Code | Description | Status |
-|------|-------------|--------|
-| **Confluence** | Clash subscription mux and manager | Implemented |
-| **SSO** | OIDC SSO baseline for Authentik or any standard OIDC provider | Implemented |
-| **Outposts-web** | Angular 20 portal | Implemented |
-| **SecurityDept** | MFA checkpoint for L4 services | Planned |
-| **CelestialGates** | Service web portal / teleportation | Planned |
-| **Yü-shih** | System monitor client & center | Planned |
+| Code               | Description                                                   | Status      |
+| ------------------ | ------------------------------------------------------------- | ----------- |
+| **Confluence**     | Clash subscription mux and manager                            | Implemented |
+| **SSO**            | OIDC SSO baseline for Authentik or any standard OIDC provider | Implemented |
+| **Outposts-web**   | Angular 22 portal using Spartan NG                            | Implemented |
+| **Securitydept**   | Security and authentication infrastructure toolkit            | Integrated  |
+| **CelestialGates** | Service web portal / teleportation                            | Planned     |
+| **Yü-shih**        | System monitor client & center                                | Planned     |
 
 ## Quick Start
 
 ```sh
-# Edit .env, then:
+cp .env.example .env
+# Review .env, then:
 docker compose up
 ```
+
+The compose stack starts PostgreSQL, Confluence, the static web host, and the
+web-host sidecar that injects public OIDC configuration into the served HTML.
 
 ## Dev Setup
 
@@ -40,4 +44,9 @@ just dev-proxy
 
 - [001-ARCHITECTURE.md](001-ARCHITECTURE.md)
 - [002-FEATURES.md](002-FEATURES.md)
+- [003-AUTH.md](003-AUTH.md)
 - [100-ROADMAP.md](100-ROADMAP.md)
+
+---
+
+[English](000-OVERVIEW.md) | [中文](../zh/000-OVERVIEW.md)

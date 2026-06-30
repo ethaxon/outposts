@@ -2,11 +2,11 @@
 
 ## 已实现
 
-| 组件 | 状态 |
-|------|------|
-| Confluence | 核心功能完成 |
-| SSO（标准 OIDC / Authentik-first） | 已集成 |
-| Outposts-web | Angular 门户运行中 |
+| 组件                               | 状态               |
+| ---------------------------------- | ------------------ |
+| Confluence                         | 核心功能完成       |
+| SSO（标准 OIDC / Authentik-first） | 已集成             |
+| Outposts-web                       | Angular 门户运行中 |
 
 ## 阶段一：Confluence 增强
 
@@ -15,9 +15,10 @@
 - [ ] 批量导入/导出订阅源
 - [ ] 使用统计仪表盘
 
-## 阶段二：SecurityDept
+## 阶段二：Securitydept
 
-L4 服务（MFA 检核点，RDP、SSH 等）：
+Securitydept 是已集成的安全与认证基础设施工具包。Outposts 当前使用其 OIDC
+能力；后续计划中的 L4 MFA gateway 面向 RDP、SSH 等服务：
 
 - [ ] Basic Auth 区域模式
 - [ ] MFA 挑战集成

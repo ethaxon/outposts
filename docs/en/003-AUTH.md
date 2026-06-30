@@ -1,294 +1,113 @@
-# Auth Plan
-
-This document describes the current auth baseline and next steps for `outposts`. The current single-`confluence` path has already been narrowed to a **standard OIDC / Authentik-first** runtime surface. The next step is to continue validating multi-backend and multi-OIDC-client scenarios on top of that baseline instead of preserving any Logto-era transition assumptions.
-
-The current project scope already includes at least:
-
-- `outposts-web`
-- `confluence`
-- future `app1`
-- future `app2`
-
-## Current Reading
-
-### 1. Frontend problem
-
-`outposts-web` already has a standard OIDC driver and focused evidence for the single-`confluence` flow, but two real constraints remain:
-
-- route guards, callback handling, token access, and user state are still mostly concentrated in one `AuthService`
-- the current runtime still looks close to “single app, single OIDC client, single resource happy path”
-
-That may still work when only `confluence` is integrated. Once the same frontend host must support `confluence`, `app1`, and `app2`, the more realistic problems appear:
-
-- different apps may use different OIDC clients
-- different apps may require different audiences / scopes
-- one frontend route area may require credentials for more than one app
-
-### 2. Backend problem
-
-The `confluence` backend still selects its OIDC branch via `AUTH_TYPE=OIDC`, but its Bearer validation is now directly narrowed to `securitydept-oauth-resource-server`:
-
-- OIDC discovery
-- provider metadata / JWKS fetch and refresh
-- issuer validation
-- audience validation
-- required-scope validation
-
-So the real near-term refactor focus should be:
-
-- a provider-neutral frontend auth boundary
-- route-level orchestration for multiple requirements
-- a clearer and configurable issuer / audience / scope contract across services
-
-not rewriting every backend into a new auth framework first.
-
-## Target Architecture
-
-### Frontend: provider-neutral auth boundary
-
-`outposts-web` should move toward these boundaries:
-
-1. **Keep the auth core interface provider-neutral**
-   - sign in
-   - sign out
-   - callback handling
-   - access-token retrieval
-   - user/auth-state observation
-
-2. **Treat the OIDC provider SDK as a replaceable driver**
-   - the current single-`confluence` flow already uses a standard OIDC client as the only runtime path
-   - the practical near-term target is Authentik or any standard OIDC provider
-   - the frontend should stay on a standard OIDC client behind a provider-neutral boundary instead of re-binding to another provider SDK
-
-3. **Do not let route guards hard-code one IdP calling style**
-   - guards should express “which requirements this route needs”
-   - orchestration should live in a separate layer
-
-### Backend: keep a provider-neutral OIDC contract
-
-Each backend service should continue to follow:
-
-- standard OIDC discovery / JWT resource-server verification for Bearer tokens
-- issuer / audience / scope controlled by config
-- no reverse dependency on frontend SDK-specific behavior
-
-For `confluence`, the current single-path OIDC contract should be read as:
-
-- `OIDC_ISSUER`: the standard OIDC issuer
-- `OUTPOSTS_WEB_OIDC_CLIENT_ID`: the frontend OIDC client id
-- `CONFLUENCE_API_ENDPOINT`: the frontend API base URL for `confluence`, also used as the current single-resource request-targeting parameter
-- `CONFLUENCE_OIDC_AUDIENCE`: the backend Bearer-token audience expectation
-- `CONFLUENCE_OIDC_SCOPES`: the shared frontend/backend scope contract for the current single path, with default value `openid profile email confluence offline_access`
-
-In practice:
-
-- `outposts-web` uses that scope set to build the OIDC authorize / code / refresh request scope
-- `confluence` uses the same scope set as the required-scope policy inside `securitydept-oauth-resource-server`
-
-Regarding `CONFLUENCE_OIDC_AUDIENCE`:
-
-- The field is **optional**: when absent, `oauth-resource-server` skips audience validation entirely
-- When set, only JWTs whose `aud` claim includes that value are accepted
-- Whether to enable it depends on what the actual token from Authentik contains
-
-**Note**: the frontend no longer sends the [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) `resource` parameter to the OIDC provider. RFC 8707 is an IETF standard extension, but Authentik does not support Resource Indicators — the parameter would be silently ignored. `CONFLUENCE_API_ENDPOINT` is now only used as a URL-prefix key by the frontend HTTP interceptor, no longer tied to any OIDC authorization parameter.
-
-## Multi-Backend / Multi-OIDC-Client Scenario
-
-This is the most important new constraint.
-
-`outposts-web` is not just “one frontend talking to one protected backend”, but:
-
-- one frontend host
-- multiple backend services
-- different services potentially using different OIDC clients / audiences / scope sets
-
-That means the frontend can no longer model only “am I signed in now?”. It needs to express:
-
-- which app requirements are active
-- whether each requirement is already satisfied
-- which requirement can be acquired silently
-- which requirement requires interactive redirect
-
-## How to Schedule Authorization When One Route Needs Multiple Credentials
-
-For example, one route area may require:
-
-- `app1`
-- `app2`
-
-It is not a good idea to hard-code this into “automatically do two redirects in sequence”, because in real product flows:
-
-- the user may not understand why two redirects happen
-- some requirements may be silent and some interactive
-- failure of one requirement may not need to block the entire page
-- some scenarios are better served by showing a chooser first
-
-The recommended boundary is:
-
-1. **The app keeps full freedom**
-   - whether to show a chooser first
-   - whether to authorize sequentially
-   - how to degrade when one step fails
-   - whether some functionality may load before the full requirement set is satisfied
-
-2. **The lower-level orchestration should stay headless**
-   - input: current route requirements, token state, pending callback state
-   - output: the next action to take
-
-A recommended action model can look like:
-
-- `satisfied`
-- `acquire_silently(requirement)`
-- `redirect(requirement)`
-- `prompt_user(choices, remaining)`
-- `blocked(reason)`
-
-Recommended default policy:
-
-1. check which requirements are already satisfied
-2. satisfy silent requirements first when possible
-3. if only one interactive requirement remains, allow a direct redirect by default
-4. if multiple interactive requirements remain, default to `prompt_user`
-5. after callback, resume the pending plan and continue the remaining requirements
-
-## SDK vs App Ownership Boundary
-
-Given the current `securitydept` direction, the boundary should be:
-
-### App-owned
-
-- chooser UI
-- router policy
-- page-level auth UX
-- business-specific fallback / degradation when one requirement fails
-
-### Possibly SDK-owned later
-
-- requirement model
-- headless scheduler / orchestrator
-- pending callback recovery primitive
-- the thinnest possible `web` / `angular` / `react` adapters
-
-In other words:
-
-- `outposts` should validate this orchestration model at the app layer first
-- the stable requirement and lifecycle parts now come from `securitydept`, while application UI policy stays local
-
-## Direct Feedback For `securitydept` Frontend SDK Design
-
-The current `outposts-web -> confluence` path consumes `@securitydept/client`, `@securitydept/client-angular`, `@securitydept/token-set-context-client`, and `@securitydept/token-set-context-client-angular` at `0.3.0-beta.6`. The composition root uses `provideEnvironment({ createBaseEnvironment: createEnvironmentForNativeWeb })` to install one explicit `FoundationEnvironment`. The native-web adapter discovers and validates browser storage. The web host writes injected projections to Securitydept's default Realm keys. The Angular router adapter keeps in-app navigation in Angular Router and delegates external redirects to native-web routing. `provideTokenSetClientRegistry(...)` owns the keyed client lifecycle, while `createFrontendOidcModeClientFactory(...)` and `resolveFrontendOidcModeConfigProjection(...)` materialize the browser OIDC client from ordered realm, persisted, and network sources. `provideTokenSetClientRegistryAuthorizationInterceptor()` injects bearer credentials only when a registered `urlPatterns` query matches, so anything outside `CONFLUENCE_API_ENDPOINT` receives no token. Routes use `TokenSetClientRegistryAuthRequirement` with `secureTokenSetRouteRoot(...)`. The app-owned callback host embeds `TokenSetFrontendCallbackComponent` and applies the returned post-auth redirect through Angular Router.
-
-1. **generic token orchestration layer**
-   - owns combined `access_token` / `id_token` / `refresh_token` state
-   - owns restore / persistence / refresh / transport projection
-   - does not need to care whether the token source is:
-     - standard frontend OIDC
-     - standard backend OIDC + resource server
-     - the token-set sealed + metadata flow
-
-2. **token-set sealed + metadata specific adapter**
-   - owns callback fragments / sealed payloads
-   - owns metadata redemption
-   - owns token-set-specific redirect recovery / flow-state storage
-
-The beta.5 SDK surface now implements this separation. The integration therefore treats:
-
-- `BaseOidcModeClient`, Resource snapshots, persistence, refresh, and authorization projection as the generic orchestration layer
-- frontend/backend OIDC mode packages as protocol-specific clients
-- `TokenSetClientRegistry` as the keyed lifecycle owner rather than a second auth-state model
-
-## Near-Term Delivery Stages
-
-The near-term work should proceed in this order instead of one large migration.
-
-### Stage 1: standard OIDC / Authentik-first baseline (done)
-
-Status:
-
-- the current single-`confluence` flow is on the standard OIDC driver (`@securitydept/token-set-context-client/frontend-oidc-mode`)
-- frontend config naming is narrowed to `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests lock the config, provider, route, and redirect contracts under `apps/outposts-web/src/domain/auth/__tests__/`
-- removed the RFC 8707 `resource` parameter from provider requests (Authentik does not support Resource Indicators)
-- `CONFLUENCE_OIDC_AUDIENCE` is optional; when absent, audience validation is skipped
-
-### Stage 2: align backend issuer / audience / scope (done)
-
-Status:
-
-- `confluence` is aligned with Authentik claims (including `client_id` / `aud` being optional under RFC 9068)
-- `securitydept-oauth-resource-server` carries the single-path Bearer-token verification
-- each service's `issuer` / `audience` / `required scopes` is config-driven; missing audience skips audience validation
-- backend tests cover audience-optional, audience-required, and missing-scope semantics (see `apps/confluence/src/auth/tests.rs`)
-
-### Stage 3: route-level requirement orchestration (done)
-
-Status:
-
-- route metadata uses `TokenSetClientRegistryAuthRequirement`
-- `secureTokenSetRouteRoot(...)` installs the Angular guards and registry-backed planner host
-- the registry's Resource readiness boundary replaces app-local service-wrapper state
-
-### Stage 4: consume the stable SDK boundary (done)
-
-Status:
-
-- requirement planning, registry lifecycle, callback selection, and framework adapters come from `securitydept`
-- application route policy and UI remain in `outposts`
-
-## Local Workspace Dependency Rules
-
-### Rust
-
-Published versions should be the default for both release and normal local development. Switch to a local override only when you need an active workspace integration loop:
-
-```toml
-[workspace.dependencies]
-securitydept-core = { version = "0.3.0-beta.6" }
-
-# Enable only for local securitydept workspace integration:
-# [patch.crates-io]
-# securitydept-core = { path = "../securitydept/packages/core" }
+# Authentication
+
+Outposts has one current protected application path: `outposts-web` accessing
+the Confluence API. It uses standard OpenID Connect with Authorization Code +
+PKCE in the browser and Securitydept resource-server validation in the backend.
+Authentik is the reference provider, but the contract is standard OIDC.
+
+## Modes
+
+| `AUTH_TYPE` | Intended use                                   | Behaviour                                                                                                                 |
+| ----------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `OIDC`      | Normal local, CI, and deployment configuration | The browser authenticates with the configured provider; Confluence validates Bearer access tokens.                        |
+| `DEV`       | Local development only                         | The Angular development build skips OIDC and the Rust debug build accepts requests as `AUTH_DEV_USER_ID` (default `dev`). |
+
+`DEV` is rejected by a production Angular build and by a Rust release build. It
+must never be used as a deployment authentication mode.
+
+## OIDC Flow
+
+1. `outposts-web-host` requests the unauthenticated public projection at
+   `GET /api/auth/config?redirect_uri=<web-callback-url>` from Confluence.
+2. The host sidecar injects that projection into the HTML served by nginx. It
+   contains public provider metadata, client ID, scopes, PKCE settings, and the
+   callback URL—never a client secret or user data.
+3. The Angular Securitydept registry resolves configuration in this order:
+   injected Realm projection, persisted projection cache, then the canonical
+   Confluence endpoint.
+4. A protected `/confluence` route uses a
+   `TokenSetClientRegistryAuthRequirement`. If authentication is needed, the
+   SDK starts the OIDC redirect.
+5. `/auth/callback` hosts `TokenSetFrontendCallbackComponent`; the application
+   then navigates to the returned post-auth URL through Angular Router.
+6. The Angular authorization interceptor adds a Bearer token only to the
+   configured Confluence API origin and path. `/api/auth/config` is explicitly
+   excluded to avoid recursive client initialization.
+
+Confluence performs provider discovery and JWKS-backed access-token validation.
+It enforces configured scopes and enforces an audience only when
+`CONFLUENCE_OIDC_AUDIENCE` is set.
+
+## Configuration
+
+Start from the checked-in template:
+
+```sh
+cp .env.example .env
 ```
 
-Rules:
+### Shared Web Configuration
 
-- keep the default dependency on the published version, for example `0.3.0-beta.6`
-- use `[patch.crates-io]` only for temporary local workspace integration
-- remove the local override after the integration loop so normal collaboration stays on published artifacts
+| Variable                  | Required | Purpose                                                                           |
+| ------------------------- | -------: | --------------------------------------------------------------------------------- |
+| `AUTH_TYPE`               |      Yes | `OIDC` for normal operation; `DEV` only for local debug development.              |
+| `CONFLUENCE_API_ENDPOINT` |      Yes | Public Confluence API base URL, for example `https://confluence.example.com/api`. |
+| `OUTPOSTS_WEB_HOST`       |      Yes | Public web hostname used by the projection host's built-in Confluence topology.   |
 
-### Node / pnpm
+### OIDC Configuration
 
-Use published npm packages by default. Switch to local `link:` references only for temporary workspace integration, for example:
+These are required when `AUTH_TYPE=OIDC`.
 
-```json
-{
-  "dependencies": {
-      "@securitydept/client": "0.3.0-beta.6",
-      "@securitydept/client-angular": "0.3.0-beta.6",
-      "@securitydept/token-set-context-client": "0.3.0-beta.6",
-      "@securitydept/token-set-context-client-angular": "0.3.0-beta.6"
-  }
-}
+| Variable                      | Purpose                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| `OIDC_ISSUER`                 | OIDC issuer URL.                                                              |
+| `OUTPOSTS_WEB_OIDC_CLIENT_ID` | Public browser OIDC client ID; Confluence serves it in the config projection. |
+| `CONFLUENCE_OIDC_SCOPES`      | Space- or comma-separated requested and required scopes.                      |
+| `CONFLUENCE_OIDC_AUDIENCE`    | Optional expected token audience. Omit it to skip audience validation.        |
+| `CONFLUENCE_OIDC_USER_CLAIM`  | Optional principal claim; defaults to `sub`.                                  |
+
+The frontend build validates `AUTH_TYPE`, `CONFLUENCE_API_ENDPOINT`, and
+`OUTPOSTS_WEB_HOST`. In OIDC mode it also validates `OIDC_ISSUER`,
+`OUTPOSTS_WEB_OIDC_CLIENT_ID`, and `CONFLUENCE_OIDC_SCOPES`. The backend also
+requires its normal database and listener settings from `.env`.
+
+## Development
+
+For OIDC development, use the values appropriate to the local web and API
+origins, then run:
+
+```sh
+docker compose -f docker-compose.dev-deps.yml up -d
+just dev-confluence
+just dev-webui
 ```
 
-Rules:
+For a no-auth local loop, set `AUTH_TYPE=DEV` and optionally `AUTH_DEV_USER_ID`.
+Run the frontend through `just dev-webui` and the backend through
+`just dev-confluence`; both are development commands and therefore satisfy the
+mode restriction.
 
-- declare dependencies at the package root only, not per subpath
-- keep the default dependency on the published version; switch to `link:` only during an active integration loop
-- local links are only for validating unpublished boundaries and should not remain as the regular dependency shape
+## CI and Deployment
 
-## Current Conclusion
+The `build-web` job in `.github/workflows/ci.yaml` runs in the `BUILD` GitHub
+Actions environment. Repository or environment variables must be exposed to its
+dotenv-generation step. In particular, `AUTH_TYPE` must be mapped along with
+the OIDC and URL variables; otherwise the web build intentionally fails before
+producing a bundle.
 
-`outposts` should not be read as a project that is still in a Logto-transition intermediate state.  
-The more accurate target is:
+For deployment, use `PROJECTION_SOURCES` to describe one or more projection
+endpoints. If it is absent, `outposts-web-host` falls back to one Confluence
+source using `OUTPOSTS_WEB_HOST`. The projection host refreshes its injected
+HTML periodically; browser token persistence remains owned by Securitydept.
 
-- stabilize the current single-`confluence` flow on a standard OIDC / Authentik-first baseline
-- keep the current single-`confluence` backend Bearer path on `oauth-resource-server`
-- keep evolving the frontend from a single-provider happy path into a provider-neutral auth boundary
-- keep the backend on a provider-neutral OIDC validation model
-- use real multi-backend, multi-requirement route scenarios to validate future scheduler abstractions
-- feed only the stable pieces back into `securitydept`
+## Security Boundaries
+
+- The public config projection exposes only data needed to initiate OIDC.
+- The backend is a resource server; it does not hold a browser client secret.
+- Browser tokens are never attached to requests outside the configured API
+  boundary.
+- Authentication mode is explicit and validated at build/startup time rather
+  than inferred from missing values.
 
 ---
 

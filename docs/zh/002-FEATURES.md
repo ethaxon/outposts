@@ -1,46 +1,37 @@
 # 功能
 
-## Confluence (Clash 订阅管理器)
+## Confluence
 
-**目的**: 管理和混流多个 Clash 订阅源为统一配置。
+Confluence 是一个 Clash 订阅管理器与配置混流器。
 
-### 核心功能
+- 管理 Confluence、Profile、订阅源和 Profile transform。
+- 按可配置的 Cron 计划刷新订阅源，并在可用时展示订阅流量元数据。
+- 将选定订阅源合并为 Clash 兼容的输出 Profile。
+- 使用 Monaco 编辑 YAML 和 transform 脚本。
+- 使用 Markdown、Mermaid、KaTeX 与 Prism 预览渲染后的文档内容。
 
-- **订阅源管理**: 添加/删除/更新订阅 URL，含名称和标签
-- **被动同步**: 按配置的 cron 计划自动刷新订阅
-- **Profile 管理**: 创建关联到 confluence 的 profile（配置）
-- **配置混流**: 将多个订阅源合并为单个 Clash 配置
-- **用户信息提取**: 从 HTTP 头解析 Clash 订阅用户信息（上传/总量/下载/过期）
-- **JWT 认证**: 通过 biscuit JWT/JWK 验证令牌，缓存 JWKS
-- **OIDC SSO**: 基于标准 OIDC / Authentik-first contract 进行认证
+API 位于 `/api` 下；Web 客户端只通过 `/api/auth/config` 获取公开 OIDC client
+配置，该端点不会被 Bearer token interceptor 拦截。
 
-### API 端点
+## 认证
 
-- `POST /api/confluences` — 创建 confluence
-- `GET /api/confluences` — 列出用户的 confluences
-- `GET /api/confluences/:id` — 获取 confluence 及其 profiles 和 sources
-- `PUT /api/confluences/:id` — 更新 confluence
-- `DELETE /api/confluences/:id` — 删除 confluence
-- `POST /api/confluences/:id/sources` — 添加订阅源
-- `PUT /api/sources/:id` — 更新订阅源
-- `DELETE /api/sources/:id` — 移除订阅源
-- `GET /api/confluences/:id/mux` — 获取混流的 Clash 配置
-- `POST /api/confluences/:id/profiles` — 创建 profile
-- `PUT /api/profiles/:id` — 更新 profile
-- `DELETE /api/profiles/:id` — 删除 profile
+- `AUTH_TYPE=OIDC` 在浏览器使用 Authorization Code + PKCE，在 Confluence
+  使用 Securitydept resource-server 校验。
+- 路由保护通过 Securitydept token-set requirement 声明，而不是应用自有的登录
+  wrapper。
+- Angular authorization interceptor 只会为已配置的 Confluence API origin 与路径
+  附加 Bearer token。
+- `AUTH_TYPE=DEV` 是本地开发绕过模式，生产前端构建和 release 后端构建均不支持。
 
-## SSO / OIDC
+必需配置见[认证](003-AUTH.md)。
 
-- 当前后端按标准 OIDC discovery + JWKS + JWT 校验工作
-- 前端认证层当前以标准 OIDC driver 作为单 `confluence` 主链路基线，并继续朝 provider-neutral auth boundary 演进
-- 近期目标是支持第三方 OIDC provider（如 Authentik），而不是继续绑定单一 IdP SDK
+## Outposts-web
 
-## Outposts-web (前端门户)
-
-- Angular 20 SPA
-- PrimeNG UI 组件
-- 通过 Transloco 实现国际化
-- Angular SSR 优化 SEO
+- 基于 Nx 23 工作区的 Angular 22 SPA。
+- Spartan NG / Helm 原语、Tailwind CSS v4 与 Lucide 图标。
+- 通过 Transloco 提供英文和简体中文 UI 文案。
+- 响应式应用壳、工作区表单、Dialog、Toast 反馈和加载状态。
+- 文档资源按特性加载，因此 Prism、Mermaid 和 KaTeX 不会扩大初始页面。
 
 ---
 

@@ -1,61 +1,71 @@
 # Architecture
 
-## Tech Stack
+## Technology Stack
 
-| Layer | Stack |
-|-------|-------|
-| Frontend | Angular 20, Nx, PrimeNG, TailwindCSS, `@jsverse/transloco` |
-| Backend | Rust, Axum, Sea-ORM, PostgreSQL, tokio |
-| Auth | Standard OIDC / Authentik-first, biscuit (JWT/JWK) |
-| Container | Docker Compose |
-| Tools | mise, pnpm, cargo, just |
+| Layer          | Current implementation                                                               |
+| -------------- | ------------------------------------------------------------------------------------ |
+| Frontend       | Angular 22, Nx 23, Spartan NG (Helm/Brain), Tailwind CSS v4, Lucide icons, Transloco |
+| Backend        | Rust, Axum, Sea-ORM, PostgreSQL, Tokio                                               |
+| Authentication | Securitydept resource-server validation and frontend OIDC client registry            |
+| Delivery       | Docker Compose, nginx static host, Bun/Node projection host                          |
+| Tooling        | pnpm 11, TypeScript 6, mise, cargo, just                                             |
+
+`outposts-web` is a browser-only SPA. It does not implement SSR.
 
 ## Project Structure
 
-```
+```text
 outposts/
 ├── apps/
-│   ├── confluence/      # Rust backend server
-│   │   └── src/
-│   │       ├── auth/       # OIDC authentication
-│   │       ├── clash/      # Clash config parsing
-│   │       ├── models/     # Sea-ORM entities
-│   │       ├── migrations/ # DB migrations
-│   │       ├── services.rs # Business logic
-│   │       ├── tasks/      # Cron scheduled jobs
-│   │       └── mux/        # Config muxing
-│   ├── outposts-web/   # Angular frontend
-│   └── dev-proxy/      # Dev reverse proxy
-├── assets/             # Static assets
-└── docker-compose*.yml # Container orchestration
+│   ├── confluence/         # Rust API and subscription-mux service
+│   ├── outposts-web/       # Angular application
+│   ├── outposts-web-host/  # Runtime OIDC projection injector
+│   └── dev-proxy/          # Development reverse proxy
+├── assets/                 # Shared static assets
+├── docs/                   # English and Chinese product documentation
+└── docker-compose*.yml     # Local and deployment orchestration
 ```
 
-## Confluence Backend
+## Confluence
 
-Confluence is the core backend service managing Clash subscription sources:
+Confluence manages subscription sources, profiles, and merged Clash-compatible
+configuration.
 
-- **HTTP Layer**: Axum with tower-http (CORS, tracing, static files)
-- **Database**: PostgreSQL via Sea-ORM
-- **Auth**: OIDC via openidconnect + biscuit for JWT/JWK
-- **Scheduling**: tokio-cron-scheduler for subscription sync
-- **State**: Shared `AppState` with DB connection, config, JWKS cache, OIDC provider cache
+- Axum exposes the HTTP API and Sea-ORM persists its data in PostgreSQL.
+- Tokio Cron Scheduler refreshes subscription sources according to configured schedules.
+- In OIDC mode, Securitydept verifies access tokens through provider discovery,
+  JWKS, optional audience validation, and required scopes.
+- `AUTH_TYPE=DEV` accepts requests without credentials only in Rust debug builds;
+  it is deliberately rejected by release builds.
 
-### Key Modules
+## Web Application and Runtime Configuration
 
-- `clash/` — Parse Clash subscription userinfo headers
-- `services.rs` — CRUD for confluences, profiles, subscribe sources
-- `mux/` — Merge multiple subscription configs
-- `auth/` — JWT validation, OIDC provider config
+The Angular application is built once and served by nginx. Its OIDC settings are
+not compiled into the application bundle:
 
-## Frontend
+1. `outposts-web-host` fetches each backend's public `/api/auth/config`
+   projection.
+2. It writes an HTML bootstrap script into the shared served `index.html`.
+3. The Angular Securitydept client registry resolves that injected projection,
+   then its persisted cache, then the backend endpoint as a fallback.
 
-Angular 20 SPA with:
+The application shell uses Spartan NG primitives and locally generated Helm
+component libraries. Business layouts and feature styling remain application
+code. Transloco provides English and Simplified Chinese UI text. Monaco,
+Chart.js, Mermaid, KaTeX, and Prism remain feature-specific integrations;
+Prism, Mermaid, and KaTeX load only when documentation content needs them.
 
-- Nx monorepo workspace
-- PrimeNG components
-- TailwindCSS styling
-- Transloco i18n
-- Angular SSR for initial load
+## Development
+
+```sh
+docker compose -f docker-compose.dev-deps.yml up -d
+just dev-confluence
+just dev-webui
+just dev-proxy
+```
+
+Copy `.env.example` to `.env` before starting services. See
+[Authentication](003-AUTH.md) for the environment-variable contract.
 
 ---
 

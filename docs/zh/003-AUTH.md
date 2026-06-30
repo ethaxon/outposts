@@ -1,295 +1,104 @@
-# 认证方案
-
-本文档描述 `outposts` 当前的认证基线与后续方向。当前单 `confluence` 主链路已经收口到**标准 OIDC / Authentik-first** 运行面，后续重点是继续在这个基线上验证多后端、多 OIDC client 场景，而不是保留任何 Logto 过渡态假设。
-
-当前项目范围至少包括：
-
-- `outposts-web`
-- `confluence`
-- 未来的 `app1`
-- 未来的 `app2`
-
-## 当前判断
-
-### 1. 前端当前问题
-
-`outposts-web` 当前已经具备标准 OIDC driver 与单 `confluence` focused evidence，但仍有两个真实约束：
-
-- route guard / callback / token 获取 / user state 仍主要收口在同一个 `AuthService`
-- 当前运行面仍偏向“单 app、单 OIDC client、单 resource happy path”
-
-这在只接 `confluence` 时还勉强成立；一旦同一个前端宿主要同时承载 `confluence`、`app1`、`app2`，就会遇到更真实的问题：
-
-- 不同 app 可能有不同 OIDC client
-- 不同 app 可能需要不同 audience / scope
-- 某个前端路由区域可能同时要求多个 app 的资格
-
-### 2. 后端当前问题
-
-`confluence` 后端当前虽然仍通过 `AUTH_TYPE=OIDC` 选择 OIDC 分支，但 Bearer 校验已经直接收口到 `securitydept-oauth-resource-server`：
-
-- OIDC discovery
-- provider metadata / JWKS 拉取与刷新
-- issuer 校验
-- audience 校验
-- required scopes 校验
-
-因此近期真正需要重构的重心主要是：
-
-- 前端 provider-neutral auth boundary
-- 多 requirement 的 route-level orchestration
-- 不同服务之间统一而可配置的 issuer / audience / scope contract
-
-而不是先把所有后端都重写成一套新认证框架。
-
-## 目标架构
-
-### 前端：provider-neutral auth boundary
-
-`outposts-web` 近期应朝以下边界收口：
-
-1. **认证核心接口保持 provider-neutral**
-   - 登录
-   - 登出
-   - callback 处理
-   - access token 获取
-   - user/auth state 查询
-
-2. **OIDC provider SDK 作为可替换 driver**
-   - 当前单 `confluence` 主链路已经以标准 OIDC client 作为唯一运行面
-   - 近期现实目标是 Authentik 或任意标准 OIDC provider
-   - 前端继续保持标准 OIDC client + provider-neutral boundary，而不是重新绑定某个 provider SDK
-
-3. **route guard 不直接写死某个 IdP 调用习惯**
-   - guard 只表达“这个路由需要哪些 requirement”
-   - 真正的授权调度交给单独的 orchestration 层
-
-### 后端：继续走 provider-neutral OIDC contract
-
-每个后端服务应继续坚持：
-
-- Bearer token 校验走标准 OIDC discovery / JWT resource-server verification
-- issuer / audience / scope 由配置决定
-- 不反向依赖某个前端 SDK 的内部行为
-
-对于 `confluence` 来说，当前单链路 OIDC contract 应明确为：
-
-- `OIDC_ISSUER`：标准 OIDC issuer
-- `OUTPOSTS_WEB_OIDC_CLIENT_ID`：前端 OIDC client id
-- `CONFLUENCE_API_ENDPOINT`：前端访问 `confluence` 的 API base URL，同时作为当前单 resource request targeting 参数
-- `CONFLUENCE_OIDC_AUDIENCE`：后端 Bearer token 的 audience 校验值
-- `CONFLUENCE_OIDC_SCOPES`：当前单链路前后端共用的 scope contract，默认值为 `openid profile email confluence offline_access`
-
-其中：
-
-- `outposts-web` 用这组 scopes 生成 OIDC authorize / code / refresh 请求所依赖的 scope 参数
-- `confluence` 通过 `securitydept-oauth-resource-server` 用同一组 scopes 做 required scopes 校验
-
-关于 `CONFLUENCE_OIDC_AUDIENCE`：
-
-- 该字段**可选**：未设置时，`oauth-resource-server` 跳过 audience 校验
-- 设置时，只接受 `aud` claim 包含该值的 JWT
-- 当前 Authentik 配置可以根据实际颁发的 token 结构决定是否启用
-
-**注意**：前端不再向 OIDC Provider 发送 [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) `resource` 参数。RFC 8707 是 IETF 标准扩展，但 Authentik 不支持 Resource Indicators，发送会被忽略。`CONFLUENCE_API_ENDPOINT` 仅作为前端 interceptor 的请求 URL 前缀匹配键，不再与 OIDC 授权参数挂钩。
-
-
-## 多后端 / 多 OIDC client 场景
-
-这是这轮规划里最重要的新约束。
-
-`outposts-web` 未来不是“一个前端只对接一个受保护后端”，而是：
-
-- 一个前端宿主
-- 多个后端服务
-- 不同服务可能分别使用不同 OIDC client / audience / scope
-
-这意味着前端不能再只建模“当前是否已登录”，而要能表达：
-
-- 当前有哪些 app requirement
-- 每个 requirement 当前是否已满足
-- 哪个 requirement 可静默获取
-- 哪个 requirement 需要交互式跳转
-
-## 路由同时需要多个资格时，如何调度
-
-例如某个路由区域同时需要：
-
-- `app1`
-- `app2`
-
-这里不建议把行为写死成“自动连跳两个授权”，因为真实产品里可能出现：
-
-- 用户根本不知道为什么被连续跳转
-- 某些 requirement 可以静默拿，某些必须交互
-- 某些 requirement 失败不应阻塞整页
-- 某些场景更适合先让用户选择
-
-因此推荐边界是：
-
-1. **应用自己拥有充分自由度**
-   - 是否先展示 chooser
-   - 是否按顺序授权
-   - 某一步失败时如何降级
-   - 是否允许部分功能先显示、部分功能后补授权
-
-2. **底层 orchestration 尽量 headless**
-   - 输入：当前 route requirements、当前 token 状态、pending callback state
-   - 输出：下一步动作
-
-推荐的动作模型可以类似：
-
-- `satisfied`
-- `acquire_silently(requirement)`
-- `redirect(requirement)`
-- `prompt_user(choices, remaining)`
-- `blocked(reason)`
-
-推荐默认策略：
-
-1. 先检查当前状态，已满足 requirement 直接跳过
-2. 能静默补齐的 requirement 先静默补齐
-3. 如果只剩一个必须交互的 requirement，允许默认直接跳转
-4. 如果剩多个必须交互的 requirement，默认返回 `prompt_user`
-5. callback 返回后，恢复 pending plan，继续处理剩余 requirement
-
-## SDK 与应用的职责边界
-
-结合 `securitydept` 的后续方向，当前建议边界是：
-
-### 应用自己负责
-
-- chooser UI
-- router policy
-- 页面级 auth UX
-- 某个 requirement 失败后的业务降级策略
-
-### 未来可考虑由 SDK 提供
-
-- requirement model
-- headless scheduler / orchestrator
-- pending callback recovery primitive
-- 最薄的 `web` / `angular` / `react` 适配
-
-换句话说：
-
-- `outposts` 应先在应用层验证这套调度模型
-- 稳定的 requirement 与 lifecycle 能力现已由 `securitydept` 提供，应用 UI 策略仍保留在本仓库
-
-## 对 `securitydept` 前端 SDK 抽象的直接反馈
-
-当前这条 `outposts-web -> confluence` 链路直接消费 `@securitydept/client`、`@securitydept/client-angular`、`@securitydept/token-set-context-client` 与 `@securitydept/token-set-context-client-angular`（版本 `0.3.0-beta.6`）。组合根使用 `provideEnvironment({ createBaseEnvironment: createEnvironmentForNativeWeb })` 安装唯一、显式的 `FoundationEnvironment`；native-web adapter 负责发现并校验浏览器 storage，web host 则把注入的 projection 写入 Securitydept 默认 Realm key。Angular router adapter 让应用内导航继续走 Angular Router，并把外部重定向交给 native-web routing。`provideTokenSetClientRegistry(...)` 负责 keyed client 生命周期；`createFrontendOidcModeClientFactory(...)` 与 `resolveFrontendOidcModeConfigProjection(...)` 按 realm、持久化缓存、网络的顺序物化浏览器 OIDC client。`provideTokenSetClientRegistryAuthorizationInterceptor()` 只在请求命中已注册 `urlPatterns` 时注入 bearer，因此 `CONFLUENCE_API_ENDPOINT` 之外的请求不会拿到 token。路由使用 `TokenSetClientRegistryAuthRequirement` 与 `secureTokenSetRouteRoot(...)`。应用自有 callback host 内嵌 `TokenSetFrontendCallbackComponent`，再通过 Angular Router 执行其返回的 post-auth redirect。
-
-1. **通用 token orchestration 层**
-   - 管 `access_token` / `id_token` / `refresh_token` 的组合状态
-   - 管 restore / persistence / refresh / transport projection
-   - 不需要感知 token 来源是：
-     - 标准前端 OIDC
-     - 标准后端 OIDC + resource server
-     - token-set sealed + metadata 组合流程
-
-2. **token-set sealed + metadata 特定 adapter**
-   - 管 callback fragment / sealed payload
-   - 管 metadata redemption
-   - 管 token-set 特定的 redirect recovery / flow-state 存储
-
-beta.5 的 SDK surface 已落实这层拆分，因此本仓库按以下边界消费：
-
-- `BaseOidcModeClient`、Resource snapshot、持久化、刷新与 authorization projection 属于通用 orchestration 层
-- frontend/backend OIDC mode package 负责协议特定 client
-- `TokenSetClientRegistry` 只承担 keyed lifecycle owner，不再维护第二份 auth state
-
-## 近期实施阶段
-
-近期建议按下面的顺序推进，而不是一次性大迁移。
-
-### 阶段 1：标准 OIDC / Authentik-first baseline（已完成）
-
-现状：
-
-- 当前单 `confluence` 主链路已切到标准 OIDC driver（`@securitydept/token-set-context-client/frontend-oidc-mode`）
-- 前端配置命名已收口到 `OIDC_ISSUER` / `OUTPOSTS_WEB_OIDC_CLIENT_ID`
-- focused tests 已在 `apps/outposts-web/src/domain/auth/__tests__/` 下锁住 config、provider、route 与 redirect contract
-- 已移除向 Provider 发送的 RFC 8707 `resource` 参数（Authentik 不支持）
-- `CONFLUENCE_OIDC_AUDIENCE` 已改为可选，缺失时跳过 audience 校验
-
-### 阶段 2：后端对齐 issuer / audience / scope（已完成）
-
-现状：
-
-- `confluence` 已完成与 Authentik 的 claims 对齐（包括 `client_id` / `aud` 在 RFC 9068 JWT 中的可选语义）
-- 直接使用 `securitydept-oauth-resource-server` 承担单链路 Bearer token 校验
-- 每个服务自己的 `issuer` / `audience` / `required scopes` 由配置承载，audience 缺失即跳过校验
-- backend 测试覆盖 audience 可选 / 必选 / 缺失 scope 三种语义（见 `apps/confluence/src/auth/tests.rs`）
-
-### 阶段 3：route-level requirement orchestration（已完成）
-
-现状：
-
-- 路由元数据使用 `TokenSetClientRegistryAuthRequirement`
-- `secureTokenSetRouteRoot(...)` 安装 Angular guard 与 registry-backed planner host
-- registry 的 Resource readiness boundary 取代应用侧 service wrapper 状态
-
-### 阶段 4：消费稳定 SDK 边界（已完成）
-
-现状：
-
-- requirement planning、registry lifecycle、callback selection 与 framework adapter 由 `securitydept` 提供
-- 应用路由策略与 UI 继续由 `outposts` 负责
-
-## 本地工作区依赖规则
-
-### Rust
-
-发布与本地开发都应优先对齐已发布版本；需要联调 workspace 边界时，再临时切回本地覆盖：
-
-```toml
-[workspace.dependencies]
-securitydept-core = { version = "0.3.0-beta.6" }
-
-# 仅在本地联调 securitydept workspace 时临时启用：
-# [patch.crates-io]
-# securitydept-core = { path = "../securitydept/packages/core" }
+# 认证
+
+Outposts 当前只有一条受保护的应用链路：`outposts-web` 访问 Confluence API。
+浏览器使用标准 OpenID Connect Authorization Code + PKCE，后端使用
+Securitydept resource-server 校验。Authentik 是参考 provider，但协议契约是标准
+OIDC。
+
+## 模式
+
+| `AUTH_TYPE` | 适用场景                    | 行为                                                                                                |
+| ----------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `OIDC`      | 正常本地开发、CI 与部署配置 | 浏览器通过配置的 provider 认证；Confluence 校验 Bearer access token。                               |
+| `DEV`       | 仅本地开发                  | Angular development build 跳过 OIDC；Rust debug build 将请求视为 `AUTH_DEV_USER_ID`（默认 `dev`）。 |
+
+生产 Angular build 和 Rust release build 都会拒绝 `DEV`。它绝不能作为部署认证
+模式使用。
+
+## OIDC 流程
+
+1. `outposts-web-host` 从 Confluence 请求无需认证的公开 projection：
+   `GET /api/auth/config?redirect_uri=<web-callback-url>`。
+2. host sidecar 将该 projection 注入 nginx 实际提供的 HTML。它只包含公开的
+   provider metadata、client ID、scope、PKCE 设置和 callback URL，不包含 client
+   secret 或用户数据。
+3. Angular 的 Securitydept registry 按以下顺序解析配置：注入的 Realm projection、
+   持久化 projection 缓存、最后是规范的 Confluence endpoint。
+4. 受保护的 `/confluence` 路由使用
+   `TokenSetClientRegistryAuthRequirement`。需要认证时，SDK 发起 OIDC redirect。
+5. `/auth/callback` 承载 `TokenSetFrontendCallbackComponent`；应用随后通过 Angular
+   Router 导航到返回的 post-auth URL。
+6. Angular authorization interceptor 只会向配置的 Confluence API origin 和路径附加
+   Bearer token。`/api/auth/config` 被明确排除，以避免递归初始化 client。
+
+Confluence 通过 provider discovery 和 JWKS 校验 access token，并校验配置的
+scope。仅在设置 `CONFLUENCE_OIDC_AUDIENCE` 时才校验 audience。
+
+## 配置
+
+从仓库中的模板开始：
+
+```sh
+cp .env.example .env
 ```
 
-规则：
+### Web 共用配置
 
-- 默认依赖使用已发布版本，例如 `0.3.0-beta.6`
-- 只有在本地联调 `securitydept` workspace 时才临时启用 `[patch.crates-io]`
-- 联调结束后恢复发布版依赖，避免把本地路径覆盖带进常规协作流
+| 变量                      | 必需 | 用途                                                                        |
+| ------------------------- | ---: | --------------------------------------------------------------------------- |
+| `AUTH_TYPE`               |   是 | 正常运行使用 `OIDC`；`DEV` 仅限本地 debug 开发。                            |
+| `CONFLUENCE_API_ENDPOINT` |   是 | Confluence 的公开 API base URL，例如 `https://confluence.example.com/api`。 |
+| `OUTPOSTS_WEB_HOST`       |   是 | projection host 内置 Confluence topology 使用的公开 Web hostname。          |
 
-### Node / pnpm
+### OIDC 配置
 
-默认应直接消费已发布 npm 包；需要联调 workspace 时再临时切回本地 `link:`，例如：
+当 `AUTH_TYPE=OIDC` 时，以下变量均为必需。
 
-```json
-{
-  "dependencies": {
-      "@securitydept/client": "0.3.0-beta.6",
-      "@securitydept/client-angular": "0.3.0-beta.6",
-      "@securitydept/token-set-context-client": "0.3.0-beta.6",
-      "@securitydept/token-set-context-client-angular": "0.3.0-beta.6"
-  }
-}
+| 变量                          | 用途                                                                |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `OIDC_ISSUER`                 | OIDC issuer URL。                                                   |
+| `OUTPOSTS_WEB_OIDC_CLIENT_ID` | 公开的浏览器 OIDC client ID；由 Confluence 写入 config projection。 |
+| `CONFLUENCE_OIDC_SCOPES`      | 以空格或逗号分隔的请求/必需 scope。                                 |
+| `CONFLUENCE_OIDC_AUDIENCE`    | 可选的预期 token audience；省略时跳过 audience 校验。               |
+| `CONFLUENCE_OIDC_USER_CLAIM`  | 可选 principal claim；默认 `sub`。                                  |
+
+前端构建会校验 `AUTH_TYPE`、`CONFLUENCE_API_ENDPOINT` 和
+`OUTPOSTS_WEB_HOST`；在 OIDC 模式下还会校验 `OIDC_ISSUER`、
+`OUTPOSTS_WEB_OIDC_CLIENT_ID` 与 `CONFLUENCE_OIDC_SCOPES`。后端还需要
+`.env` 中的数据库和监听地址等常规设置。
+
+## 开发
+
+OIDC 开发时，应按本地 Web 与 API origin 配置变量，然后运行：
+
+```sh
+docker compose -f docker-compose.dev-deps.yml up -d
+just dev-confluence
+just dev-webui
 ```
 
-规则：
+需要免认证的本地调试时，设置 `AUTH_TYPE=DEV`，并可选设置
+`AUTH_DEV_USER_ID`。通过 `just dev-webui` 启动前端、`just dev-confluence`
+启动后端；二者均为开发命令，因此符合此模式的限制。
 
-- dependency 只写包根，不为 subpath 单独声明依赖
-- 默认依赖应固定到已发布版本；只有在联调时才临时切换到 `link:`
-- 本地 link 仅用于验证未发布边界，不应作为常规依赖形态长期保留
+## CI 与部署
 
-## 当前结论
+`.github/workflows/ci.yaml` 中的 `build-web` job 在 GitHub Actions 的 `BUILD`
+environment 内运行。repository 或 environment variable 必须映射到其 dotenv
+生成步骤。尤其要将 `AUTH_TYPE` 与 OIDC、URL 变量一同映射；否则 Web build 会在
+生成 bundle 前按设计失败。
 
-`outposts` 当前不应被理解为“仍在 Logto 迁移过渡态”的项目。
-更准确的目标是：
+部署时可使用 `PROJECTION_SOURCES` 描述一个或多个 projection endpoint。若未设置，
+`outposts-web-host` 会使用 `OUTPOSTS_WEB_HOST` 回退到单个 Confluence source。
+projection host 会定期刷新注入后的 HTML；浏览器 token 的持久化仍由 Securitydept
+负责。
 
-- 当前单 `confluence` 主链路先稳定在标准 OIDC / Authentik-first baseline
-- 当前单 `confluence` 后端 Bearer 校验直接建立在 `oauth-resource-server` 上
-- 前端继续从单 provider happy path 演进为 provider-neutral auth boundary
-- 后端保持 provider-neutral OIDC 验证
-- 用真实多后端、多 requirement 路由场景验证后续 scheduler 抽象
-- 把稳定的部分再回灌到 `securitydept`
+## 安全边界
+
+- 公开 config projection 只暴露启动 OIDC 所需的数据。
+- 后端是 resource server，不保存浏览器 client secret。
+- 浏览器 token 不会被附加到配置 API 边界外的请求。
+- 认证模式在 build/startup 时显式校验，而不是从缺失变量中推断。
 
 ---
 

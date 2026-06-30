@@ -10,16 +10,22 @@
 
 ## Quick Start
 
-First, Edit `.env` then run:
+Create and review the local configuration, then start the stack:
 
 ```sh
+cp .env.example .env
+# Edit .env for your database and OIDC provider.
 docker compose up
 ```
+
+The frontend, backend, and production projection host share this configuration. See the
+[English documentation](docs/en/000-OVERVIEW.md) or [中文文档](docs/zh/000-OVERVIEW.md)
+for development and authentication details.
 
 ## Roadmap
 
 - [x] Confluence: A clash subscriber source muxer and manage service.
 - [x] SSO: A standard OIDC SSO baseline for Authentik or any compatible provider.
-- [x] [SecurtyDept](https://github.com/ethaxon/securitydept): a layered authentication and authorization toolkit. It ships reusable Rust crates, a TypeScript client SDK workspace, and an Axum/React reference runtime that exercises the same contracts. 
+- [x] [Securitydept](https://github.com/ethaxon/securitydept): a security and authentication infrastructure toolkit; Outposts currently uses its OIDC capabilities.
 - [ ] CelestialGates: Web portal or teleportation for services.
-- [ ] Yü-shih / Yü-shih T’ai: System monitor client and center service. 
+- [ ] Yü-shih / Yü-shih T’ai: System monitor client and center service.
