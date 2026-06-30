@@ -20,6 +20,6 @@ docker compose up
 
 - [x] Confluence: A clash subscriber source muxer and manage service.
 - [x] SSO: A standard OIDC SSO baseline for Authentik or any compatible provider.
-- [ ] SecurtyDept: MFA checkpoint for any service, like a Security Dept, especially L4 services like rdp etc. 
+- [x] [SecurtyDept](https://github.com/ethaxon/securitydept): a layered authentication and authorization toolkit. It ships reusable Rust crates, a TypeScript client SDK workspace, and an Axum/React reference runtime that exercises the same contracts. 
 - [ ] CelestialGates: Web portal or teleportation for services.
 - [ ] Yü-shih / Yü-shih T’ai: System monitor client and center service. 
