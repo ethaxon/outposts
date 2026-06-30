@@ -148,6 +148,7 @@ jobs:
       - name: Create dotenv
         uses: iamsauravsharma/create-dotenv@v4.0.0
         env:
+          AUTH_TYPE: ${{ vars.AUTH_TYPE }}
           OIDC_ISSUER: ${{ vars.OIDC_ISSUER }}
           OUTPOSTS_WEB_OIDC_CLIENT_ID: ${{ vars.OUTPOSTS_WEB_OIDC_CLIENT_ID }}
           OUTPOSTS_WEB_HOST: ${{ vars.OUTPOSTS_WEB_HOST }}
