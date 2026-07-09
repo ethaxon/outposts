@@ -1,6 +1,11 @@
 import { DestroyRef, Injectable, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TranslocoService } from "@jsverse/transloco";
+import {
+  type ClientError,
+  ErrorPresentationTone,
+  readErrorPresentationDescriptor,
+} from "@securitydept/client";
 import { toast } from "@spartan-ng/brain/sonner";
 import { BehaviorSubject, type Observable, Subject } from "rxjs";
 import { withSuspense } from "@/tools/rx";
@@ -30,6 +35,22 @@ export class AppOverlayService {
       error$$: this.error$$,
       loading$$: this.loading$$,
     });
+
+  showClientError(error: ClientError): void {
+    const presentation = readErrorPresentationDescriptor(error);
+    const options = {
+      description: presentation.description,
+      duration: 5000,
+    };
+
+    if (presentation.tone === ErrorPresentationTone.Neutral) {
+      toast.info(presentation.title, options);
+    } else if (presentation.tone === ErrorPresentationTone.Warning) {
+      toast.warning(presentation.title, options);
+    } else {
+      toast.error(presentation.title, options);
+    }
+  }
 
   toast(message: {
     severity?: "success" | "info" | "warn" | "error";

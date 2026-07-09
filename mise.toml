@@ -1,6 +1,8 @@
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
+
 [tools]
 node = "26"
 pnpm = "11"
-rust = "nightly"
 watchexec = "latest"
 zellij = "latest"

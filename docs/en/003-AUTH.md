@@ -22,9 +22,10 @@ must never be used as a deployment authentication mode.
 2. The host sidecar injects that projection into the HTML served by nginx. It
    contains public provider metadata, client ID, scopes, PKCE settings, and the
    callback URL—never a client secret or user data.
-3. The Angular Securitydept registry resolves configuration in this order:
-   injected Realm projection, persisted projection cache, then the canonical
-   Confluence endpoint.
+3. The Angular Securitydept registry registers the client lazily. The first
+   route, callback, or authorized request that needs it resolves configuration
+   in this order: injected Realm projection, persisted projection cache, then
+   the canonical Confluence endpoint.
 4. A protected `/confluence` route uses a
    `TokenSetClientRegistryAuthRequirement`. If authentication is needed, the
    SDK starts the OIDC redirect.
@@ -37,6 +38,45 @@ must never be used as a deployment authentication mode.
 Confluence performs provider discovery and JWKS-backed access-token validation.
 It enforces configured scopes and enforces an audience only when
 `CONFLUENCE_OIDC_AUDIENCE` is set.
+
+## Client Error Messages
+
+Outposts keeps `AppOverlayService` as the single owner of application toast
+presentation. The root-scoped `AuthService` owns Outposts-specific auth
+orchestration that does not belong in the Securitydept SDK. It currently
+connects the Token Set lifecycle to that presentation owner:
+
+```text
+Token Set client operation or materialization failure
+  -> registry.errors (non-replay aggregate)
+  -> AuthService
+  -> AppOverlayService.showClientError()
+  -> Sonner toast
+```
+
+The registry owns the dynamic client subscriptions. Its `errors` stream merges
+operation errors from every ready client with configuration, projection, and
+other factory/materialization failures. `AuthService` subscribes only to this
+aggregate; it does not select clients, flatten per-client resources, start,
+refresh, restore, or otherwise operate a client.
+
+Angular's application initializer calls the idempotent `AuthService.start()`
+once to install all root-scoped auth bridges before lazy client initialization.
+Client initialization itself remains demand-driven and owned by the registry,
+route coordination, callback component, and authorization interceptor.
+
+`AppOverlayService` uses `readErrorPresentationDescriptor()` as the only
+`ClientError` presentation projection. Its title can include the client and
+operation captured by the error span, while tracing-only attributes, runtime
+messages, tokens, authorization headers, and provider payloads are not shown.
+Lifecycle events are deliberately non-replay: current authentication state is
+read from the SDK Resource/Signal APIs, and historical diagnostics belong to
+explicit tracing or logs.
+
+This default bridge does not handle ordinary Confluence API errors, Angular
+`HttpErrorResponse`, query/mutation failures, router boundaries, form
+validation, or caller-owned Promise rejections. Those errors remain owned by
+their application call sites.
 
 ## Configuration
 
@@ -94,6 +134,10 @@ Actions environment. Repository or environment variables must be exposed to its
 dotenv-generation step. In particular, `AUTH_TYPE` must be mapped along with
 the OIDC and URL variables; otherwise the web build intentionally fails before
 producing a bundle.
+
+The Confluence Rust build uses the pinned toolchain declared in the repository
+root `rust-toolchain.toml`. Local mise and the Linux amd64/arm64 GitHub jobs read
+that same file; CI does not install a separate moving nightly toolchain.
 
 For deployment, use `PROJECTION_SOURCES` to describe one or more projection
 endpoints. If it is absent, `outposts-web-host` falls back to one Confluence

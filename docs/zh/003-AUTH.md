@@ -22,8 +22,9 @@ OIDC。
 2. host sidecar 将该 projection 注入 nginx 实际提供的 HTML。它只包含公开的
    provider metadata、client ID、scope、PKCE 设置和 callback URL，不包含 client
    secret 或用户数据。
-3. Angular 的 Securitydept registry 按以下顺序解析配置：注入的 Realm projection、
-   持久化 projection 缓存、最后是规范的 Confluence endpoint。
+3. Angular 的 Securitydept registry 先以 lazy 模式注册 client。首个需要它的路由、
+   callback 或授权请求再按以下顺序解析配置：注入的 Realm projection、持久化
+   projection 缓存、最后是规范的 Confluence endpoint。
 4. 受保护的 `/confluence` 路由使用
    `TokenSetClientRegistryAuthRequirement`。需要认证时，SDK 发起 OIDC redirect。
 5. `/auth/callback` 承载 `TokenSetFrontendCallbackComponent`；应用随后通过 Angular
@@ -33,6 +34,40 @@ OIDC。
 
 Confluence 通过 provider discovery 和 JWKS 校验 access token，并校验配置的
 scope。仅在设置 `CONFLUENCE_OIDC_AUDIENCE` 时才校验 audience。
+
+## Client 错误消息
+
+Outposts 保持由 `AppOverlayService` 唯一负责应用 toast 展示。根作用域的
+`AuthService` 负责不属于 Securitydept SDK 的 Outposts auth orchestration；当前它将
+Token Set 生命周期连接到该展示 owner：
+
+```text
+Token Set client operation 或 materialization failure
+  -> registry.errors（non-replay aggregate）
+  -> AuthService
+  -> AppOverlayService.showClientError()
+  -> Sonner toast
+```
+
+registry 负责动态 client subscription。其 `errors` 流将所有 ready client 的
+operation error 与 configuration、projection 及其它 factory/materialization failure
+合并。`AuthService` 只订阅该聚合流；它不选择 client、不 flatten per-client
+resource，也不会 start、refresh、restore 或执行其它 client operation。
+
+Angular application initializer 会调用一次幂等的 `AuthService.start()`，在 lazy
+client 初始化前安装所有根作用域 auth bridge。client 初始化本身仍按需进行，并由
+registry、route coordination、callback component 和 authorization interceptor
+负责。
+
+`AppOverlayService` 只通过 `readErrorPresentationDescriptor()` 将
+`ClientError` 投影为展示信息。标题可以包含 error span 捕获的 client 和
+operation，而 tracing-only attributes、runtime message、token、authorization
+header 和 provider payload 都不会显示。lifecycle event 有意保持 non-replay：
+当前认证状态由 SDK Resource/Signal API 提供，历史诊断属于显式 tracing 或日志。
+
+该默认 bridge 不处理普通 Confluence API error、Angular `HttpErrorResponse`、
+query/mutation failure、router boundary、表单校验或调用方持有的 Promise
+rejection。这些错误仍由对应的应用调用位置负责。
 
 ## 配置
 
@@ -87,6 +122,10 @@ just dev-webui
 environment 内运行。repository 或 environment variable 必须映射到其 dotenv
 生成步骤。尤其要将 `AUTH_TYPE` 与 OIDC、URL 变量一同映射；否则 Web build 会在
 生成 bundle 前按设计失败。
+
+Confluence Rust build 使用仓库根 `rust-toolchain.toml` 声明的固定 toolchain。
+本地 mise 与 Linux amd64/arm64 GitHub job 都读取同一个文件；CI 不再安装另一套
+移动 nightly toolchain。
 
 部署时可使用 `PROJECTION_SOURCES` 描述一个或多个 projection endpoint。若未设置，
 `outposts-web-host` 会使用 `OUTPOSTS_WEB_HOST` 回退到单个 Confluence source。

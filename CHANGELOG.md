@@ -1,12 +1,12 @@
 # Changelog
 
-## 0.4.0
+## 0.4.1
 
 - **Breaking UI** — replaced PrimeNG/PrimeUI with Spartan NG, Helm primitives, Lucide icons, Tailwind v4 theming, and the application `.dark` theme state; removed the PrimeUI license path while retaining existing business layouts and workflows.
-- **Authentication and development** — aligned the Angular adapter integration with Securitydept `0.3.0-beta.6`, added development auth mode, and removed the unused redirect service.
+- **Authentication and development** — aligned the Angular adapter and backend integration with published Securitydept `0.3.0-beta.10`, added development auth mode, and removed the unused redirect service. The Outposts-owned `AuthService` connects Token Set lifecycle and registry materialization failures to the existing `AppOverlayService`, using span-backed `ClientError` presentation without creating a replay error store.
 - **UX and i18n** — restored loading, dialog, action, QR code, document, and accessibility copy behavior; added matching English and Chinese translation coverage.
-- **Performance and tooling** — upgraded the Angular/Nx toolchain, moved Prism assets to document-level on-demand loading, and raised the initial bundle budget to 2 MB.
-- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.0`.
+- **Performance and tooling** — upgraded the Angular/Nx toolchain, moved Prism assets to document-level on-demand loading, and raised the initial bundle budget to 2 MB. Rust is pinned by `rust-toolchain.toml`, while local mise and the multi-architecture GitHub build consume that single version authority.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.1`.
 
 ## 0.3.10
 

@@ -32,15 +32,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Set up Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+      - name: Install toolchain
+        run: mise install
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@v2
         with:
-          rustflags: ""
-          cache-shared-key: confluence-${{ matrix.tag_suffix }}
-          cache-workspaces: |
+          shared-key: confluence-${{ matrix.tag_suffix }}
+          workspaces: |
             . -> target
       - name: Build confluence binary
-        run: cargo build --locked --release --bin confluence_server
+        run: mise exec --command "cargo build --locked --release --bin confluence_server"
       - name: Upload confluence binary
         uses: actions/upload-artifact@v7
         with:

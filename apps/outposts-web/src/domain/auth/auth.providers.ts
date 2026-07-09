@@ -1,4 +1,9 @@
-import { type EnvironmentProviders, type Provider } from "@angular/core";
+import {
+  type EnvironmentProviders,
+  inject,
+  type Provider,
+  provideAppInitializer,
+} from "@angular/core";
 import { provideEnvironment } from "@securitydept/client-angular";
 import { createEnvironmentForNativeWeb } from "@securitydept/client/web";
 import { createFrontendOidcModeClientFactory } from "@securitydept/token-set-context-client/frontend-oidc-mode";
@@ -13,6 +18,7 @@ import {
 import { environment } from "@/environments/environment";
 import { resolveConfluenceOidcConfigProjection } from "./auth-config-projection";
 import { AuthCallbackPath, AuthClientKey } from "./auth.defs";
+import { AuthService } from "./auth.service";
 
 /** Storage key for caching the OIDC config projection in localStorage. */
 const PROJECTION_CACHE_KEY = "config.projection";
@@ -81,7 +87,7 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
             clientKey: AuthClientKey.Confluence,
             requirementKind: TokenSetRequirementKind.FrontendOidc,
             providerFamily: "authentik",
-            initialization: TokenSetClientInitializationMode.Immediate,
+            initialization: TokenSetClientInitializationMode.Lazy,
             // Config acquisition uses the same HttpClient-backed environment.
             // Excluding that public endpoint avoids recursively initializing
             // this client from its own authorization interceptor.
@@ -92,6 +98,10 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
           },
         },
       ],
+    }),
+    AuthService,
+    provideAppInitializer(() => {
+      inject(AuthService).start();
     }),
     ...provideTokenSetClientRegistryAuthorizationInterceptor(),
   ];

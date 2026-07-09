@@ -73,8 +73,7 @@ async fn main() -> Result<(), AppError> {
     let (auth, oidc_verifier, substrate_runtime) = match &auth_type as &str {
         "DEV" => {
             assert_dev_auth_allowed().unwrap_or_else(|reason| panic!("{reason}"));
-            let user_id =
-                env::var("AUTH_DEV_USER_ID").unwrap_or_else(|_| String::from("dev"));
+            let user_id = env::var("AUTH_DEV_USER_ID").unwrap_or_else(|_| String::from("dev"));
             tracing::warn!(
                 user_id = %user_id,
                 "DEV auth enabled — all requests are accepted without credentials (development build only)"
@@ -217,7 +216,7 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
 async fn serve(app: Router, state: Arc<AppState>) {
     let listener = tokio::net::TcpListener::bind(&state.config.listen)
         .await
-        .unwrap_or_else(|_| panic!("failed to bind to address of {}", &state.config.listen));
+        .unwrap_or_else(|_| panic!("failed to bind to address of {}", state.config.listen));
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     let cors = CorsLayer::new()

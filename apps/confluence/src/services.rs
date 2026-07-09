@@ -278,7 +278,7 @@ pub async fn update_one_confluence_cron(
         .cron_expr_tz
         .parse::<Tz>()
         .map_err(|_| AppError::BadRequest {
-            message: format!("bad timezone {}", &confluence_update_cron_dto.cron_expr_tz),
+            message: format!("bad timezone {}", confluence_update_cron_dto.cron_expr_tz),
         })?;
 
     if let Some(next_time) = schedule.upcoming(tz).take(1).next() {
