@@ -1,16 +1,16 @@
 {
   "name": "outposts-web-host",
+  "version": "0.4.2",
   "private": true,
-  "version": "0.4.1",
   "description": "Outposts Web projection config injector — production host sidecar",
   "type": "module",
-  "engines": {
-    "node": ">=24.0.0"
-  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

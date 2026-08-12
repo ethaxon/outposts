@@ -1,5 +1,3 @@
-#![feature(iter_intersperse)]
-#![feature(addr_parse_ascii)]
 pub mod auth;
 pub mod clash;
 pub mod config;

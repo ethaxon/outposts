@@ -123,9 +123,9 @@ environment 内运行。repository 或 environment variable 必须映射到其 d
 生成步骤。尤其要将 `AUTH_TYPE` 与 OIDC、URL 变量一同映射；否则 Web build 会在
 生成 bundle 前按设计失败。
 
-Confluence Rust build 使用仓库根 `rust-toolchain.toml` 声明的固定 toolchain。
+Confluence Rust build 使用仓库根 `rust-toolchain.toml` 声明的固定 stable toolchain。
 本地 mise 与 Linux amd64/arm64 GitHub job 都读取同一个文件；CI 不再安装另一套
-移动 nightly toolchain。
+移动 toolchain。
 
 部署时可使用 `PROJECTION_SOURCES` 描述一个或多个 projection endpoint。若未设置，
 `outposts-web-host` 会使用 `OUTPOSTS_WEB_HOST` 回退到单个 Confluence source。
@@ -140,5 +140,13 @@ projection host 会定期刷新注入后的 HTML；浏览器 token 的持久化�
 - 认证模式在 build/startup 时显式校验，而不是从缺失变量中推断。
 
 ---
+
+## 撤销会话与 SDK 安装
+
+Confluence 客户端显式使用 `refreshErrorPolicy: "revokeAsUnauthenticated"`。启动、手动刷新、定时刷新或页面恢复时确认撤销，会清除凭据并恢复为未认证状态。下一次受保护导航即可开始登录并保留目标 URL，无需手动刷新浏览器。普通网络和协议故障仍作为错误处理。
+
+应用根组件提供随主题变化的 Toast 宿主，因此公开页面、回调路由和受保护布局均可显示 SDK 错误。鉴权协调服务将 SDK registry 错误流直接交给 `AppOverlayService` 展示。
+
+前端通过 `mise exec -- pnpm install` 安装四个已发布的 Securitydept `0.3.0-beta.11` SDK 包，无需同级 Securitydept 仓库或预先构建上游 SDK。Angular 适配器使用发布包提供的入口。
 
 [English](../en/003-AUTH.md) | [中文](003-AUTH.md)

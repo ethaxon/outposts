@@ -1,3 +1,4 @@
+import { HlmToaster } from "@/components/ui/sonner";
 import { IMAGE_CONFIG } from "@angular/common";
 import { provideHttpClient, withFetch, withInterceptorsFromDi } from "@angular/common/http";
 import { DOCUMENT, NgModule, provideZoneChangeDetection } from "@angular/core";
@@ -76,6 +77,7 @@ function configureMonacoTypes() {
   declarations: [AppComponent],
   imports: [
     BrowserModule,
+    HlmToaster,
     FormsModule,
     ReactiveFormsModule,
     SpinnerComponent,

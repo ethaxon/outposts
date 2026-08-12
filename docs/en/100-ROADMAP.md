@@ -8,6 +8,16 @@
 | SSO (standard OIDC / Authentik-first) | Integrated                  |
 | Outposts-web                          | Angular portal working      |
 
+## Cross-cutting: Authentication E2E
+
+- [ ] Add a reproducible local OIDC provider, such as Dex or a browser-hosted
+      test provider, with deterministic users, clients, and token lifecycles
+- [ ] Exercise the complete frontend and backend OIDC flow, including login
+      callbacks, protected-route return URLs, refresh, confirmed revocation,
+      reauthentication, and non-revocation failures
+- [ ] Run the suite in CI once provider startup, browser installation, and test
+      isolation are reliable and fast enough for routine development
+
 ## Phase 1: Confluence Enhancements
 
 - [ ] Subscription health monitoring

@@ -135,9 +135,9 @@ dotenv-generation step. In particular, `AUTH_TYPE` must be mapped along with
 the OIDC and URL variables; otherwise the web build intentionally fails before
 producing a bundle.
 
-The Confluence Rust build uses the pinned toolchain declared in the repository
-root `rust-toolchain.toml`. Local mise and the Linux amd64/arm64 GitHub jobs read
-that same file; CI does not install a separate moving nightly toolchain.
+The Confluence Rust build uses the pinned stable toolchain declared in the
+repository root `rust-toolchain.toml`. Local mise and the Linux amd64/arm64
+GitHub jobs read that same file; CI does not install a separate moving toolchain.
 
 For deployment, use `PROJECTION_SOURCES` to describe one or more projection
 endpoints. If it is absent, `outposts-web-host` falls back to one Confluence
@@ -154,5 +154,13 @@ HTML periodically; browser token persistence remains owned by Securitydept.
   than inferred from missing values.
 
 ---
+
+## Revoked Sessions and SDK Installation
+
+The Confluence client explicitly uses `refreshErrorPolicy: "revokeAsUnauthenticated"`. Confirmed revocation during startup, manual refresh, timer refresh, or page resume clears credentials and resolves to unauthenticated state. The next protected navigation starts login and preserves the attempted URL without requiring a browser reload. Ordinary network or protocol failures remain errors.
+
+The application root owns the themed Toast host, so SDK errors are visible on public pages and callback routes as well as the protected layout. The auth coordinator forwards the SDK registry error stream directly to `AppOverlayService`.
+
+The frontend installs the four published Securitydept SDK packages at `0.3.0-beta.11` with `mise exec -- pnpm install`. No sibling Securitydept checkout or upstream SDK build is required. Angular adapters use their published package entry points.
 
 [English](003-AUTH.md) | [中文](../zh/003-AUTH.md)

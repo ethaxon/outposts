@@ -1,7 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, inject, ChangeDetectionStrategy } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
-import { HlmToaster } from "@/components/ui/sonner";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { SpinnerComponent } from "../spinner/spinner.component";
 import { AppFooterComponent } from "./footer/app.footer.component";
@@ -21,7 +20,6 @@ import { AppTopBarComponent } from "./topbar/app.topbar.component";
     AppNewsComponent,
     AppMenuComponent,
     AppTopBarComponent,
-    HlmToaster,
     SpinnerComponent,
   ],
 })

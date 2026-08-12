@@ -79,6 +79,7 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
 
               return {
                 ...config,
+                refreshErrorPolicy: "revokeAsUnauthenticated",
                 persistence: { key: AuthClientKey.Confluence },
               };
             },

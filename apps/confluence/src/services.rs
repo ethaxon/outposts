@@ -32,7 +32,7 @@ use axum::{Extension, Json};
 use chrono_tz::Tz;
 use cron::Schedule;
 use futures::future::try_join_all;
-use itertools::izip;
+use itertools::{Itertools, izip};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect, TryIntoModel};
@@ -481,14 +481,8 @@ pub async fn find_one_profile_as_subscription_by_token(
             parts => {
                 headers.insert(
                     HeaderName::from_str(SUBSCRIPTION_USERINFO_HEADER).unwrap(),
-                    HeaderValue::from_str(
-                        &parts
-                            .into_iter()
-                            .flatten()
-                            .intersperse(String::from("; "))
-                            .collect::<String>(),
-                    )
-                    .map_err(|err| AppError::internal_str(err.to_string()))?,
+                    HeaderValue::from_str(&parts.into_iter().flatten().join("; "))
+                        .map_err(|err| AppError::internal_str(err.to_string()))?,
                 );
             }
         };

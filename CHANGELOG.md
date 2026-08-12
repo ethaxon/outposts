@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2
+
+- **Authentication** — adopted Securitydept `0.3.0-beta.11` with explicit recovery of confirmed token revocation across initialization and runtime refresh, allowing protected routes to restart login without reloading the page.
+- **Error presentation** — moved the themed Toast host to the application root so SDK errors forwarded through the existing auth coordinator are visible even when a protected layout cannot load.
+- **SDK installation** — installed all four published Securitydept TypeScript packages at `0.3.0-beta.11`, removing the sibling checkout requirement and local-link runtime resolution configuration.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.2`.
+
 ## 0.4.1
 
 - **Breaking UI** — replaced PrimeNG/PrimeUI with Spartan NG, Helm primitives, Lucide icons, Tailwind v4 theming, and the application `.dark` theme state; removed the PrimeUI license path while retaining existing business layouts and workflows.

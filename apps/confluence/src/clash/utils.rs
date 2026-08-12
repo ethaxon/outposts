@@ -12,7 +12,7 @@ pub fn parse_server_tld<'b>(
     config_name: &str,
     name: &'b str,
 ) -> Result<ServerTld<'b>, ConfigError> {
-    if let Ok(addr) = IpAddr::parse_ascii(name.as_bytes()) {
+    if let Ok(addr) = name.parse::<IpAddr>() {
         return Ok(ServerTld::Ip(addr));
     }
 

@@ -1,4 +1,5 @@
 import { afterNextRender, Component, inject, ChangeDetectionStrategy } from "@angular/core";
+import { AppConfigService } from "@/core/servces/app-config.service";
 import { environment } from "@/environments/environment";
 import { AppI18nService } from "@/core/servces/app-i18n.service";
 
@@ -9,6 +10,7 @@ import { AppI18nService } from "@/core/servces/app-i18n.service";
   standalone: false,
 })
 export class AppComponent {
+  protected readonly configService = inject(AppConfigService);
   private readonly i18nService = inject(AppI18nService);
 
   constructor() {
