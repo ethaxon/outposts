@@ -79,6 +79,13 @@ body {
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+// CDK overlays leave the top layer (see provideSpartanHlm). Keep them above the
+// fixed topbar (1100), mobile sidebar (1102), and loading veil (9999), and below
+// the sonner toaster (z-index: 999999999).
+.cdk-overlay-container {
+  z-index: 10000;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

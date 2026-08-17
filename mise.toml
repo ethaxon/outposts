@@ -4,5 +4,6 @@ idiomatic_version_file_enable_tools = ["rust"]
 [tools]
 node = "26"
 pnpm = "12"
+# Local session tools. CI loads mise.ci.toml, which allowlists production tools only.
 watchexec = "latest"
 zellij = "latest"

@@ -1,0 +1,4 @@
+# Loaded when MISE_ENV=ci. mise.toml still applies; this allowlist drops
+# local-only tools such as watchexec and zellij.
+[settings]
+enable_tools = ["node", "pnpm", "rust"]

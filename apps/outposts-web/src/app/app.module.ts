@@ -1,4 +1,5 @@
 import { HlmToaster } from "@/components/ui/sonner";
+import { provideSpartanHlm } from "@/components/ui/utils";
 import { IMAGE_CONFIG } from "@angular/common";
 import { provideHttpClient, withFetch, withInterceptorsFromDi } from "@angular/common/http";
 import { DOCUMENT, NgModule, provideZoneChangeDetection } from "@angular/core";
@@ -97,6 +98,8 @@ function configureMonacoTypes() {
       ? provideDevAuth()
       : provideAuth(window)),
     provideZoneChangeDetection({ eventCoalescing: true }),
+    // Keep CDK overlays in normal stacking order so toasts stay above dialogs.
+    provideSpartanHlm(),
     provideRouter(
       routes,
       withInMemoryScrolling({

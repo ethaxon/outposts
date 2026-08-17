@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+- **Dialogs** — kept CDK overlays out of the browser top layer so toasts stay above workspace edit and preview dialogs, while dialogs still cover the top bar and loading veil.
+- **Tooling** — added `mise.ci.toml` so CI installs only node, pnpm, and rust, leaving watchexec and zellij for local development.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.3`.
+
 ## 0.4.2
 
 - **Authentication** — adopted Securitydept `0.3.0-beta.11` with explicit recovery of confirmed token revocation across initialization and runtime refresh, allowing protected routes to restart login without reloading the page.
