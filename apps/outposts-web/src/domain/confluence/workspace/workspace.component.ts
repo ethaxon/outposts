@@ -67,7 +67,7 @@ export class WorkspaceComponent implements OnInit {
   protected readonly overlayService = inject(AppOverlayService);
   protected readonly fb = inject(FormBuilder);
   protected readonly confluenceId$ = this.route.params.pipe(
-    map((params) => parseInt(params.id, 10)),
+    map((params) => String(params.id)),
     distinctUntilChanged(),
     shareReplay(1),
   );
@@ -115,6 +115,14 @@ export class WorkspaceComponent implements OnInit {
       minimap: { enabled: false },
       padding: { top: 10, bottom: 10 },
     };
+  saveVlanReferences(vlanIds: ConfluenceDto["vlan_ids"]) {
+    const workspace = this.confluence$.getValue();
+    if (workspace) {
+      this.confluence$.next({ ...workspace, vlan_ids: vlanIds });
+      this.toastSuccess("common.toast.saved");
+    }
+  }
+
   tmpl = "";
   profiles: ProfileDto[] = [];
   subscribeSources: SubscribeSourceDto[] = [];
@@ -174,7 +182,7 @@ export class WorkspaceComponent implements OnInit {
   ];
   subscribeSourceCreation?: {
     value: {
-      confluence_id: number;
+      confluence_id: string;
     };
     form: FormGroup<{
       url: FormControl<string | null>;
@@ -188,7 +196,7 @@ export class WorkspaceComponent implements OnInit {
   };
   subscribeSourceUpdate?: {
     value: {
-      id: number;
+      id: string;
     };
     form: FormGroup<{
       url: FormControl<string | null>;
@@ -205,7 +213,7 @@ export class WorkspaceComponent implements OnInit {
   };
   subscribeSourceContentPreview?: {
     content: string;
-    id: number;
+    id: string;
   };
   urlPreview?: {
     url: string;
@@ -213,7 +221,7 @@ export class WorkspaceComponent implements OnInit {
   };
   profileUpdate?: {
     value: {
-      id: number;
+      id: string;
     };
     transformScript: string;
   };
@@ -547,7 +555,7 @@ export class WorkspaceComponent implements OnInit {
       });
   }
 
-  removeSubscribeSource(id: number) {
+  removeSubscribeSource(id: string) {
     this.overlayService
       .withSuspense(
         this.confluenceService.removeSubscribeSource(id).pipe(
@@ -576,7 +584,7 @@ export class WorkspaceComponent implements OnInit {
       });
   }
 
-  syncSubscribeSource(id: number) {
+  syncSubscribeSource(id: string) {
     this.overlayService
       .withSuspense(
         this.confluenceService.syncSubscribeSource(id).pipe(
@@ -685,7 +693,7 @@ export class WorkspaceComponent implements OnInit {
       });
   }
 
-  removeProfile(id: number) {
+  removeProfile(id: string) {
     this.overlayService
       .withSuspense(
         this.confluenceService.removeProfile(id).pipe(

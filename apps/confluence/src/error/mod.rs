@@ -2,7 +2,7 @@ use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use reqwest::Error as FetchError;
-use sea_orm::DbErr;
+use sea_orm::{DbErr, SqlErr};
 use securitydept_core::oauth_resource_server::OAuthResourceServerError;
 use securitydept_core::token_set_context::access_token_substrate::AccessTokenSubstrateResourceServiceError;
 use snafu::Snafu;
@@ -131,6 +131,30 @@ impl From<OAuthResourceServerError> for AppError {
 }
 
 impl AppError {
+    pub(crate) fn bad_request(message: impl Into<String>) -> Self {
+        Self::BadRequest {
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn not_found(message: impl Into<String>) -> Self {
+        Self::DbNotFound {
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn vlan_write(error: DbErr) -> Self {
+        match error.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => {
+                Self::bad_request("An entry with the same name or address already exists")
+            }
+            Some(SqlErr::ForeignKeyConstraintViolation(_)) => {
+                Self::bad_request("A referenced VLAN or supplicant is unavailable or still in use")
+            }
+            _ => Self::internal_str("Failed to save VLAN resources"),
+        }
+    }
+
     pub fn unauthorized<E>(source: E) -> Self
     where
         E: std::fmt::Display,

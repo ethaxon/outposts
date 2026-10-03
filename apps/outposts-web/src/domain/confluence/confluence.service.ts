@@ -10,6 +10,11 @@ import type { ProfileUpdateDto } from "./bindings/ProfileUpdateDto";
 import type { SubscribeSourceCreationDto } from "./bindings/SubscribeSourceCreationDto";
 import type { SubscribeSourceDto } from "./bindings/SubscribeSourceDto";
 import type { SubscribeSourceUpdateDto } from "./bindings/SubscribeSourceUpdateDto";
+import type { UUIDV7 } from "./bindings/UUIDV7";
+import type { VlanConfig } from "./bindings/VlanConfig";
+import type { VlanNetwork } from "./bindings/VlanNetwork";
+import type { VlanSupplicant } from "./bindings/VlanSupplicant";
+import type { WorkspaceVlansUpdateDto } from "./bindings/WorkspaceVlansUpdateDto";
 
 @Injectable()
 export class ConfluenceService {
@@ -35,13 +40,13 @@ export class ConfluenceService {
     );
   }
 
-  removeConfluence(id: number) {
+  removeConfluence(id: string) {
     return this.httpClient.delete(`${environment.CONFLUENCE_API_ENDPOINT}/confluence/${id}`, {
       responseType: "json",
     });
   }
 
-  getConfluenceById(id: number) {
+  getConfluenceById(id: string) {
     return this.httpClient.get<ConfluenceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/confluence/${id}`,
       {
@@ -50,7 +55,7 @@ export class ConfluenceService {
     );
   }
 
-  updateConfluence(id: number, form: ConfluenceUpdateDto) {
+  updateConfluence(id: string, form: ConfluenceUpdateDto) {
     return this.httpClient.put<ConfluenceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/confluence/${id}`,
       form,
@@ -58,6 +63,36 @@ export class ConfluenceService {
         responseType: "json",
       },
     );
+  }
+
+  getVlanCatalog() {
+    return this.httpClient.get<VlanConfig>(`${this.apiEndpoint}/vlan`);
+  }
+
+  saveVlan(network: VlanNetwork) {
+    const url = `${this.apiEndpoint}/vlan`;
+    return network.id
+      ? this.httpClient.put<VlanNetwork>(`${url}/${network.id}`, network)
+      : this.httpClient.post<VlanNetwork>(url, network);
+  }
+
+  removeVlan(id: string) {
+    return this.httpClient.delete<void>(`${this.apiEndpoint}/vlan/${id}`);
+  }
+
+  saveSupplicant(supplicant: VlanSupplicant) {
+    const url = `${this.apiEndpoint}/vlan/supplicants`;
+    return supplicant.id
+      ? this.httpClient.put<VlanSupplicant>(`${url}/${supplicant.id}`, supplicant)
+      : this.httpClient.post<VlanSupplicant>(url, supplicant);
+  }
+
+  removeSupplicant(id: string) {
+    return this.httpClient.delete<void>(`${this.apiEndpoint}/vlan/supplicants/${id}`);
+  }
+
+  updateWorkspaceVlans(id: UUIDV7, input: WorkspaceVlansUpdateDto) {
+    return this.httpClient.put<UUIDV7[]>(`${this.apiEndpoint}/confluence/${id}/vlans`, input);
   }
 
   addSubscribeSource(form: SubscribeSourceCreationDto) {
@@ -70,13 +105,13 @@ export class ConfluenceService {
     );
   }
 
-  removeSubscribeSource(id: number) {
+  removeSubscribeSource(id: string) {
     return this.httpClient.delete(`${environment.CONFLUENCE_API_ENDPOINT}/subscribe_source/${id}`, {
       responseType: "json",
     });
   }
 
-  updateSubscribeSource(id: number, form: SubscribeSourceUpdateDto) {
+  updateSubscribeSource(id: string, form: SubscribeSourceUpdateDto) {
     return this.httpClient.put<SubscribeSourceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/subscribe_source/${id}`,
       form,
@@ -86,7 +121,7 @@ export class ConfluenceService {
     );
   }
 
-  syncConfluence(id: number) {
+  syncConfluence(id: string) {
     return this.httpClient.post<ConfluenceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/confluence/sync/${id}`,
       {},
@@ -96,7 +131,7 @@ export class ConfluenceService {
     );
   }
 
-  syncSubscribeSource(id: number) {
+  syncSubscribeSource(id: string) {
     return this.httpClient.post(
       `${environment.CONFLUENCE_API_ENDPOINT}/subscribe_source/sync/${id}`,
       {},
@@ -106,7 +141,7 @@ export class ConfluenceService {
     );
   }
 
-  muxConfluence(id: number) {
+  muxConfluence(id: string) {
     return this.httpClient.post<ConfluenceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/confluence/mux/${id}`,
       {},
@@ -126,13 +161,13 @@ export class ConfluenceService {
     );
   }
 
-  removeProfile(id: number) {
+  removeProfile(id: string) {
     return this.httpClient.delete(`${environment.CONFLUENCE_API_ENDPOINT}/profile/${id}`, {
       responseType: "json",
     });
   }
 
-  updateProfile(id: number, form: ProfileUpdateDto) {
+  updateProfile(id: string, form: ProfileUpdateDto) {
     return this.httpClient.put<ProfileDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/profile/${id}`,
       form,
@@ -142,11 +177,11 @@ export class ConfluenceService {
     );
   }
 
-  getProfileUrl(resourceToken: string) {
+  getProfileUrl(resourceToken: ProfileDto["resource_token"]) {
     return `${environment.CONFLUENCE_API_ENDPOINT}/profile_token/${resourceToken}`;
   }
 
-  updateConfluenceCron(confluenceId: number, updateCronDto: ConfluenceUpdateCronDto) {
+  updateConfluenceCron(confluenceId: string, updateCronDto: ConfluenceUpdateCronDto) {
     return this.httpClient.post(
       `${environment.CONFLUENCE_API_ENDPOINT}/confluence/cron/${confluenceId}`,
       updateCronDto,

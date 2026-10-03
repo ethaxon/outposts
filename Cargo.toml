@@ -3,4 +3,4 @@ members = ["apps/confluence"]
 resolver = "3"
 
 [workspace.dependencies]
-securitydept-core = { version = "0.3.0-beta.10" }
+securitydept-core = { version = "0.3.4" }

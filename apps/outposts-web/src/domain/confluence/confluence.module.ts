@@ -39,6 +39,7 @@ import { QrcodeModule } from "@/tools/qrcode/qrcode.module";
 import { ConfluenceService } from "./confluence.service";
 import { ConfluenceRoutingModule } from "./confluence-rounting.module";
 import { DashboardComponent } from "./dashboard/dashboard.component";
+import { VlanCatalogComponent } from "./vlan/vlan-catalog.component";
 import { WorkspaceComponent } from "./workspace/workspace.component";
 
 @NgModule({
@@ -63,6 +64,7 @@ import { WorkspaceComponent } from "./workspace/workspace.component";
     }),
   ],
   imports: [
+    VlanCatalogComponent,
     CommonModule,
     ConfluenceRoutingModule,
     DocModule,

@@ -66,7 +66,7 @@ export class DashboardComponent implements OnInit {
     return Boolean(item.mux_content && item.profiles.length);
   }
 
-  removeConfluence(id: number) {
+  removeConfluence(id: string) {
     this.overlayService
       .withSuspense(
         this.confluenceService.removeConfluence(id).pipe(

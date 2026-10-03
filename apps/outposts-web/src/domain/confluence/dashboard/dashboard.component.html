@@ -14,9 +14,19 @@
       <div hlmSkeleton class="h-4 w-2/3"></div>
     </div>
   } @else if (confluences().length === 0) {
-    <div class="flex justify-center py-10 text-muted-foreground">
-      <ng-icon name="lucideInbox" size="2.5rem" aria-hidden="true" />
-    </div>
+    <!-- Shaped like a list row so the empty state keeps the list's footprint. -->
+    <button
+      type="button"
+      class="flex w-full cursor-pointer flex-row items-center gap-6 rounded-lg border bg-card p-6 text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+      (click)="addConfluence()"
+    >
+      <span
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+      >
+        <ng-icon name="lucidePlus" size="1.5rem" aria-hidden="true" />
+      </span>
+      <span class="text-2xl font-bold">{{ "common.actions.add" | transloco }}</span>
+    </button>
   } @else {
     <div class="divide-y rounded-lg border">
       @for (item of confluences(); track item.id) {

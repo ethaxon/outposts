@@ -15,6 +15,9 @@ mod m20260429_000001_profile_transform_script_transpiled;
 mod m20260430_000002_subscribe_source_traffic_reset_policy;
 mod m20260430_000003_subscribe_source_traffic_next_reset_at;
 
+mod m20261117_000001_uuidv7_primary_keys;
+mod m20261117_000002_confluence_vlan;
+
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -34,6 +37,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260429_000001_profile_transform_script_transpiled::Migration),
             Box::new(m20260430_000002_subscribe_source_traffic_reset_policy::Migration),
             Box::new(m20260430_000003_subscribe_source_traffic_next_reset_at::Migration),
+            Box::new(m20261117_000001_uuidv7_primary_keys::Migration),
+            Box::new(m20261117_000002_confluence_vlan::Migration),
         ]
     }
 }

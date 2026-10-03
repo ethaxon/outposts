@@ -1,0 +1,34 @@
+// Mirrors the workspace profile/subscribe-source card grids so the VLAN section
+// keeps the same rhythm and never collapses when empty.
+.vlan-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+  margin-top: 1.5rem;
+}
+
+.vlan-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem 0.5rem;
+  margin-top: 0.75rem;
+}
+
+:host ::ng-deep {
+  .vlan-card {
+    display: block;
+    width: 100%;
+    min-height: 6.75rem;
+  }
+
+  .vlan-card-create > article {
+    justify-content: center;
+  }
+
+  .vlan-card-selected > article {
+    border-color: var(--primary);
+  }
+}

@@ -4,6 +4,7 @@ import {
   type Provider,
   provideAppInitializer,
 } from "@angular/core";
+import type { IdleCallbackTrait } from "@securitydept/client";
 import { provideEnvironment } from "@securitydept/client-angular";
 import { createEnvironmentForNativeWeb } from "@securitydept/client/web";
 import { createFrontendOidcModeClientFactory } from "@securitydept/token-set-context-client/frontend-oidc-mode";
@@ -25,6 +26,25 @@ const PROJECTION_CACHE_KEY = "config.projection";
 
 const STORAGE_PREFIX = "outposts.web.auth.";
 
+/**
+ * Adapts the browser idle scheduler for the SDK's `Idle` client initialization.
+ *
+ * Without this trait the SDK never fires idle initialization. Safari lacks
+ * `requestIdleCallback`, so fall back to a macrotask after the current work.
+ */
+export function createIdleCallbackForWindow(browserWindow: Window): IdleCallbackTrait {
+  if (typeof browserWindow.requestIdleCallback === "function") {
+    return {
+      requestIdleCallback: (callback) => browserWindow.requestIdleCallback(() => callback()),
+      cancelIdleCallback: (handle) => browserWindow.cancelIdleCallback(handle as number),
+    };
+  }
+  return {
+    requestIdleCallback: (callback) => browserWindow.setTimeout(callback, 1),
+    cancelIdleCallback: (handle) => browserWindow.clearTimeout(handle as number),
+  };
+}
+
 /** No-op auth providers for local DEV mode (backend accepts unauthenticated requests). */
 export function provideDevAuth(): (Provider | EnvironmentProviders)[] {
   return [];
@@ -44,6 +64,7 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
   return [
     ...provideEnvironment({
       createBaseEnvironment: createEnvironmentForNativeWeb,
+      idleCallback: createIdleCallbackForWindow(browserWindow),
       routerForAngularCreateOptions: {
         location: browserWindow.location,
         history: browserWindow.history,
@@ -88,7 +109,7 @@ export function provideAuth(browserWindow: Window): (Provider | EnvironmentProvi
             clientKey: AuthClientKey.Confluence,
             requirementKind: TokenSetRequirementKind.FrontendOidc,
             providerFamily: "authentik",
-            initialization: TokenSetClientInitializationMode.Lazy,
+            initialization: TokenSetClientInitializationMode.Idle,
             // Config acquisition uses the same HttpClient-backed environment.
             // Excluding that public endpoint avoids recursively initializing
             // this client from its own authorization interceptor.

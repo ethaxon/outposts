@@ -3,18 +3,19 @@ use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, ConnectionTrait, DbErr, Value};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+#[sea_orm::model]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "subscribe_source")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: Uuid,
     #[sea_orm(column_type = "Text")]
     pub url: String,
     #[sea_orm(column_type = "Timestamp")]
     pub created_at: DateTime,
     #[sea_orm(column_type = "Timestamp")]
     pub updated_at: DateTime,
-    pub confluence_id: i32,
+    pub confluence_id: Uuid,
     pub name: String,
     pub content: String,
     pub sub_upload: Option<i64>,
@@ -28,24 +29,14 @@ pub struct Model {
     pub proxy_server_nameserver_policy_source: Option<String>,
     pub traffic_reset_policy: String,
     pub traffic_next_reset_at: Option<DateTime>,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::confluence::Entity",
-        from = "Column::ConfluenceId",
-        to = "super::confluence::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        belongs_to,
+        from = "confluence_id",
+        to = "id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
     )]
-    Confluence,
-}
-
-impl Related<super::confluence::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Confluence.def()
-    }
+    pub confluence: HasOne<super::confluence::Entity>,
 }
 
 fn active_value_ref<T>(value: &ActiveValue<T>) -> Option<&T>

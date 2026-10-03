@@ -24,6 +24,10 @@
 						{
 							"name": "menu.links.dashboard",
 							"routerLink": "/confluence/dashboard"
+						},
+						{
+							"name": "menu.links.easyTierVlan",
+							"routerLink": "/confluence/vlans"
 						}
 					]
 				},

@@ -20,6 +20,7 @@
       "breadcrumb": "面包屑导航",
       "home": "首页"
     },
+    "signingIn": "正在登录…",
     "toast": {
       "copied": "复制成功",
       "created": "创建成功",
@@ -87,6 +88,7 @@
       "contribution": "参与贡献",
       "dashboard": "仪表盘",
       "discordServer": "Discord 服务器",
+      "easyTierVlan": "EasyTier VLAN",
       "forum": "论坛",
       "getStarted": "快速开始",
       "home": "首页",
@@ -220,6 +222,36 @@
           "hourlyMinimum": "仅支持最小粒度为小时的 Unix 风格 cron 表达式。",
           "invalidFormat": "请输入有效的 cron 表达式。"
         }
+      },
+      "vlan": {
+        "title": "EasyTier VLAN",
+        "enabled": "启用 VLAN 订阅",
+        "network": "网络标识",
+        "routes": "目标 CIDR，每行一个",
+        "gateways": "WireGuard Portal 网关",
+        "name": "名称",
+        "server": "服务器地址",
+        "port": "端口",
+        "subnet": "Portal IPv4 子网（/24）",
+        "privateKey": "Portal 服务端私钥",
+        "keepKey": "已配置密钥，留空保留原值。",
+        "addGateway": "添加网关",
+        "recipient": "age 公钥",
+        "saveError": "无法保存 VLAN 设置，请检查网络、槽位范围、CIDR、密钥及重名项。",
+        "hint": "在订阅 UA 中追加 confluence/supplicant=<短标识>&vlans=<网络>:<槽位>,<网络>:<槽位>，或使用相同的 URL 查询参数。两处同时使用时需一致。客户端配置对应 age 私钥，各 Portal 需登记匹配的 subscription-slot-N 客户端。",
+        "supplicants": "Supplicants",
+        "addSupplicant": "添加 supplicant",
+        "slots": "允许的槽位（2,4,10-100）",
+        "addNetwork": "添加 VLAN",
+        "grants": "VLAN 授权",
+        "addGrant": "添加授权",
+        "identityKey": "Supplicant 短标识",
+        "refresh": "刷新",
+        "loadError": "无法加载 VLAN 列表。",
+        "empty": "暂无 VLAN，请先新建。",
+        "inUse": "已分配给 VLAN",
+        "loading": "正在加载 VLAN…",
+        "deleteNetworkHint": "删除此 VLAN 会同时解除所有工作区对它的引用。"
       }
     }
   }

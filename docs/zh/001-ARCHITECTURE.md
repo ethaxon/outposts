@@ -8,7 +8,7 @@
 | 后端 | Rust、Axum、Sea-ORM、PostgreSQL、Tokio                                               |
 | 认证 | Securitydept resource-server 校验与前端 OIDC client registry                         |
 | 交付 | Docker Compose、nginx 静态 host、Bun/Node projection host                            |
-| 工具 | pnpm 11、TypeScript 6、mise、cargo、just                                             |
+| 工具 | pnpm 12、TypeScript 6、mise、cargo、just                                             |
 
 `outposts-web` 是仅在浏览器运行的 SPA，当前不提供 SSR。
 

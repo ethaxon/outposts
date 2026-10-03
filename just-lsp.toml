@@ -1,0 +1,5 @@
+# Variadic recipes forward arguments through `recipe_args` (`"$@"` or PowerShell).
+# just-lsp does not treat that indirection as a use of `*args` and can miss root variables in imported files.
+[rules]
+unused-recipe-parameter = "off"
+undefined-identifier = "off"

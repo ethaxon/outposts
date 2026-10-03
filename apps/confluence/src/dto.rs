@@ -1,5 +1,6 @@
 use crate::clash::ProxyServerNameserverPolicySource;
 use crate::models;
+use crate::scalars::{UuidV4, UuidV7};
 use crate::traffic_reset::SubscribeSourceTrafficResetPolicy;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -7,12 +8,15 @@ use ts_rs::TS;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct ProfileDto {
-    pub id: i32,
-    pub confluence_id: i32,
+    #[ts(as = "UuidV7")]
+    pub id: uuid::Uuid,
+    #[ts(as = "UuidV7")]
+    pub confluence_id: uuid::Uuid,
     #[ts(type = "number")]
     pub created_at: i64,
     #[ts(type = "number")]
     pub updated_at: i64,
+    #[ts(as = "UuidV4")]
     pub resource_token: String,
     #[ts(optional)]
     pub transform_script: Option<String>,
@@ -23,13 +27,15 @@ pub struct ProfileDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct SubscribeSourceDto {
-    pub id: i32,
+    #[ts(as = "UuidV7")]
+    pub id: uuid::Uuid,
     pub url: String,
     #[ts(type = "number")]
     pub created_at: i64,
     #[ts(type = "number")]
     pub updated_at: i64,
-    pub confluence_id: i32,
+    #[ts(as = "UuidV7")]
+    pub confluence_id: uuid::Uuid,
     pub name: String,
     pub content: String,
     #[ts(type = "number", optional)]
@@ -101,7 +107,8 @@ impl From<models::profile::Model> for ProfileDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct ConfluenceDto {
-    pub id: i32,
+    #[ts(as = "UuidV7")]
+    pub id: uuid::Uuid,
     pub template: String,
     pub creator: String,
     #[ts(type = "number")]
@@ -131,6 +138,8 @@ pub struct ConfluenceDto {
     #[ts(type = "number", optional)]
     pub cron_next_at: Option<i64>,
     pub user_agent: String,
+    #[ts(as = "Vec<UuidV7>")]
+    pub vlan_ids: Vec<uuid::Uuid>,
 }
 
 impl ConfluenceDto {
@@ -138,6 +147,7 @@ impl ConfluenceDto {
         confluence: models::confluence::Model,
         sms: Vec<models::subscribe_source::Model>,
         pms: Vec<models::profile::Model>,
+        vlan_ids: Vec<uuid::Uuid>,
     ) -> Self {
         Self {
             id: confluence.id,
@@ -165,6 +175,7 @@ impl ConfluenceDto {
                 .cron_next_at
                 .map(|s| s.and_utc().timestamp_millis()),
             user_agent: confluence.user_agent,
+            vlan_ids,
         }
     }
 }
@@ -172,7 +183,8 @@ impl ConfluenceDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct ProfileCreationDto {
-    pub confluence_id: i32,
+    #[ts(as = "UuidV7")]
+    pub confluence_id: uuid::Uuid,
     #[ts(optional)]
     pub transform_script: Option<String>,
 }
@@ -187,7 +199,8 @@ pub struct ProfileUpdateDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct SubscribeSourceCreationDto {
-    pub confluence_id: i32,
+    #[ts(as = "UuidV7")]
+    pub confluence_id: uuid::Uuid,
     pub url: String,
     pub name: String,
     pub passive_sync: Option<bool>,
@@ -212,13 +225,23 @@ pub struct SubscribeSourceUpdateDto {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
+#[serde(deny_unknown_fields)]
 pub struct ConfluenceUpdateDto {
     #[ts(optional)]
     pub template: Option<String>,
     #[ts(optional)]
     pub user_agent: Option<String>,
+
     #[ts(optional)]
     pub name: Option<String>,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceVlansUpdateDto {
+    #[ts(as = "Vec<UuidV7>")]
+    pub vlan_ids: Vec<uuid::Uuid>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -240,11 +263,11 @@ mod tests {
         cached_next_reset_at: Option<ChronoDateTime<Utc>>,
     ) -> models::subscribe_source::Model {
         models::subscribe_source::Model {
-            id: 1,
+            id: uuid::Uuid::from_u128(1),
             url: "https://example.com/sub".to_string(),
             created_at: DateTime::default(),
             updated_at: DateTime::default(),
-            confluence_id: 1,
+            confluence_id: uuid::Uuid::from_u128(1),
             name: "example".to_string(),
             content: String::new(),
             sub_upload: None,
@@ -261,8 +284,16 @@ mod tests {
     }
 
     #[test]
+    fn confluence_update_rejects_obsolete_vlan_field() {
+        assert!(
+            serde_json::from_value::<ConfluenceUpdateDto>(serde_json::json!({"vlans_config": {}}))
+                .is_err()
+        );
+    }
+
+    #[test]
     fn subscribe_source_dto_default_policy_has_next_reset_at_when_expire_exists() {
-        let expire_at = Utc.with_ymd_and_hms(2026, 8, 15, 0, 0, 0).single().unwrap();
+        let expire_at = Utc::now() + chrono::Duration::days(365);
         let dto = SubscribeSourceDto::from(subscribe_source_model_with_policy(
             "default",
             Some(expire_at),
@@ -278,7 +309,7 @@ mod tests {
 
     #[test]
     fn subscribe_source_dto_empty_policy_falls_back_to_default_next_reset_at() {
-        let expire_at = Utc.with_ymd_and_hms(2026, 8, 15, 0, 0, 0).single().unwrap();
+        let expire_at = Utc::now() + chrono::Duration::days(365);
         let dto = SubscribeSourceDto::from(subscribe_source_model_with_policy(
             "",
             Some(expire_at),

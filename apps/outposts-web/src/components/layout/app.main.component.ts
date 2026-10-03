@@ -2,7 +2,6 @@ import { CommonModule } from "@angular/common";
 import { Component, computed, inject, ChangeDetectionStrategy } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
 import { AppConfigService } from "@/core/servces/app-config.service";
-import { SpinnerComponent } from "../spinner/spinner.component";
 import { AppFooterComponent } from "./footer/app.footer.component";
 import { AppMenuComponent } from "./menu/app.menu.component";
 import { AppNewsComponent } from "./news/app.news.component";
@@ -20,7 +19,6 @@ import { AppTopBarComponent } from "./topbar/app.topbar.component";
     AppNewsComponent,
     AppMenuComponent,
     AppTopBarComponent,
-    SpinnerComponent,
   ],
 })
 export class AppMainComponent {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.4
+
+- **EasyTier VLAN subscriptions** — added a dedicated Confluence sidebar page for shared VLANs, gateways, routes, and supplicant grants. Workspaces can link multiple VLANs, and each grant controls its allowed slots. Clients can select VLANs in the subscription URL or User-Agent and receive an age-encrypted configuration.
+- **Database upgrade** — Confluence now requires PostgreSQL 18. The UUIDv7 migration replaces integer management IDs while preserving workspace relationships, timestamps, and existing UUIDv4 subscription tokens. Update saved workspace links and take a restorable backup before upgrading.
+- **Authentication and workspace UI** — show sign-in progress through redirects and callback processing, initialize the Securitydept client when the browser is idle, and simplify the workspace card layout.
+- **Tooling** — updated backend dependencies and development images, and split the Just recipes into smaller files with platform-specific execution where needed.
+
 ## 0.4.3
 
 - **Dialogs** — kept CDK overlays out of the browser top layer so toasts stay above workspace edit and preview dialogs, while dialogs still cover the top bar and loading veil.

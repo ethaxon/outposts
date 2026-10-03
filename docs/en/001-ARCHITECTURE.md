@@ -8,7 +8,7 @@
 | Backend        | Rust, Axum, Sea-ORM, PostgreSQL, Tokio                                               |
 | Authentication | Securitydept resource-server validation and frontend OIDC client registry            |
 | Delivery       | Docker Compose, nginx static host, Bun/Node projection host                          |
-| Tooling        | pnpm 11, TypeScript 6, mise, cargo, just                                             |
+| Tooling        | pnpm 12, TypeScript 6, mise, cargo, just                                             |
 
 `outposts-web` is a browser-only SPA. It does not implement SSR.
 

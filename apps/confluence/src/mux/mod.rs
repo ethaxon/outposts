@@ -285,11 +285,11 @@ mod tests {
     /// Helper to build a minimal subscribe_source::Model for testing.
     fn stub_model(name: &str, policy_source: Option<&str>) -> subscribe_source::Model {
         subscribe_source::Model {
-            id: 0,
+            id: uuid::Uuid::nil(),
             url: String::new(),
             created_at: DateTime::default(),
             updated_at: DateTime::default(),
-            confluence_id: 0,
+            confluence_id: uuid::Uuid::nil(),
             name: name.to_string(),
             content: String::new(),
             sub_upload: None,

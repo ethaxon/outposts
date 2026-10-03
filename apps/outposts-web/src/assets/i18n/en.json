@@ -20,6 +20,7 @@
       "breadcrumb": "Breadcrumb",
       "home": "Home"
     },
+    "signingIn": "Signing in…",
     "toast": {
       "copied": "Copied successfully",
       "created": "Created successfully",
@@ -87,6 +88,7 @@
       "contribution": "Contribution",
       "dashboard": "Dashboard",
       "discordServer": "Discord Server",
+      "easyTierVlan": "EasyTier VLAN",
       "forum": "Forum",
       "getStarted": "Get Started",
       "home": "Home",
@@ -220,6 +222,36 @@
           "hourlyMinimum": "Only Unix-style cron expressions with an hourly minimum interval are supported.",
           "invalidFormat": "Enter a valid cron expression."
         }
+      },
+      "vlan": {
+        "title": "EasyTier VLAN",
+        "enabled": "Enable VLAN subscriptions",
+        "network": "Network identifier",
+        "routes": "Destination CIDRs, one per line",
+        "gateways": "WireGuard Portal gateways",
+        "name": "Name",
+        "server": "Server address",
+        "port": "Port",
+        "subnet": "Portal IPv4 subnet (/24)",
+        "privateKey": "Portal server private key",
+        "keepKey": "A key is configured. Leave blank to preserve it.",
+        "addGateway": "Add gateway",
+        "recipient": "age public recipient",
+        "saveError": "Could not save VLAN settings. Check network, slot range, CIDRs, keys and duplicate names.",
+        "hint": "Append confluence/supplicant=<key>&vlans=<network>:<slot>,<network>:<slot> to the subscription UA, or use the same URL parameters. Both sources must agree. Configure your age private key in the client. Each Portal requires matching subscription-slot-N clients.",
+        "supplicants": "Supplicants",
+        "addSupplicant": "Add supplicant",
+        "slots": "Allowed slots (2,4,10-100)",
+        "addNetwork": "Add VLAN",
+        "grants": "VLAN permissions",
+        "addGrant": "Grant access",
+        "identityKey": "Supplicant key",
+        "refresh": "Refresh",
+        "loadError": "Could not load the VLAN catalog.",
+        "empty": "No VLANs yet. Create one to get started.",
+        "inUse": "Assigned to a VLAN",
+        "loading": "Loading VLANs…",
+        "deleteNetworkHint": "Deleting this VLAN also removes its references from every workspace."
       }
     }
   }

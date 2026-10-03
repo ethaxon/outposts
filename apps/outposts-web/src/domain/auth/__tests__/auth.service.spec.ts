@@ -7,7 +7,9 @@ import {
 } from "@securitydept/token-set-context-client/registry";
 import { TOKEN_SET_CLIENT_REGISTRY } from "@securitydept/token-set-context-client-angular";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WINDOW } from "@/core/providers/window";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
+import { AuthActivity, authActivity, setAuthActivity } from "../auth-activity";
 import { AuthService } from "../auth.service";
 
 function createHarness() {
@@ -15,16 +17,22 @@ function createHarness() {
     environment: createEnvironmentForTest(),
   });
   const overlay = { showClientError: vi.fn() };
+  const window = new EventTarget();
   const injector = createEnvironmentInjector(
     [
       AuthService,
       { provide: TOKEN_SET_CLIENT_REGISTRY, useValue: registry },
       { provide: AppOverlayService, useValue: overlay },
+      { provide: WINDOW, useValue: window },
     ],
     Injector.create({ providers: [] }) as EnvironmentInjector,
   );
 
-  return { injector, overlay, registry };
+  return { injector, overlay, registry, window };
+}
+
+function pageshow(persisted: boolean): Event {
+  return Object.assign(new Event("pageshow"), { persisted });
 }
 
 function createError(message: string): ClientError {
@@ -54,7 +62,10 @@ describe("AuthService", () => {
   const injectors: EnvironmentInjector[] = [];
   const registries: TokenSetClientRegistry[] = [];
 
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setAuthActivity(AuthActivity.Idle);
+  });
 
   afterEach(() => {
     for (const injector of injectors.splice(0)) {
@@ -126,5 +137,30 @@ describe("AuthService", () => {
     await Promise.resolve();
 
     expect(harness.overlay.showClientError).not.toHaveBeenCalled();
+  });
+
+  it("clears an abandoned login redirect when the page is restored from bfcache", () => {
+    const harness = createHarness();
+    injectors.push(harness.injector);
+    registries.push(harness.registry);
+    harness.injector.get(AuthService).start();
+
+    setAuthActivity(AuthActivity.Redirecting);
+    harness.window.dispatchEvent(pageshow(false));
+    expect(authActivity()).toBe(AuthActivity.Redirecting);
+
+    harness.window.dispatchEvent(pageshow(true));
+    expect(authActivity()).toBe(AuthActivity.Idle);
+  });
+
+  it("does not clear a callback in progress on bfcache restore", () => {
+    const harness = createHarness();
+    injectors.push(harness.injector);
+    registries.push(harness.registry);
+    harness.injector.get(AuthService).start();
+
+    setAuthActivity(AuthActivity.Callback);
+    harness.window.dispatchEvent(pageshow(true));
+    expect(authActivity()).toBe(AuthActivity.Callback);
   });
 });

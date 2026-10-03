@@ -336,7 +336,7 @@ rules: []
         let output = apply_profile_transform_script(
             script,
             profile,
-            request_with_ua("Stash/3.3.3 Clash/1.9.0"),
+            request_with_ua("slash/1.0"),
         )
         .unwrap();
         let output = serde_yaml::from_str::<Value>(&output).unwrap();

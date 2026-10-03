@@ -1,0 +1,124 @@
+<form #form="ngForm" (ngSubmit)="save()" class="flex flex-col gap-4">
+  <label class="flex items-center gap-2">
+    <input type="checkbox" name="enabled" [(ngModel)]="network.enabled" />
+    {{ "confluence.workspace.vlan.enabled" | transloco }}
+  </label>
+  <label class="flex flex-col gap-1">
+    {{ "confluence.workspace.vlan.network" | transloco }}
+    <input
+      hlmInput
+      name="network"
+      [(ngModel)]="network.network"
+      required
+      pattern="[a-z0-9_-]{1,64}"
+    />
+  </label>
+  <label class="flex flex-col gap-1">
+    {{ "confluence.workspace.vlan.routes" | transloco }}
+    <textarea hlmInput name="routes" [(ngModel)]="routesText" rows="3"></textarea>
+  </label>
+  <fieldset class="flex flex-col gap-3">
+    <legend class="mb-2 font-semibold">
+      {{ "confluence.workspace.vlan.gateways" | transloco }}
+    </legend>
+    @for (gateway of network.gateways; track $index; let i = $index) {
+      <div class="grid grid-cols-2 gap-3 rounded border p-3">
+        <label class="flex flex-col gap-1"
+          >{{ "confluence.workspace.vlan.name" | transloco }}
+          <input hlmInput [name]="'gatewayName' + i" [(ngModel)]="gateway.name" required />
+        </label>
+        <label class="flex flex-col gap-1"
+          >{{ "confluence.workspace.vlan.server" | transloco }}
+          <input hlmInput [name]="'server' + i" [(ngModel)]="gateway.server" required />
+        </label>
+        <label class="flex flex-col gap-1"
+          >{{ "confluence.workspace.vlan.port" | transloco }}
+          <input
+            hlmInput
+            type="number"
+            [name]="'port' + i"
+            [(ngModel)]="gateway.port"
+            min="1"
+            max="65535"
+            required
+          />
+        </label>
+        <label class="flex flex-col gap-1"
+          >{{ "confluence.workspace.vlan.subnet" | transloco }}
+          <input hlmInput [name]="'subnet' + i" [(ngModel)]="gateway.subnet" required />
+        </label>
+        <label class="col-span-2 flex flex-col gap-1"
+          >{{ "confluence.workspace.vlan.privateKey" | transloco }}
+          <input
+            hlmInput
+            type="password"
+            autocomplete="new-password"
+            [name]="'key' + i"
+            [(ngModel)]="gateway.private_key"
+            [required]="!gateway.has_private_key"
+          />
+          @if (gateway.has_private_key) {
+            <span class="text-sm text-muted-foreground">{{
+              "confluence.workspace.vlan.keepKey" | transloco
+            }}</span>
+          }
+        </label>
+        <button hlmBtn variant="outline" type="button" (click)="network.gateways.splice(i, 1)">
+          {{ "common.actions.delete" | transloco }}
+        </button>
+      </div>
+    }
+    <button hlmBtn variant="outline" type="button" (click)="addGateway()">
+      {{ "confluence.workspace.vlan.addGateway" | transloco }}
+    </button>
+  </fieldset>
+  <fieldset class="flex flex-col gap-3">
+    <legend>{{ "confluence.workspace.vlan.grants" | transloco }}</legend>
+    @for (grant of network.accept_supplicants; track $index; let i = $index) {
+      <div class="flex gap-2">
+        <label
+          >{{ "confluence.workspace.vlan.supplicants" | transloco }}
+          <select [name]="'grantUser' + i" [(ngModel)]="grant.supplicant_id" required>
+            @for (identity of supplicants; track identity.id) {
+              <option [value]="identity.id">{{ identity.name }}</option>
+            }
+          </select>
+        </label>
+        <label
+          >{{ "confluence.workspace.vlan.slots" | transloco }}
+          <input
+            hlmInput
+            [name]="'grantSlots' + i"
+            [(ngModel)]="grant.slots"
+            required
+            placeholder="2,4,10-100"
+          />
+        </label>
+        <button
+          hlmBtn
+          variant="outline"
+          type="button"
+          (click)="network.accept_supplicants.splice(i, 1)"
+        >
+          {{ "common.actions.delete" | transloco }}
+        </button>
+      </div>
+    }
+    <button
+      hlmBtn
+      variant="outline"
+      type="button"
+      (click)="addGrant()"
+      [disabled]="!supplicants.length"
+    >
+      {{ "confluence.workspace.vlan.addGrant" | transloco }}
+    </button>
+  </fieldset>
+  <p class="text-sm text-muted-foreground">{{ "confluence.workspace.vlan.hint" | transloco }}</p>
+  @if (error()) {
+    <p role="alert">{{ "confluence.workspace.vlan.saveError" | transloco }}</p>
+  }
+  <button hlmBtn type="submit" [disabled]="form.invalid || busy()">
+    {{ "common.actions.save" | transloco }}
+  </button>
+</form>

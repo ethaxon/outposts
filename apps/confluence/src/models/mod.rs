@@ -3,5 +3,11 @@
 pub mod prelude;
 
 pub mod confluence;
+pub mod confluence_vlan;
 pub mod profile;
 pub mod subscribe_source;
+pub mod vlan_gateway;
+pub mod vlan_grant;
+pub mod vlan_network;
+pub mod vlan_route;
+pub mod vlan_supplicant;

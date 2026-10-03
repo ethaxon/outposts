@@ -17,7 +17,12 @@ use confluence::services::{
     update_one_confluence_cron, update_one_profile, update_one_subscribe_source,
 };
 use confluence::tasks::init_backend_jobs;
-use sea_orm::{ConnectOptions, Database};
+use confluence::vlan_services::{
+    create_network, create_supplicant, delete_network, delete_supplicant, list_catalog,
+    update_network, update_supplicant, update_workspace_vlans,
+};
+use sea_orm::sea_query::{Alias, ExprTrait, Func, Query};
+use sea_orm::{ConnectOptions, ConnectionTrait, Database};
 use sea_orm_migration::MigratorTrait;
 use securitydept_core::oauth_resource_server::{
     OAuthResourceServerConfig, OAuthResourceServerVerifier,
@@ -62,6 +67,25 @@ async fn main() -> Result<(), AppError> {
     let conn = Database::connect(opt)
         .await
         .expect("Database connection failed");
+
+    let version = conn
+        .query_one(
+            &Query::select()
+                .expr_as(
+                    Func::cust(Alias::new("current_setting"))
+                        .arg("server_version_num")
+                        .cast_as(Alias::new("int4")),
+                    Alias::new("version"),
+                )
+                .to_owned(),
+        )
+        .await?
+        .ok_or_else(|| AppError::internal_str("Cannot determine PostgreSQL version"))?;
+    if version.try_get::<i32>("", "version")? < 180000 {
+        return Err(AppError::internal_str(
+            "Confluence requires PostgreSQL 18 or newer",
+        ));
+    }
 
     let auth_type = env::var("AUTH_TYPE").expect("AUTH_TYPE is not set in env");
     let listen = env::var("CONFLUENCE_LISTEN").unwrap_or_else(|_| String::from("0.0.0.0:4001"));
@@ -174,9 +198,20 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
                 .delete(delete_one_confluence)
                 .put(update_one_confluence),
         )
+        .route("/{id}/vlans", put(update_workspace_vlans))
         .route("/mux/{id}", post(mux_one_confluence))
         .route("/sync/{id}", post(sync_one_confluence))
         .route("/cron/{id}", post(update_one_confluence_cron))
+        .layer(middleware::from_fn_with_state(state.clone(), auth));
+
+    let vlan_api = Router::<Arc<AppState>>::new()
+        .route("/", get(list_catalog).post(create_network))
+        .route("/{id}", put(update_network).delete(delete_network))
+        .route("/supplicants", post(create_supplicant))
+        .route(
+            "/supplicants/{id}",
+            put(update_supplicant).delete(delete_supplicant),
+        )
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
     let profile_api = Router::<Arc<AppState>>::new()
@@ -205,6 +240,7 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
     Router::<Arc<AppState>>::new()
         .nest("/api/profile", profile_api)
         .nest("/api/confluence", confluence_api)
+        .nest("/api/vlan", vlan_api)
         .nest("/api/subscribe_source", subscribe_source_api)
         .nest("/api/profile_token", profile_token_api)
         .nest("/api/health", health_api)

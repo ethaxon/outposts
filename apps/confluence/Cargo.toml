@@ -1,6 +1,6 @@
 [package]
 name = "confluence"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 
 [lib]
@@ -14,32 +14,36 @@ path = "src/bin/server.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 uuid = { version = "1", features = [
+  "serde",
   "v4",                # Lets you generate random UUIDs
   "fast-rng",          # Use a faster (but still sufficiently random) RNG
   "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ] }
 addr = "0.15"
+url = "2"
 axum = "0.8"
 axum-extra = "0.12"
-boa_engine = "0.21"
+boa_engine = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 openidconnect = { version = "4", features = ["reqwest"] }
 dotenvy = "0.15"
 futures = "0.3"
-itertools = "0.14"
+itertools = "0.15"
 lazy_static = "1.5"
 reqwest = { version = "0.13", features = ["json"] }
-sea-orm = { version = "2.0.0-rc.37", features = [
+sea-orm = { version = "2.0.4", features = [
+  "with-uuid",
+  "with-ipnetwork",
   "debug-print",
   "mock",
   "runtime-tokio-rustls",
   "sqlx-postgres",
 ] }
-sea-orm-migration = { version = "2.0.0-rc.37", features = [
+sea-orm-migration = { version = "2.0.4", features = [
   "runtime-tokio-rustls",
   "sqlx-postgres",
 ] }
-random_name_generator = "0.3"
+random_name_generator = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde-enum-str = "0.5"
 serde_json = "1"
@@ -52,23 +56,23 @@ tokio = { version = "1", features = [
   "sync",
 ] }
 tower = { version = "0.5", features = ["util"] }
-tower-http = { version = "0.6", features = ["fs", "trace", "cors"] }
+tower-http = { version = "0.7", features = ["fs", "trace", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-ts-rs = "12"
-cron = "0.16"
+ts-rs = { version = "12", features = ["uuid-impl"] }
+cron = "0.17"
 chrono-tz = "0.10"
 tokio-cron-scheduler = "0.15"
 monostate = "1"
 log = "0.4"
-fancy-regex = "0.18"
+fancy-regex = "0.20"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 securitydept-core = { workspace = true, features = [
   "oauth-resource-server",
   "creds",
   "token-set-context",
 ] }
-swc_core = { version = "65", features = [
+swc_core = { version = "84", features = [
   "__parser",
   "common",
   "ecma_ast",
@@ -78,6 +82,12 @@ swc_core = { version = "65", features = [
   "ecma_transforms_typescript",
   "ecma_visit",
 ] }
+age = { version = "0.12", features = ["armor"] }
+hkdf = "0.13"
+sha2 = "0.11"
+base64 = "0.23"
+ipnet = "2"
+x25519-dalek = { version = "3", features = ["static_secrets"] }
 
 [dev-dependencies]
-base64 = "0.22"
+base64 = "0.23"

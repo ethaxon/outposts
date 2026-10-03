@@ -1,9 +1,9 @@
-FROM rust:1.98.1-slim-bookworm AS builder
+FROM rust:1.100.0-slim-trixie AS builder
 WORKDIR /usr/src/app
 
 COPY . .
 RUN cargo build --locked --release --bin confluence_server
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 COPY --from=builder /usr/src/app/target/release/confluence_server /usr/local/bin/confluence_server
 CMD ["confluence_server"]

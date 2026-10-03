@@ -1,5 +1,11 @@
-@if (overlayService.loading$$ | async) {
-  <div class="fullscreen-spinner flex justify-center items-center">
-    <hlm-spinner class="text-[4rem]" [aria-label]="'common.loading' | transloco" />
+@if (visible()) {
+  <div class="fullscreen-spinner flex flex-col items-center justify-center gap-3">
+    @let label = (signingIn() ? "common.signingIn" : "common.loading") | transloco;
+    <hlm-spinner class="text-[4rem]" [aria-label]="label" />
+    @if (signingIn()) {
+      <span class="rounded-md bg-background px-3 py-1 text-sm text-foreground" aria-hidden="true">
+        {{ label }}
+      </span>
+    }
   </div>
 }

@@ -9,6 +9,14 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: "@/components/ui/button",
+        replacement: resolve(rootDir, "src/components/ui/button/src/index.ts"),
+      },
+      {
+        find: "@/components/ui/input",
+        replacement: resolve(rootDir, "src/components/ui/input/src/index.ts"),
+      },
+      {
         find: "@/components/ui/sonner",
         replacement: resolve(rootDir, "src/components/ui/sonner/src/index.ts"),
       },

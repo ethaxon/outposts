@@ -9,12 +9,13 @@ use crate::dto::{
     SubscribeSourceUpdateDto,
 };
 use crate::error::ConfigError;
-use crate::models::subscribe_source;
+use crate::models::{confluence_vlan, subscribe_source};
 use crate::mux::mux_configs;
 use crate::profile_script::{
     apply_profile_transform_script_transpiled, build_profile_script_request,
     compile_profile_transform_script,
 };
+use crate::vlan::apply_vlan_subscription;
 use crate::{
     dto::ProfileCreationDto,
     error::AppError,
@@ -67,7 +68,10 @@ impl AppState {
         Self {
             conn,
             config,
-            names_generator: Arc::new(rnglib::RNG::from(&rnglib::Language::Elven)),
+            names_generator: Arc::new(
+                rnglib::RNG::try_from(&rnglib::Language::Elven)
+                    .expect("built-in Elven language should be valid"),
+            ),
             oidc_verifier,
             substrate_runtime,
         }
@@ -87,7 +91,7 @@ impl AppState {
 
 pub async fn find_one_confluence_in_db(
     db: &DatabaseConnection,
-    id: i32,
+    id: uuid::Uuid,
     current_user: &CurrentUser,
 ) -> Result<confluence::Model, AppError> {
     confluence::Entity::find_by_id(id)
@@ -101,7 +105,7 @@ pub async fn find_one_confluence_in_db(
 
 pub async fn find_certain_confluence_profiles_and_subscribe_sources(
     db: &DatabaseConnection,
-    id: i32,
+    id: uuid::Uuid,
 ) -> Result<(Vec<profile::Model>, Vec<subscribe_source::Model>), AppError> {
     tokio::try_join!(
         profile::Entity::find()
@@ -172,7 +176,7 @@ pub async fn sync_one_subscribe_source_with_url(
 }
 
 pub async fn find_one_confluence(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     Extension(current_user): Extension<CurrentUser>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ConfluenceDto>, AppError> {
@@ -182,7 +186,11 @@ pub async fn find_one_confluence(
 
     let (pms, sms) = find_certain_confluence_profiles_and_subscribe_sources(db, id).await?;
 
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms);
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+        .await?
+        .pop()
+        .unwrap_or_default();
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
     Ok(Json(confluence_dto))
 }
 
@@ -197,15 +205,15 @@ pub async fn find_many_confluences(
         .await;
 
     let cms = cms?;
-
-    let (pms, sms) = tokio::try_join!(
-        cms.load_many(models::profile::Entity, db),
-        cms.load_many(models::subscribe_source::Entity, db)
+    let (pms, sms, vlan_ids) = tokio::try_join!(
+        async { Ok::<_, AppError>(cms.load_many(models::profile::Entity, db).await?) },
+        async { Ok::<_, AppError>(cms.load_many(models::subscribe_source::Entity, db).await?) },
+        confluence_vlan::Entity::load_ids_for_workspaces(db, &cms),
     )?;
 
-    let confluences_dto = izip!(cms.into_iter(), pms.into_iter(), sms.into_iter())
-        .map(|(cm, pms, sms)| ConfluenceDto::from_orm(cm, sms, pms))
-        .collect::<Vec<_>>();
+    let confluences_dto = izip!(cms, pms, sms, vlan_ids)
+        .map(|(cm, pms, sms, ids)| ConfluenceDto::from_orm(cm, sms, pms, ids))
+        .collect();
 
     Ok(Json(confluences_dto))
 }
@@ -230,12 +238,17 @@ pub async fn create_one_confluence(
 
     Ok((
         StatusCode::CREATED,
-        Json(ConfluenceDto::from_orm(confluence_model, vec![], vec![])),
+        Json(ConfluenceDto::from_orm(
+            confluence_model,
+            vec![],
+            vec![],
+            vec![],
+        )),
     ))
 }
 
 pub async fn update_one_confluence(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
     Json(confluence_update_dto): Json<ConfluenceUpdateDto>,
@@ -257,7 +270,11 @@ pub async fn update_one_confluence(
 
     let (pms, sms) = find_certain_confluence_profiles_and_subscribe_sources(db, id).await?;
 
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms);
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+        .await?
+        .pop()
+        .unwrap_or_default();
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -265,7 +282,7 @@ pub async fn update_one_confluence(
 pub async fn update_one_confluence_cron(
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     Json(confluence_update_cron_dto): Json<ConfluenceUpdateCronDto>,
 ) -> Result<(), AppError> {
     let db = &state.conn;
@@ -300,7 +317,7 @@ pub async fn update_one_confluence_cron(
 }
 
 pub async fn sync_one_confluence(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
 ) -> Result<Json<ConfluenceDto>, AppError> {
@@ -318,7 +335,11 @@ pub async fn sync_one_confluence(
     )
     .await?;
 
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms);
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+        .await?
+        .pop()
+        .unwrap_or_default();
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -395,7 +416,7 @@ pub async fn mux_one_confluence_impl(
 }
 
 pub async fn mux_one_confluence(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
 ) -> Result<Json<ConfluenceDto>, AppError> {
@@ -407,7 +428,11 @@ pub async fn mux_one_confluence(
 
     let (cm, sms, pms) = mux_one_confluence_impl(db, cm, sms, pms).await?;
 
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms);
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+        .await?
+        .pop()
+        .unwrap_or_default();
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -415,7 +440,7 @@ pub async fn mux_one_confluence(
 pub async fn delete_one_confluence(
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
 ) -> Result<StatusCode, AppError> {
     let db = &state.conn;
     let cm = find_one_confluence_in_db(db, id, &current_user).await?;
@@ -442,6 +467,7 @@ pub async fn find_one_profile_as_subscription_by_token(
         let cm = cms.pop().ok_or_else(|| AppError::DbNotFound {
             message: format!("cannot find profile token = {}", token),
         })?;
+        let vlan_config = cm.load_vlan_subscription(db).await?;
         let mut headers = HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
@@ -499,12 +525,31 @@ pub async fn find_one_profile_as_subscription_by_token(
             pam.save(db).await?;
         }
 
+        if transform_script_transpiled.is_some() || vlan_config.is_some() {
+            // Supplicant-specific credentials and randomized ciphertext must bypass shared caches.
+            headers.insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("private, no-store"),
+            );
+            headers.insert(header::VARY, HeaderValue::from_static("User-Agent"));
+            headers.remove(header::ETAG);
+        }
         let mux_content = if let Some(script) = transform_script_transpiled.as_deref() {
             let request = build_profile_script_request(&request_headers, &uri, &body);
             apply_profile_transform_script_transpiled(script, &cm.mux_content, request)?
         } else {
             cm.mux_content
         };
+        let user_agent = request_headers
+            .get(header::USER_AGENT)
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or_default();
+        let mux_content = apply_vlan_subscription(
+            &mux_content,
+            vlan_config.as_ref(),
+            user_agent,
+            uri.query().unwrap_or_default(),
+        )?;
         Ok((headers, mux_content))
     } else {
         Err(AppError::DbNotFound {
@@ -539,7 +584,7 @@ pub async fn create_one_profile(
 }
 
 pub async fn update_one_profile(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
     Json(profile_update_dto): Json<ProfileUpdateDto>,
@@ -569,7 +614,7 @@ pub async fn update_one_profile(
 }
 
 pub async fn delete_one_profile(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
 ) -> Result<(), AppError> {
@@ -623,7 +668,7 @@ pub async fn create_one_subscribe_source(
 }
 
 pub async fn update_one_subscribe_source(
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
     Json(subscribe_update_dto): Json<SubscribeSourceUpdateDto>,
@@ -679,7 +724,7 @@ pub async fn update_one_subscribe_source(
 pub async fn delete_one_subscribe_source(
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
 ) -> Result<(), AppError> {
     let db = &state.conn;
     let mut pm = subscribe_source::Entity::find_by_id(id)
@@ -702,7 +747,7 @@ pub async fn delete_one_subscribe_source(
 pub async fn sync_one_subscribe_source(
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
-    Path(id): Path<i32>,
+    Path(id): Path<uuid::Uuid>,
 ) -> Result<(), AppError> {
     let db = &state.conn;
     let mut pm = subscribe_source::Entity::find_by_id(id)

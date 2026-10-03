@@ -5,6 +5,7 @@ import { TokenSetClientRegistryAuthRequirement } from "@securitydept/token-set-c
 import { LandingComponent } from "@/pages/landing/landing.component";
 import { AuthCallbackRouteSegment, AuthClientKey, isDevAuthEnabled } from "@/domain/auth/auth.defs";
 import { AuthCallbackComponent } from "@/domain/auth/auth-callback.component";
+import { redirectToLoginOnUnauthenticated } from "@/domain/auth/auth-activity";
 import { environment } from "@/environments/environment";
 
 const loadConfluenceModule = () =>
@@ -24,6 +25,7 @@ const confluenceRoute: Route = isDevAuthEnabled(environment.AUTH_TYPE, environme
             query: { clientKey: AuthClientKey.Confluence },
           }),
         ],
+        onClientUnauthenticated: redirectToLoginOnUnauthenticated,
       },
       { loadChildren: loadConfluenceModule },
     );

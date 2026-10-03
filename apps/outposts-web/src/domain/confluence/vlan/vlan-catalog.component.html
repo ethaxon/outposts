@@ -1,0 +1,254 @@
+<section>
+  <div
+    class="flex flex-wrap justify-between items-center gap-3 border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
+  >
+    <div class="text-xl">{{ "confluence.workspace.vlan.title" | transloco }}</div>
+    <div class="flex flex-wrap gap-2">
+      <app-action
+        size="small"
+        [label]="'confluence.workspace.vlan.refresh' | transloco"
+        icon="lucideRefreshCw"
+        [outlined]="true"
+        (click)="!busy() && refresh()"
+      ></app-action>
+      @if (workspaceId()) {
+        <app-action
+          size="small"
+          [label]="'common.actions.save' | transloco"
+          icon="lucideCheck"
+          [outlined]="true"
+          (click)="catalog() && dirty() && !busy() && saveReferences()"
+        ></app-action>
+      }
+    </div>
+  </div>
+
+  @if (error() && editor()?.kind !== "supplicant") {
+    <p class="mb-4 text-sm text-destructive" role="alert">
+      {{ "confluence.workspace.vlan." + error() | transloco }}
+    </p>
+  }
+
+  @if (catalog(); as data) {
+    <div class="vlan-card-grid text-center">
+      <app-card
+        class="cursor-pointer vlan-card vlan-card-create h-full dark:bg-surface-950"
+        role="button"
+        tabindex="0"
+        (click)="!busy() && editNetwork()"
+        (keydown.enter)="!busy() && editNetwork()"
+      >
+        <div>{{ "confluence.workspace.vlan.addNetwork" | transloco }}</div>
+        <div class="vlan-card-actions">
+          <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
+        </div>
+      </app-card>
+
+      @for (network of data.vlan_configs; track network.id) {
+        <app-card
+          class="vlan-card h-full relative dark:bg-surface-950"
+          [class.vlan-card-selected]="workspaceId() && selected().has(network.id)"
+        >
+          @if (workspaceId()) {
+            <label class="flex min-w-0 items-center justify-center gap-2 break-all font-medium">
+              <input
+                #link
+                type="checkbox"
+                [checked]="selected().has(network.id)"
+                [disabled]="busy()"
+                (change)="select(network.id, link.checked)"
+              />
+              {{ network.network }}
+            </label>
+          } @else {
+            <div class="break-all font-medium">{{ network.network }}</div>
+          }
+          @if (pendingDeletion() === network.id) {
+            <p class="mt-3 text-sm text-muted-foreground">
+              {{ "confluence.workspace.vlan.deleteNetworkHint" | transloco }}
+            </p>
+            <div class="vlan-card-actions">
+              <button
+                hlmBtn
+                type="button"
+                size="sm"
+                variant="destructive"
+                [disabled]="busy()"
+                (click)="deleteNetwork(network.id)"
+              >
+                {{ "common.actions.delete" | transloco }}
+              </button>
+              <button
+                hlmBtn
+                type="button"
+                size="sm"
+                variant="outline"
+                (click)="pendingDeletion.set(undefined)"
+              >
+                {{ "common.actions.cancel" | transloco }}
+              </button>
+            </div>
+          } @else {
+            <div class="vlan-card-actions">
+              <button
+                type="button"
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                [attr.aria-label]="'common.actions.edit' | transloco"
+                [disabled]="busy()"
+                (click)="editNetwork(network)"
+              >
+                <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+              </button>
+              @if (!workspaceId()) {
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.delete' | transloco"
+                  [disabled]="busy()"
+                  (click)="pendingDeletion.set(network.id)"
+                >
+                  <ng-icon name="lucideTrash2" aria-hidden="true" />
+                </button>
+              }
+            </div>
+          }
+        </app-card>
+      }
+    </div>
+
+    @if (!workspaceId()) {
+      <div
+        class="flex justify-between items-center border-primary-300 mt-6 mb-6 p-4 font-bold bg-surface-auto-50"
+      >
+        <div class="text-xl">{{ "confluence.workspace.vlan.supplicants" | transloco }}</div>
+      </div>
+      <div class="vlan-card-grid text-center">
+        <app-card
+          class="cursor-pointer vlan-card vlan-card-create h-full dark:bg-surface-950"
+          role="button"
+          tabindex="0"
+          (click)="!busy() && editSupplicant()"
+          (keydown.enter)="!busy() && editSupplicant()"
+        >
+          <div>{{ "confluence.workspace.vlan.addSupplicant" | transloco }}</div>
+          <div class="vlan-card-actions">
+            <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
+          </div>
+        </app-card>
+
+        @for (identity of data.supplicant_configs; track identity.id) {
+          <app-card class="vlan-card h-full relative dark:bg-surface-950">
+            <div class="break-all font-medium">{{ identity.name }}</div>
+            @if (isGranted(identity.id)) {
+              <div class="mt-1 text-xs text-muted-foreground">
+                {{ "confluence.workspace.vlan.inUse" | transloco }}
+              </div>
+            }
+            <div class="vlan-card-actions">
+              @if (pendingDeletion() === identity.id) {
+                <button
+                  hlmBtn
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  [disabled]="busy()"
+                  (click)="deleteSupplicant(identity.id)"
+                >
+                  {{ "common.actions.delete" | transloco }}
+                </button>
+                <button
+                  hlmBtn
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  (click)="pendingDeletion.set(undefined)"
+                >
+                  {{ "common.actions.cancel" | transloco }}
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  [attr.aria-label]="'common.actions.edit' | transloco"
+                  [disabled]="busy()"
+                  (click)="editSupplicant(identity)"
+                >
+                  <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+                </button>
+                @if (!isGranted(identity.id)) {
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.delete' | transloco"
+                    [disabled]="busy()"
+                    (click)="pendingDeletion.set(identity.id)"
+                  >
+                    <ng-icon name="lucideTrash2" aria-hidden="true" />
+                  </button>
+                }
+              }
+            </div>
+          </app-card>
+        }
+      </div>
+    }
+
+    @if (editor(); as edit) {
+      <app-dialog
+        [header]="
+          (edit.kind === 'network'
+            ? 'confluence.workspace.vlan.title'
+            : 'confluence.workspace.vlan.identityKey'
+          ) | transloco
+        "
+        [visible]="true"
+        (visibleChange)="!$event && closeEditor()"
+      >
+        @if (edit.kind === "network") {
+          <app-vlan-editor
+            [initial]="edit.item"
+            [identities]="data.supplicant_configs"
+            (saved)="networkSaved($event)"
+          />
+        } @else {
+          <form #form="ngForm" class="space-y-4" (ngSubmit)="saveSupplicant(edit.item)">
+            <label class="flex flex-col gap-1">
+              {{ "confluence.workspace.vlan.identityKey" | transloco }}
+              <input
+                hlmInput
+                name="name"
+                [(ngModel)]="edit.item.name"
+                required
+                pattern="[a-z0-9_-]{1,64}"
+              />
+            </label>
+            <label class="flex flex-col gap-1">
+              {{ "confluence.workspace.vlan.recipient" | transloco }}
+              <input hlmInput name="recipient" [(ngModel)]="edit.item.age_recipient" required />
+            </label>
+            @if (error()) {
+              <p class="text-sm text-destructive" role="alert">
+                {{ "confluence.workspace.vlan." + error() | transloco }}
+              </p>
+            }
+            <button hlmBtn type="submit" [disabled]="form.invalid || busy()">
+              {{ "common.actions.save" | transloco }}
+            </button>
+          </form>
+        }
+      </app-dialog>
+    }
+  } @else if (busy()) {
+    <p class="text-sm text-muted-foreground" role="status">
+      {{ "confluence.workspace.vlan.loading" | transloco }}
+    </p>
+  }
+</section>

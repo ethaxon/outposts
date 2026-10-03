@@ -1,10 +1,19 @@
-use sea_orm::entity::prelude::*;
+use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+use sea_orm::entity::prelude::*;
+use sea_orm::{AccessMode, IsolationLevel, LoaderTrait, TransactionTrait};
+use serde::{Deserialize, Serialize};
+
+use super::{confluence_vlan, vlan_grant, vlan_network, vlan_supplicant};
+use crate::error::AppError;
+use crate::vlan::VlanConfig;
+
+#[sea_orm::model]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "confluence")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: Uuid,
     pub name: String,
     #[sea_orm(column_type = "Text")]
     pub template: String,
@@ -29,6 +38,16 @@ pub struct Model {
     pub cron_next_at: Option<DateTime>,
     #[sea_orm(column_type = "Text")]
     pub user_agent: String,
+    #[sea_orm(has_many)]
+    pub profiles: HasMany<super::profile::Entity>,
+    #[sea_orm(has_many)]
+    #[serde(skip)]
+    pub vlan_links: HasMany<super::confluence_vlan::Entity>,
+    #[sea_orm(has_many, via = "confluence_vlan")]
+    #[serde(skip)]
+    pub vlan_networks: HasMany<super::vlan_network::Entity>,
+    #[sea_orm(has_many)]
+    pub subscribe_sources: HasMany<super::subscribe_source::Entity>,
 }
 
 impl Model {
@@ -39,25 +58,50 @@ impl Model {
             &self.user_agent
         }
     }
-}
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::profile::Entity")]
-    Profile,
-    #[sea_orm(has_many = "super::subscribe_source::Entity")]
-    SubscribeSource,
-}
-
-impl Related<super::profile::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Profile.def()
-    }
-}
-
-impl Related<super::subscribe_source::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::SubscribeSource.def()
+    pub(crate) async fn load_vlan_subscription(
+        &self,
+        db: &DatabaseConnection,
+    ) -> Result<Option<VlanConfig>, AppError> {
+        // The loaders use multiple queries. A snapshot keeps links, grants and keys consistent.
+        let tx = db
+            .begin_with_config(
+                Some(IsolationLevel::RepeatableRead),
+                Some(AccessMode::ReadOnly),
+            )
+            .await?;
+        let networks = std::slice::from_ref(self)
+            .load_many_to_many(
+                vlan_network::Entity::find()
+                    .filter(vlan_network::Column::Creator.eq(&self.creator)),
+                confluence_vlan::Entity,
+                &tx,
+            )
+            .await?
+            .pop()
+            .unwrap_or_default();
+        if networks.is_empty() {
+            tx.commit().await?;
+            return Ok(None);
+        }
+        let supplicants = networks
+            .load_many_to_many(
+                vlan_supplicant::Entity::find()
+                    .filter(vlan_supplicant::Column::Creator.eq(&self.creator)),
+                vlan_grant::Entity,
+                &tx,
+            )
+            .await?
+            .into_iter()
+            .flatten()
+            .map(|row| (row.id, row))
+            .collect::<BTreeMap<_, _>>();
+        let vlan_configs = vlan_network::Entity::load_details(&tx, networks).await?;
+        tx.commit().await?;
+        Ok(Some(VlanConfig {
+            vlan_configs,
+            supplicant_configs: supplicants.into_values().map(Into::into).collect(),
+        }))
     }
 }
 
@@ -75,7 +119,7 @@ mod tests {
             .expect("time should be valid");
 
         Model {
-            id: 1,
+            id: uuid::Uuid::from_u128(1),
             name: "demo".to_string(),
             template: String::new(),
             creator: "user-1".to_string(),
