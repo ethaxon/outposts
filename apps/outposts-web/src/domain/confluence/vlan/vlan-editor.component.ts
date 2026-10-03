@@ -8,10 +8,19 @@ import { HlmInputImports } from "@/components/ui/input";
 import type { VlanNetwork } from "../bindings/VlanNetwork";
 import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import { ConfluenceService } from "../confluence.service";
+import { CidrListInputComponent } from "./cidr-list-input.component";
+import { CidrDirective } from "./cidr.directive";
 
 @Component({
   selector: "app-vlan-editor",
-  imports: [FormsModule, TranslocoModule, HlmButton, ...HlmInputImports],
+  imports: [
+    FormsModule,
+    TranslocoModule,
+    HlmButton,
+    ...HlmInputImports,
+    CidrListInputComponent,
+    CidrDirective,
+  ],
   templateUrl: "./vlan-editor.component.html",
 })
 export class VlanEditorComponent implements OnInit {
@@ -31,8 +40,6 @@ export class VlanEditorComponent implements OnInit {
     gateways: [],
     accept_supplicants: [],
   };
-  routesText = "";
-
   get supplicants() {
     return this.identities();
   }
@@ -40,7 +47,6 @@ export class VlanEditorComponent implements OnInit {
   ngOnInit() {
     const initial = this.initial();
     if (initial) this.network = structuredClone(initial);
-    this.routesText = this.network.routes.join("\n");
   }
 
   addGateway() {
@@ -65,13 +71,8 @@ export class VlanEditorComponent implements OnInit {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set(false);
-    const draft = structuredClone(this.network);
-    draft.routes = this.routesText
-      .split(/\r?\n/)
-      .map((route) => route.trim())
-      .filter(Boolean);
     this.service
-      .saveVlan(draft)
+      .saveVlan(structuredClone(this.network))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busy.set(false)),

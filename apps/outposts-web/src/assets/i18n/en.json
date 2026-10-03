@@ -227,7 +227,17 @@
         "title": "EasyTier VLAN",
         "enabled": "Enable VLAN subscriptions",
         "network": "Network identifier",
-        "routes": "Destination CIDRs, one per line",
+        "routes": "Destination CIDRs",
+        "cidr": {
+          "placeholder": "e.g. 10.20.0.0/24 or fd00::/64",
+          "hint": "Press Enter, space or comma to add. Paste several at once; click an entry to edit it.",
+          "invalid": "\"{{token}}\" is not a valid IPv4 or IPv6 CIDR.",
+          "duplicate": "{{cidr}} is already in the list.",
+          "normalized": "\"{{token}}\" was added as {{cidr}}.",
+          "edit": "Edit {{cidr}}",
+          "remove": "Remove {{cidr}}",
+          "subnetInvalid": "Enter an IPv4 /24 network, e.g. 10.30.0.0/24."
+        },
         "gateways": "WireGuard Portal gateways",
         "name": "Name",
         "server": "Server address",

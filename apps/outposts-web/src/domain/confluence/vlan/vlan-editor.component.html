@@ -13,10 +13,16 @@
       pattern="[a-z0-9_-]{1,64}"
     />
   </label>
-  <label class="flex flex-col gap-1">
-    {{ "confluence.workspace.vlan.routes" | transloco }}
-    <textarea hlmInput name="routes" [(ngModel)]="routesText" rows="3"></textarea>
-  </label>
+  <!-- Not a wrapping <label>: it would forward clicks to the first chip button. -->
+  <div class="flex flex-col gap-1">
+    <label for="vlan-routes">{{ "confluence.workspace.vlan.routes" | transloco }}</label>
+    <app-cidr-list-input
+      inputId="vlan-routes"
+      name="routes"
+      [(ngModel)]="network.routes"
+      [placeholder]="'confluence.workspace.vlan.cidr.placeholder' | transloco"
+    />
+  </div>
   <fieldset class="flex flex-col gap-3">
     <legend class="mb-2 font-semibold">
       {{ "confluence.workspace.vlan.gateways" | transloco }}
@@ -45,7 +51,25 @@
         </label>
         <label class="flex flex-col gap-1"
           >{{ "confluence.workspace.vlan.subnet" | transloco }}
-          <input hlmInput [name]="'subnet' + i" [(ngModel)]="gateway.subnet" required />
+          <input
+            hlmInput
+            appCidr
+            #subnet="ngModel"
+            [cidrFamily]="4"
+            [cidrPrefix]="24"
+            [name]="'subnet' + i"
+            [(ngModel)]="gateway.subnet"
+            required
+            placeholder="10.30.0.0/24"
+            autocomplete="off"
+            spellcheck="false"
+            class="font-mono"
+          />
+          @if (subnet.errors?.["cidr"] && subnet.touched) {
+            <span class="text-xs text-destructive" role="alert">{{
+              "confluence.workspace.vlan.cidr.subnetInvalid" | transloco
+            }}</span>
+          }
         </label>
         <label class="col-span-2 flex flex-col gap-1"
           >{{ "confluence.workspace.vlan.privateKey" | transloco }}

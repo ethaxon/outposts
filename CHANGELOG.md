@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.5
+
+- **VLAN editor** — replaced the destination CIDR textarea with a tag-style list that validates and canonicalizes IPv4/IPv6 networks as they are added, and rejects forms the backend would not accept. Gateway subnets are constrained to IPv4 /24 and rewritten to network form on blur.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.5`.
+
 ## 0.4.4
 
 - **EasyTier VLAN subscriptions** — added a dedicated Confluence sidebar page for shared VLANs, gateways, routes, and supplicant grants. Workspaces can link multiple VLANs, and each grant controls its allowed slots. Clients can select VLANs in the subscription URL or User-Agent and receive an age-encrypted configuration.

@@ -227,7 +227,17 @@
         "title": "EasyTier VLAN",
         "enabled": "启用 VLAN 订阅",
         "network": "网络标识",
-        "routes": "目标 CIDR，每行一个",
+        "routes": "目标 CIDR",
+        "cidr": {
+          "placeholder": "例如 10.20.0.0/24 或 fd00::/64",
+          "hint": "按回车、空格或逗号添加；可一次粘贴多个；点击条目可编辑。",
+          "invalid": "“{{token}}” 不是有效的 IPv4 或 IPv6 CIDR。",
+          "duplicate": "{{cidr}} 已在列表中。",
+          "normalized": "“{{token}}” 已规范化为 {{cidr}}。",
+          "edit": "编辑 {{cidr}}",
+          "remove": "移除 {{cidr}}",
+          "subnetInvalid": "请输入 IPv4 /24 网段，例如 10.30.0.0/24。"
+        },
         "gateways": "WireGuard Portal 网关",
         "name": "名称",
         "server": "服务器地址",

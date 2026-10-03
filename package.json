@@ -1,6 +1,6 @@
 {
   "name": "outposts",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "private": true,
   "description": "outposts",
   "repository": {
@@ -53,6 +53,7 @@
     "es-toolkit": "^1.50.0",
     "github-slugger": "^2.0.0",
     "injection-js": "^2.6.1",
+    "ipaddr.js": "^2.3.0",
     "katex": "^0.16.47",
     "marked": "^18.0.7",
     "marked-gfm-heading-id": "^4.1.4",

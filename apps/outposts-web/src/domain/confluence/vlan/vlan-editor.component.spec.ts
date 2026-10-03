@@ -15,7 +15,7 @@ function harness() {
   component.network.id = "network-id";
   component.network.network = "demo";
   component.network.accept_supplicants = [{ supplicant_id: "identity-id", slots: "2,4,10-100" }];
-  component.routesText = "10.20.0.0/24\r\n\r\n10.21.0.0/24\n";
+  component.network.routes = ["10.20.0.0/24", "10.21.0.0/24"];
   return { component, service, response };
 }
 
