@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue::Set, DatabaseTransaction, LoaderTrait, QueryOrder};
 
-use super::{vlan_network, vlan_tunnel_grant};
+use super::{vlan_network, vlan_tunnel_grant, vlan_wireguard_config};
 use crate::error::AppError;
 use crate::vlan::{VlanTunnel, VlanTunnelSource};
 
@@ -33,6 +33,8 @@ pub struct Model {
     pub network: HasOne<vlan_network::Entity>,
     #[sea_orm(has_many)]
     pub grants: HasMany<vlan_tunnel_grant::Entity>,
+    #[sea_orm(has_many)]
+    pub wireguard_configs: HasMany<vlan_wireguard_config::Entity>,
 }
 
 impl Entity {
@@ -51,20 +53,12 @@ impl Entity {
                 db,
             )
             .await?;
-        let wire_grants = tunnel_rows
-            .iter()
-            .zip(&grants)
-            .filter(|(tunnel, _)| tunnel.kind == WIREGUARD)
-            .flat_map(|(_, grants)| grants.iter().cloned())
-            .collect();
-        let mut wire_grants = vlan_tunnel_grant::Entity::load_wireguard(db, wire_grants)
-            .await?
-            .into_iter();
-        let mut grant_batches = grants.into_iter();
+        let configs = vlan_wireguard_config::Entity::load_for_tunnels(db, &tunnel_rows).await?;
+        let mut details = grants.into_iter().zip(configs);
         let mut output = Vec::with_capacity(batches.len());
         for batch in batches {
             let mut values = Vec::with_capacity(batch.len());
-            for (row, grants) in batch.into_iter().zip(grant_batches.by_ref()) {
+            for (row, (grants, configs)) in batch.into_iter().zip(details.by_ref()) {
                 let invalid = || AppError::internal_str("Invalid stored VLAN tunnel");
                 let source = match row.kind.as_str() {
                     EASYTIER => VlanTunnelSource::EasytierGateway {
@@ -80,7 +74,11 @@ impl Entity {
                             .collect::<Result<_, _>>()?,
                     },
                     WIREGUARD => VlanTunnelSource::WireguardCompatible {
-                        grants: wire_grants.by_ref().take(grants.len()).collect(),
+                        configs,
+                        grants: grants
+                            .into_iter()
+                            .map(vlan_tunnel_grant::Model::into_wireguard)
+                            .collect::<Result<_, _>>()?,
                     },
                     _ => return Err(invalid()),
                 };
@@ -141,6 +139,9 @@ impl Entity {
                 VlanTunnelSource::WireguardCompatible { .. } => row.kind = Set(WIREGUARD.into()),
             }
             let saved = row.insert(tx).await.map_err(AppError::vlan_write)?;
+            if let VlanTunnelSource::WireguardCompatible { configs, .. } = &tunnel.source {
+                vlan_wireguard_config::Entity::insert_for_tunnel(tx, saved.id, configs).await?;
+            }
             vlan_tunnel_grant::Entity::insert_for_tunnel(tx, &saved, &tunnel.source).await?;
         }
         Ok(())

@@ -1,5 +1,12 @@
-import { Component, DestroyRef, inject, type OnInit, ChangeDetectionStrategy } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import {
+  Component,
+  DestroyRef,
+  inject,
+  signal,
+  type OnInit,
+  ChangeDetectionStrategy,
+} from "@angular/core";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, type FormControl, type FormGroup, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { RxwebValidators } from "@rxweb/reactive-form-validators";
@@ -20,7 +27,6 @@ import {
   switchMap,
   take,
   tap,
-  withLatestFrom,
 } from "rxjs";
 import { AppConfigService } from "@/core/servces/app-config.service";
 import { AppI18nService } from "@/core/servces/app-i18n.service";
@@ -31,7 +37,9 @@ import { QrcodeService } from "@/tools/qrcode/qrcode.service";
 import type { RecursiveNonNullable } from "@/tools/type-assert";
 import type { ConfluenceDto } from "../bindings/ConfluenceDto";
 import type { ProfileDto } from "../bindings/ProfileDto";
+import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import type { SubscribeSourceDto } from "../bindings/SubscribeSourceDto";
+import type { SubscribeSourceSyncError } from "../bindings/SubscribeSourceSyncError";
 import type { SubscribeSourceTrafficResetPolicy } from "../bindings/SubscribeSourceTrafficResetPolicy";
 import type { SubscribeSourceUpdateDto } from "../bindings/SubscribeSourceUpdateDto";
 import type { ProxyServerNameserverPolicySource } from "../bindings/ProxyServerNameserverPolicySource";
@@ -125,7 +133,10 @@ export class WorkspaceComponent implements OnInit {
 
   tmpl = "";
   profiles: ProfileDto[] = [];
-  subscribeSources: SubscribeSourceDto[] = [];
+  readonly subscribeSources = toSignal(
+    this.confluence$.pipe(map((workspace) => workspace?.subscribe_sources ?? [])),
+    { initialValue: [] },
+  );
   policySourceOptions: {
     label: string;
     value: ProxyServerNameserverPolicySource;
@@ -215,16 +226,20 @@ export class WorkspaceComponent implements OnInit {
     content: string;
     id: string;
   };
+  readonly subscribeSourceError = signal<{ name: string; error: SubscribeSourceSyncError } | null>(
+    null,
+  );
   urlPreview?: {
     url: string;
     qrcodeDataUrl?: string;
   };
   profileUpdate?: {
-    value: {
-      id: string;
-    };
+    value: ProfileDto;
     transformScript: string;
+    ageSupplicantIds: string[];
+    unsafeAgeCompatibility: boolean;
   };
+  readonly profileSupplicants = signal<VlanSupplicant[] | null | undefined>(undefined);
   profileTransformPreview?: {
     profile: ProfileDto;
     url: string;
@@ -271,16 +286,6 @@ export class WorkspaceComponent implements OnInit {
       )
       .subscribe((tmpl) => {
         this.tmpl = tmpl;
-      });
-
-    this.confluence$
-      .pipe(
-        map((c) => c?.subscribe_sources ?? []),
-        distinctUntilChanged(isEqual),
-        takeUntilDestroyed(this.destoryRef),
-      )
-      .subscribe((ss) => {
-        this.subscribeSources = ss;
       });
 
     this.confluence$
@@ -580,22 +585,39 @@ export class WorkspaceComponent implements OnInit {
       )
       .subscribe((c) => {
         this.confluence$.next(c);
-        this.toastSuccess("common.toast.synced");
+        this.showSubscribeSourceSyncResult(
+          c.subscribe_sources.some((source) => !source.passive_sync && !!source.last_sync_error),
+        );
       });
   }
 
   syncSubscribeSource(id: string) {
     this.overlayService
-      .withSuspense(
-        this.confluenceService.syncSubscribeSource(id).pipe(
-          withLatestFrom(this.confluenceId$),
-          switchMap(([_, id]) => this.confluenceService.getConfluenceById(id)),
-        ),
-      )
-      .subscribe((c) => {
-        this.confluence$.next(c);
-        this.toastSuccess("common.toast.synced");
+      .withSuspense(this.confluenceService.syncSubscribeSource(id))
+      .pipe(takeUntilDestroyed(this.destoryRef))
+      .subscribe((source) => {
+        const workspace = this.confluence$.value;
+        if (workspace?.id === source.confluence_id) {
+          this.confluence$.next({
+            ...workspace,
+            subscribe_sources: workspace.subscribe_sources.map((item) =>
+              item.id === source.id ? source : item,
+            ),
+          });
+          this.showSubscribeSourceSyncResult(!!source.last_sync_error);
+        }
       });
+  }
+
+  private showSubscribeSourceSyncResult(failed: boolean) {
+    if (failed) {
+      this.overlayService.toast({
+        severity: "warn",
+        summary: this.i18nService.translate("confluence.workspace.syncError.refreshFailed"),
+      });
+    } else {
+      this.toastSuccess("common.toast.synced");
+    }
   }
 
   openPreviewSubscribeSourceContentDialog(item: SubscribeSourceDto) {
@@ -709,27 +731,71 @@ export class WorkspaceComponent implements OnInit {
   }
 
   openUpdateProfileDialog(item: ProfileDto) {
-    this.profileUpdate = {
-      value: {
-        id: item.id,
-      },
+    const draft = {
+      value: item,
       transformScript: item.transform_script || DEFAULT_PROFILE_TRANSFORM_SCRIPT,
+      ageSupplicantIds: [...item.age_supplicant_ids],
+      unsafeAgeCompatibility: item.allow_unsafe_age_private_key,
     };
+    this.profileUpdate = draft;
+    this.loadProfileSupplicants();
+  }
+
+  /** Recipients load inside the open dialog, so a failure is retryable without reopening it. */
+  loadProfileSupplicants() {
+    const draft = this.profileUpdate;
+    if (!draft) return;
+    this.profileSupplicants.set(undefined);
+    this.confluenceService
+      .getVlanCatalog()
+      .pipe(takeUntilDestroyed(this.destoryRef))
+      .subscribe({
+        next: (catalog) => {
+          if (this.profileUpdate === draft)
+            this.profileSupplicants.set(
+              catalog.supplicant_configs.toSorted((a, b) => a.name.localeCompare(b.name)),
+            );
+        },
+        error: () => {
+          if (this.profileUpdate === draft) this.profileSupplicants.set(null);
+        },
+      });
+  }
+
+  /** age recipients are long bech32 strings; the ends are what people compare. */
+  shortRecipient(recipient: string) {
+    return recipient.length > 20 ? `${recipient.slice(0, 10)}…${recipient.slice(-6)}` : recipient;
   }
 
   cancelUpdateProfileDialog() {
     this.profileUpdate = undefined;
   }
 
+  toggleProfileSupplicant(id: string) {
+    if (!this.profileUpdate) return;
+    const ids = this.profileUpdate.ageSupplicantIds;
+    this.profileUpdate.ageSupplicantIds = ids.includes(id)
+      ? ids.filter((selected) => selected !== id)
+      : [...ids, id];
+  }
+
   acceptUpdateProfileDialog() {
-    if (!this.profileUpdate) {
-      return;
-    }
+    const draft = this.profileUpdate;
+    if (!draft) return;
+    const recipientsChanged = !isEqual(
+      draft.value.age_supplicant_ids.toSorted(),
+      draft.ageSupplicantIds.toSorted(),
+    );
     this.overlayService
       .withSuspense(
         this.confluenceService
-          .updateProfile(this.profileUpdate.value.id, {
-            transform_script: this.profileUpdate.transformScript,
+          .updateProfile(draft.value.id, {
+            transform_script: draft.transformScript,
+            age_supplicant_ids: recipientsChanged ? draft.ageSupplicantIds : undefined,
+            allow_unsafe_age_private_key:
+              draft.unsafeAgeCompatibility === draft.value.allow_unsafe_age_private_key
+                ? undefined
+                : draft.unsafeAgeCompatibility,
           })
           .pipe(
             combineLatestWith(this.confluenceId$),

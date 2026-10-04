@@ -143,6 +143,19 @@
       "cronHint": "Supports Unix-style cron expressions with an hourly minimum interval, for example",
       "profileScriptHint": "The script receives ProfileTransformContext and returns the modified ClashMetaConfig; ctx.request contains headers, url, and body.",
       "profileScriptSchemaLink": "Schema source",
+      "profileAge": {
+        "title": "age encryption recipients",
+        "hint": "Only the selected supplicants can decrypt this profile. Select none to serve it unencrypted.",
+        "loading": "Loading supplicants…",
+        "loadError": "Could not load supplicants.",
+        "encrypted": "Encrypted · {{count}} recipient(s)",
+        "plain": "Not encrypted",
+        "empty": "No supplicant keys yet.",
+        "manage": "Manage supplicants",
+        "retry": "Try again",
+        "unsafeCompatibility": "Allow unsafe age private-key compatibility",
+        "unsafeHint": "Returns plaintext when a matching private key is sent in User-Agent. Use HTTPS. Client and proxy logs can expose the key."
+      },
       "qrcodeAlt": "QR code for the profile URL",
       "dialogs": {
         "editSubscribeSource": "Edit Subscribe Source",
@@ -203,6 +216,22 @@
         "totalTraffic": "Total traffic",
         "updatedAt": "Updated at",
         "usedTraffic": "Used traffic"
+      },
+      "syncError": {
+        "view": "View last sync error",
+        "refreshFailed": "A subscription source failed to refresh. Use the error details button on its card.",
+        "headers": "Response headers",
+        "body": "Response body",
+        "emptyBody": "Empty response body",
+        "truncatedBody": "Only the first 64 KiB of the response body is shown.",
+        "types": {
+          "request": "Request failed",
+          "http_status": "Unexpected HTTP status",
+          "read_body": "Could not read response body",
+          "invalid_yaml": "Invalid YAML",
+          "missing_proxies": "Missing or empty proxies list",
+          "invalid_config": "Invalid Clash configuration"
+        }
       },
       "trafficResetPolicy": {
         "default": "Default (monthly)",
@@ -274,7 +303,7 @@
         "loading": "Loading VLANs…",
         "deleteNetworkHint": "Deleting this VLAN also removes its references from every workspace.",
         "members": "Allowed supplicants",
-        "removeMemberHint": "Removing {{name}} also deletes their {{count}} tunnel grant(s) and credentials.",
+        "removeMemberHint": "Removing {{name}} also revokes their {{count}} tunnel grant(s).",
         "tunnels": "Tunnels",
         "easytier-gateway": "EasyTier Portal",
         "wireguard-compatible": "WireGuard",
@@ -292,11 +321,15 @@
         "tunnelCount": "Granted on {{count}} tunnel(s)",
         "tunnelsHint": "How members reach the VLAN. EasyTier Portals hand out addresses by slot; WireGuard tunnels use a client config per member.",
         "unnamed": "Unnamed tunnel",
-        "removeTunnelHint": "Delete this tunnel and its {{count}} grant(s)? Stored keys are discarded when you save.",
+        "removeTunnelHint": "Delete this tunnel, its grants and its stored credentials?",
         "allowedIps": "AllowedIPs",
         "access": "Access",
         "accessEmpty": "Add VLAN members above to grant them access here.",
-        "removeGrantHint": "Remove {{name}}'s WireGuard credentials from this tunnel?",
+        "addClientConfig": "Add client configuration",
+        "clientConfig": "WireGuard client",
+        "unassignedClient": "Unassigned",
+        "assignClient": "VLAN member",
+        "removeClientConfig": "Delete this WireGuard configuration, its credentials and any associated access?",
         "peerCount": "{{count}} peer(s)",
         "mtu": "MTU",
         "keepalive": "PersistentKeepalive (s)",
@@ -309,8 +342,8 @@
         "routesHint": "Traffic to these CIDRs is routed into the VLAN. They must cover every tunnel's AllowedIPs.",
         "blockers": {
           "invalid": "Fix the highlighted fields before saving.",
-          "incompleteWireGuard": "Every WireGuard member needs an address and at least one peer.",
-          "enabledIncomplete": "An active VLAN needs at least one member, one tunnel and one CIDR."
+          "incompleteWireGuard": "Every WireGuard configuration needs an address and at least one peer.",
+          "enabledIncomplete": "An active VLAN needs at least one tunnel and one CIDR."
         },
         "unsavedLinks": "Unsaved VLAN links",
         "linkNetwork": "Link {{name}} to this workspace",

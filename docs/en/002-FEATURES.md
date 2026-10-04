@@ -16,12 +16,33 @@ The API is served below `/api`; the web client uses `/api/auth/config` only to
 obtain public OIDC client configuration. It is excluded from Bearer-token
 interception.
 
+### Subscription source refresh
+
+A refresh requires a successful HTTP response containing Clash YAML with a non-empty `proxies` list. If a refresh fails, Confluence keeps the last successfully saved content and traffic metadata so the source can still be used for muxing. Muxing requires saved content for every source.
+
+Source cards are ordered by creation time, oldest first. A failed refresh turns the status indicator red and adds a button to the card's actions for viewing the error. The details include the HTTP status, response headers, and up to 64 KiB of the response body when available. The next successful refresh clears the error.
+
+### Profile age encryption
+
+Edit a Profile and select one or more **age encryption recipients** from the Confluence supplicant catalog. Ordinary subscription requests return a single age-encrypted payload that any selected supplicant can decrypt with their own key. Encryption runs after Profile transforms. An empty selection serves ordinary subscriptions as YAML.
+
+For a VLAN request on an encrypted Profile, the queried supplicant must be selected on the Profile and be a member of each requested VLAN. The resulting subscription is encrypted to that supplicant alone. A supplicant selected for any Profile must be removed from its recipient list before the supplicant can be deleted.
+
+For clients that cannot load age-encrypted subscriptions, enable **Allow unsafe age private-key compatibility** on the Profile. The option is off by default. Add the following marker to the HTTPS request's `User-Agent`, replacing `PRIVATE_KEY` with the named supplicant's X25519 age private key.
+
+```text
+Client/1 confluence/supplicant=example-user&_unsafe_supplicant_private=PRIVATE_KEY
+Client/1 confluence/supplicant=example-user&vlans=office:100&_unsafe_supplicant_private=PRIVATE_KEY
+```
+
+Confluence checks the key against the supplicant's stored public key and applies the usual Profile and VLAN permissions before returning plaintext YAML. It rejects this parameter in URL queries and excludes it from Profile transforms. Requests without the parameter keep the normal subscription format. Client and reverse-proxy logs may capture User-Agent headers. Use a dedicated key for this mode.
+
 ## VLAN subscriptions
 
-Open **Apps → Confluence → VLAN**. A workspace can link multiple VLANs. Each VLAN defines destination CIDRs and an allowed supplicant list. Each tunnel grants access to a subset of that list. Removing a VLAN member also removes that member's tunnel grants and credentials.
+Open **Apps → Confluence → VLAN**. A workspace can link multiple VLANs. Each VLAN defines destination CIDRs and an allowed supplicant list. Each tunnel grants access to a subset of that list. Removing a VLAN member revokes their tunnel grants.
 
 - **EasyTier Portal** uses an IPv4 /24 pool, the Portal server key and pre-registered subscription-slot-N clients. Slot ranges belong to each tunnel grant. The client export can fill the endpoint, suggested pool and AllowedIPs. Enter the server key separately.
-- **WireGuard** assigns a client configuration to each tunnel grant. Import one [Interface] and one or more [Peer] sections. Supported fields are Address, PrivateKey, MTU, Endpoint, PublicKey, PresharedKey, AllowedIPs and PersistentKeepalive. All peers use the same keepalive. Devices using the same supplicant share one client credential for the tunnel.
+- **WireGuard** stores client configurations on the tunnel. Enter or import a configuration and save it before choosing a VLAN member. Each member can be assigned one client configuration per tunnel, and the subscription includes only the assigned configuration. Revoking access keeps the configuration on the tunnel. Import one [Interface] and one or more [Peer] sections. Supported fields are Address, PrivateKey, MTU, Endpoint, PublicKey, PresharedKey, AllowedIPs and PersistentKeepalive. All peers use the same keepalive.
 
 Each tunnel's AllowedIPs must fit within the VLAN CIDRs. **Recompute VLAN CIDRs from tunnels** replaces the route draft with the normalized union of the configured AllowedIPs and EasyTier Portal subnets. Each tunnel appears as one selectable Mihomo proxy. WireGuard chooses among its own peers. All VLAN routes point to the same selection group, and a selected tunnel may reach only part of the VLAN. Management responses show whether secrets are set and omit their values.
 
@@ -31,7 +52,7 @@ Use `?supplicant=example-user&vlans=office,lab:10` in the subscription URL, or a
 
 PostgreSQL 18+ is required. Business primary keys use native `uuid` columns with database-generated `uuidv7()` defaults. Existing records and foreign keys are migrated together while preserving timestamps and subscription `resource_token` values. Management API IDs and routes use UUID strings. ts-rs exports these Rust `Uuid` fields through the named TypeScript scalar `UUIDV7 = string`; the alias provides a visible semantic name with structural string compatibility. Subscription credentials use independent random UUIDv4 tokens, exported as the TypeScript scalar `UUIDV4 = string`.
 
-Stop Confluence and take a restorable backup before applying the migrations. The tunnel migration preserves VLAN memberships, workspace links and EasyTier gateway identities. It copies existing slot grants to each EasyTier tunnel and materializes implicit Portal subnet routes. Start matching backend and frontend versions after migration. Roll back by restoring the backup and the previous application version.
+Stop Confluence and take a restorable backup before applying the migrations. The tunnel migration preserves VLAN memberships, workspace links and EasyTier gateway identities. It copies existing slot grants to each EasyTier tunnel and materializes implicit Portal subnet routes. The WireGuard configuration migration moves existing client configurations to their tunnels and preserves peers and member assignments. Start matching backend and frontend versions after migration. Roll back by restoring the backup and the previous application version.
 
 ## Authentication
 

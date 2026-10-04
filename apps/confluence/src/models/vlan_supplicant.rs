@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue::Set, QueryOrder, QuerySelect, TransactionTrait};
 
-use super::vlan_grant;
+use super::{profile_supplicant, vlan_grant};
 use crate::error::AppError;
 use crate::vlan::VlanSupplicant;
 
@@ -96,6 +96,16 @@ impl Entity {
         {
             return Err(AppError::bad_request(
                 "Remove the supplicant's VLAN grants before deleting it",
+            ));
+        }
+        if profile_supplicant::Entity::find()
+            .filter(profile_supplicant::Column::SupplicantId.eq(id))
+            .count(&tx)
+            .await?
+            > 0
+        {
+            return Err(AppError::bad_request(
+                "Remove the supplicant from Profile encryption settings before deleting it",
             ));
         }
         supplicant.delete(&tx).await.map_err(AppError::vlan_write)?;

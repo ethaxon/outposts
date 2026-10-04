@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
+use sea_orm::LoaderTrait;
 use sea_orm::entity::prelude::*;
-use sea_orm::{AccessMode, IsolationLevel, LoaderTrait, TransactionTrait};
 use serde::{Deserialize, Serialize};
 
 use super::{confluence_vlan, vlan_grant, vlan_network, vlan_supplicant};
@@ -61,27 +61,19 @@ impl Model {
 
     pub(crate) async fn load_vlan_subscription(
         &self,
-        db: &DatabaseConnection,
+        db: &impl ConnectionTrait,
     ) -> Result<Option<VlanConfig>, AppError> {
-        // The loaders use multiple queries. A snapshot keeps links, grants and keys consistent.
-        let tx = db
-            .begin_with_config(
-                Some(IsolationLevel::RepeatableRead),
-                Some(AccessMode::ReadOnly),
-            )
-            .await?;
         let networks = std::slice::from_ref(self)
             .load_many_to_many(
                 vlan_network::Entity::find()
                     .filter(vlan_network::Column::Creator.eq(&self.creator)),
                 confluence_vlan::Entity,
-                &tx,
+                db,
             )
             .await?
             .pop()
             .unwrap_or_default();
         if networks.is_empty() {
-            tx.commit().await?;
             return Ok(None);
         }
         let supplicants = networks
@@ -89,15 +81,14 @@ impl Model {
                 vlan_supplicant::Entity::find()
                     .filter(vlan_supplicant::Column::Creator.eq(&self.creator)),
                 vlan_grant::Entity,
-                &tx,
+                db,
             )
             .await?
             .into_iter()
             .flatten()
             .map(|row| (row.id, row))
             .collect::<BTreeMap<_, _>>();
-        let vlan_configs = vlan_network::Entity::load_details(&tx, networks).await?;
-        tx.commit().await?;
+        let vlan_configs = vlan_network::Entity::load_details(db, networks).await?;
         Ok(Some(VlanConfig {
             vlan_configs,
             supplicant_configs: supplicants.into_values().map(Into::into).collect(),

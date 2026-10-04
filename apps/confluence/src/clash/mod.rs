@@ -250,6 +250,20 @@ pub struct ClashConfig {
     pub rules: Vec<Rule>,
 }
 
+impl ClashConfig {
+    pub(crate) fn from_source_document(mut document: Value) -> Result<Self, serde_yaml::Error> {
+        // A provider can supply proxies without the groups and rules owned by the mux template.
+        if let Some(mapping) = document.as_mapping_mut() {
+            for field in ["proxy-groups", "rules"] {
+                mapping
+                    .entry(Value::from(field))
+                    .or_insert_with(|| Value::Sequence(Vec::new()));
+            }
+        }
+        serde_yaml::from_value(document)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{ClashConfig, DnsConfig, Proxy, ProxyServerNameserverPolicySource};

@@ -1,7 +1,35 @@
 use crate::traffic_reset::SubscribeSourceTrafficResetPolicy;
 use sea_orm::entity::prelude::*;
-use sea_orm::{ActiveValue, ConnectionTrait, DbErr, Value};
+use sea_orm::{
+    ActiveValue, ConnectionTrait, DbErr, FromJsonQueryResult, QueryOrder, Select, Value,
+};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub enum SubscribeSourceSyncErrorKind {
+    Request,
+    HttpStatus,
+    ReadBody,
+    InvalidYaml,
+    MissingProxies,
+    InvalidConfig,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, FromJsonQueryResult, TS)]
+#[ts(export)]
+pub struct SubscribeSourceSyncError {
+    pub kind: SubscribeSourceSyncErrorKind,
+    pub message: String,
+    #[ts(type = "number")]
+    pub occurred_at: i64,
+    pub status: Option<u16>,
+    pub headers: Vec<(String, String)>,
+    pub body: Option<String>,
+    pub body_truncated: bool,
+}
 
 #[sea_orm::model]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
@@ -18,6 +46,8 @@ pub struct Model {
     pub confluence_id: Uuid,
     pub name: String,
     pub content: String,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub last_sync_error: Option<SubscribeSourceSyncError>,
     pub sub_upload: Option<i64>,
     pub sub_download: Option<i64>,
     pub sub_total: Option<i64>,
@@ -37,6 +67,14 @@ pub struct Model {
         on_delete = "Cascade"
     )]
     pub confluence: HasOne<super::confluence::Entity>,
+}
+
+impl Entity {
+    pub(crate) fn in_creation_order() -> Select<Self> {
+        Self::find()
+            .order_by_asc(Column::CreatedAt)
+            .order_by_asc(Column::Id)
+    }
 }
 
 fn active_value_ref<T>(value: &ActiveValue<T>) -> Option<&T>

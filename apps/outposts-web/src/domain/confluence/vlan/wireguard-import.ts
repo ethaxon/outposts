@@ -1,4 +1,4 @@
-import type { WireGuardTunnelGrant } from "../bindings/WireGuardTunnelGrant";
+import type { WireGuardClientConfig } from "../bindings/WireGuardClientConfig";
 import { parseCidr } from "./cidr";
 
 const HOST_LABEL = /^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i;
@@ -84,7 +84,7 @@ export function parseWireGuardImport(config: string): ImportResult<{
 
 export function parseWireGuardClient(
   config: string,
-): ImportResult<{ settings: Omit<WireGuardTunnelGrant, "supplicant_id"> }> {
+): ImportResult<{ settings: Omit<WireGuardClientConfig, "id"> }> {
   const result = readSections(config);
   if (!result) return { ok: false, error: "format" };
   const { interfaceFields, peers } = result;
@@ -119,7 +119,7 @@ export function parseWireGuardClient(
     addresses.push(address);
   }
 
-  const peerSettings: WireGuardTunnelGrant["peers"] = [];
+  const peerSettings: WireGuardClientConfig["peers"] = [];
   const keepalives = new Set<number>();
   for (const peer of peers) {
     const endpoint = parseEndpoint(peer.get("endpoint") ?? "");

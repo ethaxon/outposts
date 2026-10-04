@@ -262,7 +262,16 @@ async fn serve(app: Router, state: Arc<AppState>) {
         // '*' wildcard does not cover Authorization per CORS spec; list it explicitly.
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]);
 
-    axum::serve(listener, app.layer(cors).layer(TraceLayer::new_for_http()))
+    // Rejected query parameters can still contain credentials.
+    let trace = TraceLayer::new_for_http().make_span_with(|request: &axum::extract::Request| {
+        tracing::debug_span!(
+            "request",
+            method = %request.method(),
+            uri = %request.uri().path(),
+            version = ?request.version(),
+        )
+    });
+    axum::serve(listener, app.layer(cors).layer(trace))
         .await
         .unwrap();
 }

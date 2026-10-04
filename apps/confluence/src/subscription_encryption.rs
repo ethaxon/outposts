@@ -1,14 +1,12 @@
 use crate::error::AppError;
 use std::io::Write;
 
-pub(crate) fn encrypt_profile(yaml: &str, recipients: &[String]) -> Result<String, AppError> {
-    if recipients.is_empty() {
-        return Err(AppError::BadRequest {
-            message: "ageRecipients must not be empty".into(),
-        });
-    }
+pub(crate) fn encrypt_profile<'a>(
+    yaml: &str,
+    recipients: impl IntoIterator<Item = &'a str>,
+) -> Result<String, AppError> {
     let recipients = recipients
-        .iter()
+        .into_iter()
         .map(|recipient| {
             recipient
                 .parse::<age::x25519::Recipient>()

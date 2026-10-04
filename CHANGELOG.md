@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.7
+
+- **WireGuard tunnels** — client configurations and their peers now belong to the tunnel. You can save or import configurations before assigning them to VLAN members. Revoking an assignment keeps the configuration on the tunnel.
+- **Profile age encryption** — added multiple age recipients per Profile. Ordinary subscriptions are encrypted to the selected recipients. VLAN requests on an encrypted Profile also require the requesting supplicant to be a Profile recipient, and the response is encrypted to that supplicant alone.
+- **Client compatibility** — added an opt-in Profile setting for clients that cannot load age-encrypted subscriptions. A matching supplicant private key in the User-Agent returns uncached YAML after the usual Profile and VLAN authorization checks.
+- **Workspace UI** — added encryption indicators on Profile cards and recipient selection with load-error recovery in the Profile editor. Updated the VLAN member and WireGuard configuration controls.
+- **Subscription refresh** — require valid Clash YAML with a non-empty `proxies` list. Failed refreshes keep the last successful content and traffic metadata available for muxing and record the latest failure in `last_sync_error`. A successful refresh clears the error.
+- **Subscription source cards** — update sync status without a page reload. On failure, the status indicator turns red and a separate action shows the error type, timestamp, HTTP status, response headers, and up to 64 KiB of response body when available. Cards stay ordered by creation time, oldest first.
+- **Database upgrade** — moved existing WireGuard configs and peers to their tunnels while preserving member assignments. Added Profile recipient links and the compatibility setting, which defaults to off.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.7`.
+
 ## 0.4.6
 
 - **VLAN tunnels** — replaced VLAN-level EasyTier gateways with named tunnels. Each VLAN keeps destination CIDRs and a member list, and each tunnel grants a subset of those members. EasyTier Portal tunnels keep the IPv4 /24 pool, server key, and per-grant slot ranges. WireGuard tunnels store one client configuration per grant, including an imported Interface and its Peers.

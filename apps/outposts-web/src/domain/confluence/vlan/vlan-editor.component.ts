@@ -26,6 +26,7 @@ import {
   lucideX,
 } from "@ng-icons/lucide";
 import { finalize } from "rxjs";
+import { v7 as uuidv7 } from "uuid";
 import { AppActionComponent } from "../../../components/ui/app-action.component";
 import { HlmBadge } from "@/components/ui/badge";
 import { HlmButton } from "@/components/ui/button";
@@ -35,7 +36,7 @@ import { HlmSwitchImports } from "@/components/ui/switch";
 import type { VlanNetwork } from "../bindings/VlanNetwork";
 import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import type { VlanTunnel } from "../bindings/VlanTunnel";
-import type { WireGuardTunnelGrant } from "../bindings/WireGuardTunnelGrant";
+import type { WireGuardClientConfig } from "../bindings/WireGuardClientConfig";
 import { ConfluenceService } from "../confluence.service";
 import { CidrListInputComponent } from "./cidr-list-input.component";
 import { CidrDirective } from "./cidr.directive";
@@ -43,12 +44,13 @@ import { VlanNameDirective } from "./vlan-name.directive";
 import { parseWireGuardClient, parseWireGuardImport } from "./wireguard-import";
 
 type Portal = Extract<VlanTunnel, { type: "easytier-gateway" }>;
-type ImportTarget = Portal | WireGuardTunnelGrant;
+type WireGuardTunnel = Extract<VlanTunnel, { type: "wireguard-compatible" }>;
+type ImportTarget = Portal | WireGuardClientConfig;
 
 /** A destructive draft change waiting for an inline confirmation. */
 type PendingRemoval =
   | { kind: "member"; id: string }
-  | { kind: "grant"; tunnel: VlanTunnel; id: string }
+  | { kind: "config"; tunnel: WireGuardTunnel; config: WireGuardClientConfig }
   | { kind: "tunnel"; tunnel: VlanTunnel };
 
 const REVIEW_NOTICES = new Set(["reviewPortal", "reviewClient", "wildcard"]);
@@ -184,14 +186,20 @@ export class VlanEditorComponent implements OnInit {
             allowed_ips: [],
             has_private_key: false,
           }
-        : { ...common, type },
+        : { ...common, type, configs: [] },
     );
   }
 
   requestRemoveTunnel(tunnel: VlanTunnel) {
-    // Persisted or granted tunnels carry credentials, so dropping them needs a confirmation.
-    if (tunnel.id || tunnel.grants.length) this.pendingRemoval.set({ kind: "tunnel", tunnel });
-    else this.removeTunnel(tunnel);
+    if (
+      tunnel.id ||
+      tunnel.grants.length ||
+      (tunnel.type === "wireguard-compatible" && tunnel.configs.length)
+    ) {
+      this.pendingRemoval.set({ kind: "tunnel", tunnel });
+    } else {
+      this.removeTunnel(tunnel);
+    }
   }
 
   removeTunnel(tunnel: VlanTunnel) {
@@ -199,54 +207,51 @@ export class VlanEditorComponent implements OnInit {
     this.pendingRemoval.set(null);
   }
 
-  availableTunnelMembers(tunnel: VlanTunnel) {
-    return this.members.filter((identity) => !this.hasGrant(tunnel, identity.id));
-  }
-
   hasGrant(tunnel: VlanTunnel, id: string) {
     return tunnel.grants.some((grant) => grant.supplicant_id === id);
   }
 
-  toggleGrant(tunnel: VlanTunnel, id: string) {
-    if (!this.hasGrant(tunnel, id)) {
-      this.addTunnelGrant(tunnel, id);
-      return;
-    }
-    const grant = tunnel.grants.find((item) => item.supplicant_id === id);
-    const holdsCredentials =
-      tunnel.type === "wireguard-compatible" &&
-      grant &&
-      "peers" in grant &&
-      (grant.has_private_key || !!grant.private_key || grant.peers.length > 0);
-    if (holdsCredentials) this.pendingRemoval.set({ kind: "grant", tunnel, id });
-    else this.removeGrant(tunnel, id);
-  }
-
-  addTunnelGrant(tunnel: VlanTunnel, supplicantId: string) {
-    // Grants are only valid for VLAN members, and at most one per member and tunnel.
-    if (!this.isMember(supplicantId) || this.hasGrant(tunnel, supplicantId)) return;
-    if (tunnel.type === "easytier-gateway") {
-      tunnel.grants.push({ supplicant_id: supplicantId, slots: "2-254" });
-    } else {
-      tunnel.grants.push({
-        supplicant_id: supplicantId,
-        addresses: [""],
-        mtu: null,
-        persistent_keepalive: null,
-        has_private_key: false,
-        peers: [],
-      });
-    }
-  }
-
-  removeGrant(tunnel: VlanTunnel, id: string) {
+  togglePortalGrant(tunnel: Portal, id: string) {
     const index = tunnel.grants.findIndex((grant) => grant.supplicant_id === id);
-    if (index >= 0) tunnel.grants.splice(index, 1);
+    if (index >= 0) {
+      tunnel.grants.splice(index, 1);
+    } else if (this.isMember(id)) {
+      tunnel.grants.push({ supplicant_id: id, slots: "2-254" });
+    }
+  }
+
+  addWireGuardConfig(tunnel: WireGuardTunnel) {
+    tunnel.configs.push({
+      id: uuidv7(),
+      addresses: [""],
+      mtu: null,
+      persistent_keepalive: null,
+      has_private_key: false,
+      peers: [],
+    });
+  }
+
+  wireGuardAssignee(tunnel: WireGuardTunnel, config: WireGuardClientConfig) {
+    return tunnel.grants.find((grant) => grant.config_id === config.id)?.supplicant_id ?? "";
+  }
+
+  assignWireGuardConfig(tunnel: WireGuardTunnel, config: WireGuardClientConfig, id: string) {
+    if (id === this.wireGuardAssignee(tunnel, config)) return;
+    if (id && (!this.isMember(id) || this.hasGrant(tunnel, id))) return;
+    tunnel.grants = tunnel.grants.filter((grant) => grant.config_id !== config.id);
+    if (id) {
+      tunnel.grants.push({ supplicant_id: id, config_id: config.id });
+    }
+  }
+
+  removeWireGuardConfig(tunnel: WireGuardTunnel, config: WireGuardClientConfig) {
+    tunnel.configs = tunnel.configs.filter((item) => item !== config);
+    tunnel.grants = tunnel.grants.filter((grant) => grant.config_id !== config.id);
     this.pendingRemoval.set(null);
   }
 
-  addPeer(grant: WireGuardTunnelGrant) {
-    grant.peers.push({
+  addPeer(config: WireGuardClientConfig) {
+    config.peers.push({
       server: "",
       port: 51820,
       public_key: "",
@@ -285,14 +290,14 @@ export class VlanEditorComponent implements OnInit {
     return true;
   }
 
-  importClient(grant: WireGuardTunnelGrant, config: string): boolean {
-    const result = parseWireGuardClient(config);
+  importClient(config: WireGuardClientConfig, content: string): boolean {
+    const result = parseWireGuardClient(content);
     if (!result.ok) {
-      this.importNotice.set({ target: grant, key: result.error });
+      this.importNotice.set({ target: config, key: result.error });
       return false;
     }
-    Object.assign(grant, result.settings);
-    this.importNotice.set({ target: grant, key: "reviewClient" });
+    Object.assign(config, result.settings);
+    this.importNotice.set({ target: config, key: "reviewClient" });
     this.importing.set(null);
     return true;
   }
@@ -310,7 +315,7 @@ export class VlanEditorComponent implements OnInit {
     this.error.set(false);
     const routes = this.network.tunnels.flatMap((tunnel) => {
       if (tunnel.type === "wireguard-compatible") {
-        return tunnel.grants.flatMap((grant) => grant.peers.flatMap((peer) => peer.allowed_ips));
+        return tunnel.configs.flatMap((config) => config.peers.flatMap((peer) => peer.allowed_ips));
       }
       const subnet = tunnel.subnet.trim();
       return subnet ? [...tunnel.allowed_ips, subnet] : tunnel.allowed_ips;
@@ -335,7 +340,7 @@ export class VlanEditorComponent implements OnInit {
     return this.network.tunnels.some(
       (tunnel) =>
         tunnel.type === "wireguard-compatible" &&
-        tunnel.grants.some((grant) => !grant.addresses.length || !grant.peers.length),
+        tunnel.configs.some((config) => !config.addresses.length || !config.peers.length),
     );
   }
 
@@ -343,10 +348,8 @@ export class VlanEditorComponent implements OnInit {
   blocker(form: NgForm): string | undefined {
     if (form.invalid) return "invalid";
     if (this.incompleteWireGuard) return "incompleteWireGuard";
-    // Mirrors the backend rule so the user learns why before a round trip fails.
-    const { enabled, tunnels, accept_supplicants, routes } = this.network;
-    if (enabled && (!tunnels.length || !accept_supplicants.length || !routes.length))
-      return "enabledIncomplete";
+    const { enabled, tunnels, routes } = this.network;
+    if (enabled && (!tunnels.length || !routes.length)) return "enabledIncomplete";
     return undefined;
   }
 

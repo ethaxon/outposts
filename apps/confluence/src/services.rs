@@ -1,21 +1,22 @@
 use crate::auth::CurrentUser;
+use crate::clash::ClashConfig;
 use crate::clash::http::{
     SUB_DOWNLOAD, SUB_EXPIRE, SUB_TOTAL, SUB_UPLOAD, SUBSCRIPTION_USERINFO_HEADER,
 };
-use crate::clash::{ClashConfig, parse_subscription_userinfo_in_header};
 use crate::config::AppConfig;
 use crate::dto::{
     ConfluenceUpdateCronDto, ProfileUpdateDto, SubscribeSourceCreationDto, SubscribeSourceDto,
     SubscribeSourceUpdateDto,
 };
 use crate::error::ConfigError;
-use crate::models::{confluence_vlan, subscribe_source};
+use crate::models::{confluence_vlan, profile_supplicant, subscribe_source, vlan_supplicant};
 use crate::mux::mux_configs;
 use crate::profile_script::{
     apply_profile_transform_script_transpiled, build_profile_script_request,
     compile_profile_transform_script,
 };
-use crate::vlan::apply_vlan_subscription;
+pub use crate::subscribe_source_sync::sync_one_subscribe_source_with_url;
+use crate::vlan::{parse_request, redact_subscription_user_agent, render_subscription};
 use crate::{
     dto::ProfileCreationDto,
     error::AppError,
@@ -36,7 +37,10 @@ use futures::future::try_join_all;
 use itertools::{Itertools, izip};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::*;
-use sea_orm::{IntoActiveModel, QuerySelect, TryIntoModel};
+use sea_orm::{
+    AccessMode, IntoActiveModel, IsolationLevel, JoinType, QuerySelect, TransactionTrait,
+    TryIntoModel,
+};
 use securitydept_core::oauth_resource_server::OAuthResourceServerVerifier;
 use securitydept_core::token_set_context::access_token_substrate::{
     AccessTokenSubstrateResourceService, AccessTokenSubstrateRuntime,
@@ -90,7 +94,7 @@ impl AppState {
 }
 
 pub async fn find_one_confluence_in_db(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     id: uuid::Uuid,
     current_user: &CurrentUser,
 ) -> Result<confluence::Model, AppError> {
@@ -111,7 +115,7 @@ pub async fn find_certain_confluence_profiles_and_subscribe_sources(
         profile::Entity::find()
             .filter(profile::Column::ConfluenceId.eq(id))
             .all(db),
-        subscribe_source::Entity::find()
+        subscribe_source::Entity::in_creation_order()
             .filter(subscribe_source::Column::ConfluenceId.eq(id))
             .all(db)
     )
@@ -129,52 +133,6 @@ pub(crate) async fn passive_sync_one_subscribe_source_with_url(
     sync_one_subscribe_source_with_url(sm, ua, db).await
 }
 
-pub async fn sync_one_subscribe_source_with_url(
-    sm: subscribe_source::Model,
-    ua: &str,
-    db: &DatabaseConnection,
-) -> Result<subscribe_source::Model, AppError> {
-    let mut client_builder = reqwest::ClientBuilder::new().user_agent(ua);
-
-    if let Some(proxy_server) = &sm.proxy_server
-        && !proxy_server.is_empty()
-    {
-        let mut proxy = reqwest::Proxy::all(proxy_server)?;
-        if let Some(proxy_auth) = &sm.proxy_auth
-            && !proxy_auth.is_empty()
-        {
-            proxy = proxy.custom_http_auth(
-                HeaderValue::from_str(proxy_auth).map_err(|_| AppError::InvalidProxyAuthHeader)?,
-            );
-        }
-        client_builder = client_builder.proxy(proxy);
-    }
-
-    let client = client_builder.build()?;
-    let res = client.get(&sm.url).send().await?;
-    let mut sm = sm.into_active_model();
-    if let Some(sub_userinfo) = parse_subscription_userinfo_in_header(res.headers()) {
-        if let Some(v) = sub_userinfo.get(SUB_DOWNLOAD) {
-            sm.sub_download = Set(Some(*v));
-        };
-        if let Some(v) = sub_userinfo.get(SUB_UPLOAD) {
-            sm.sub_upload = Set(Some(*v));
-        };
-        if let Some(v) = sub_userinfo.get(SUB_TOTAL) {
-            sm.sub_total = Set(Some(*v));
-        };
-        if let Some(v) = sub_userinfo.get(SUB_EXPIRE)
-            && let Some(ts) = chrono::DateTime::from_timestamp(*v, 0)
-        {
-            sm.sub_expire = Set(Some(ts.naive_utc()));
-        };
-    };
-    let content = res.text().await?;
-    sm.content = Set(content);
-    let sm = sm.update(db).await?;
-    Ok(sm)
-}
-
 pub async fn find_one_confluence(
     Path(id): Path<uuid::Uuid>,
     Extension(current_user): Extension<CurrentUser>,
@@ -190,7 +148,8 @@ pub async fn find_one_confluence(
         .await?
         .pop()
         .unwrap_or_default();
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
+    let profiles = profile_supplicant::Entity::load_profiles(db, pms).await?;
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, profiles, vlan_ids);
     Ok(Json(confluence_dto))
 }
 
@@ -207,12 +166,28 @@ pub async fn find_many_confluences(
     let cms = cms?;
     let (pms, sms, vlan_ids) = tokio::try_join!(
         async { Ok::<_, AppError>(cms.load_many(models::profile::Entity, db).await?) },
-        async { Ok::<_, AppError>(cms.load_many(models::subscribe_source::Entity, db).await?) },
+        async {
+            Ok::<_, AppError>(
+                cms.load_many(subscribe_source::Entity::in_creation_order(), db)
+                    .await?,
+            )
+        },
         confluence_vlan::Entity::load_ids_for_workspaces(db, &cms),
     )?;
 
+    let profiles = pms.iter().flatten().cloned().collect::<Vec<_>>();
+    let mut recipient_ids = profile_supplicant::Entity::load_ids(db, &profiles)
+        .await?
+        .into_iter();
     let confluences_dto = izip!(cms, pms, sms, vlan_ids)
-        .map(|(cm, pms, sms, ids)| ConfluenceDto::from_orm(cm, sms, pms, ids))
+        .map(|(cm, pms, sms, ids)| {
+            let profiles = pms
+                .into_iter()
+                .zip(recipient_ids.by_ref())
+                .map(ProfileDto::from)
+                .collect();
+            ConfluenceDto::from_orm(cm, sms, profiles, ids)
+        })
         .collect();
 
     Ok(Json(confluences_dto))
@@ -274,7 +249,8 @@ pub async fn update_one_confluence(
         .await?
         .pop()
         .unwrap_or_default();
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
+    let profiles = profile_supplicant::Entity::load_profiles(db, pms).await?;
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, profiles, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -339,7 +315,8 @@ pub async fn sync_one_confluence(
         .await?
         .pop()
         .unwrap_or_default();
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
+    let profiles = profile_supplicant::Entity::load_profiles(db, pms).await?;
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, profiles, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -372,7 +349,8 @@ pub async fn mux_one_confluence_impl(
             }
             .into());
         }
-        let config: ClashConfig = serde_yaml::from_str(source).map_err(ConfigError::from)?;
+        let document = serde_yaml::from_str(source).map_err(ConfigError::from)?;
+        let config = ClashConfig::from_source_document(document).map_err(ConfigError::from)?;
         sub_upload = match (sub_upload, sm.sub_upload) {
             (None, None) => None,
             (acc, curr) => Some(acc.unwrap_or_default() + curr.unwrap_or_default()),
@@ -432,7 +410,8 @@ pub async fn mux_one_confluence(
         .await?
         .pop()
         .unwrap_or_default();
-    let confluence_dto = ConfluenceDto::from_orm(cm, sms, pms, vlan_ids);
+    let profiles = profile_supplicant::Entity::load_profiles(db, pms).await?;
+    let confluence_dto = ConfluenceDto::from_orm(cm, sms, profiles, vlan_ids);
 
     Ok(Json(confluence_dto))
 }
@@ -456,18 +435,38 @@ pub async fn find_one_profile_as_subscription_by_token(
     uri: Uri,
     body: Bytes,
 ) -> Result<(HeaderMap, String), AppError> {
+    let user_agent = request_headers
+        .get(header::USER_AGENT)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    let subscription_request = parse_request(user_agent, uri.query().unwrap_or_default())?;
     let db = &state.conn;
+    // Read the Profile allowlist, VLAN grants and age keys at the same point in time.
+    let tx = db
+        .begin_with_config(
+            Some(IsolationLevel::RepeatableRead),
+            Some(AccessMode::ReadOnly),
+        )
+        .await?;
     let mut pms = profile::Entity::find()
         .filter(profile::Column::ResourceToken.eq(&token))
         .find_with_related(confluence::Entity)
         .limit(1)
-        .all(db)
+        .all(&tx)
         .await?;
     if let Some((pm, mut cms)) = pms.pop() {
         let cm = cms.pop().ok_or_else(|| AppError::DbNotFound {
             message: format!("cannot find profile token = {}", token),
         })?;
-        let vlan_config = cm.load_vlan_subscription(db).await?;
+        let vlan_config = cm.load_vlan_subscription(&tx).await?;
+        let profile_supplicants = pm
+            .find_related(vlan_supplicant::Entity)
+            .all(&tx)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        tx.commit().await?;
         let mut headers = HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
@@ -485,14 +484,8 @@ pub async fn find_one_profile_as_subscription_by_token(
             HeaderValue::from_str(&etag).unwrap_or_else(|_| HeaderValue::from_static("\"0\"")),
         );
 
-        // Set Cache-Control to ensure Cloudflare can cache properly and update timely
-        // max-age=0 forces revalidation every time, used with ETag
-        // s-maxage=60 allows CDN to cache for 60 seconds
-        // must-revalidate ensures revalidation is required after expiration
-        headers.insert(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("max-age=0, s-maxage=60, must-revalidate"),
-        );
+        // Revalidate plaintext subscriptions so a newly encrypted Profile cannot be served from cache.
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
         let sub_expr_to_part = |a: DateTime| {
             let ts = a.and_utc().timestamp();
             format!("{SUB_EXPIRE}={ts}")
@@ -525,7 +518,13 @@ pub async fn find_one_profile_as_subscription_by_token(
             pam.save(db).await?;
         }
 
-        if transform_script_transpiled.is_some() || vlan_config.is_some() {
+        if transform_script_transpiled.is_some()
+            || vlan_config.is_some()
+            || !profile_supplicants.is_empty()
+            || subscription_request
+                .as_ref()
+                .is_some_and(|request| request.uses_unsafe_key())
+        {
             // Supplicant-specific credentials and randomized ciphertext must bypass shared caches.
             headers.insert(
                 header::CACHE_CONTROL,
@@ -535,20 +534,21 @@ pub async fn find_one_profile_as_subscription_by_token(
             headers.remove(header::ETAG);
         }
         let mux_content = if let Some(script) = transform_script_transpiled.as_deref() {
-            let request = build_profile_script_request(&request_headers, &uri, &body);
+            let mut request = build_profile_script_request(&request_headers, &uri, &body);
+            if let Some(user_agent) = request.headers.get_mut("user-agent") {
+                // Profile transforms may serialize the request context into the output.
+                *user_agent = redact_subscription_user_agent(user_agent).into_owned();
+            }
             apply_profile_transform_script_transpiled(script, &cm.mux_content, request)?
         } else {
             cm.mux_content
         };
-        let user_agent = request_headers
-            .get(header::USER_AGENT)
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default();
-        let mux_content = apply_vlan_subscription(
+        let mux_content = render_subscription(
             &mux_content,
             vlan_config.as_ref(),
-            user_agent,
-            uri.query().unwrap_or_default(),
+            &profile_supplicants,
+            subscription_request,
+            pm.allow_unsafe_age_private_key,
         )?;
         Ok((headers, mux_content))
     } else {
@@ -563,24 +563,35 @@ pub async fn create_one_profile(
     Extension(current_user): Extension<CurrentUser>,
     Json(profile_creation_dto): Json<ProfileCreationDto>,
 ) -> Result<Json<ProfileDto>, AppError> {
-    let db = &state.conn;
-    find_one_confluence_in_db(db, profile_creation_dto.confluence_id, &current_user).await?;
+    let tx = state.conn.begin().await?;
+    find_one_confluence_in_db(&tx, profile_creation_dto.confluence_id, &current_user).await?;
     let transform_script_transpiled = profile_creation_dto
         .transform_script
         .as_deref()
         .map(compile_profile_transform_script)
         .transpose()?
         .flatten();
-    let mut pms = profile::ActiveModel {
+    let profile = profile::ActiveModel {
         resource_token: Set(Uuid::new_v4().to_string()),
         confluence_id: Set(profile_creation_dto.confluence_id),
         transform_script: Set(profile_creation_dto.transform_script),
         transform_script_transpiled: Set(transform_script_transpiled),
+        allow_unsafe_age_private_key: Set(profile_creation_dto
+            .allow_unsafe_age_private_key
+            .unwrap_or_default()),
         ..Default::default()
-    };
-    pms = pms.save(db).await?;
-    let pms = pms.try_into_model()?;
-    Ok(Json(pms.into()))
+    }
+    .insert(&tx)
+    .await?;
+    let age_supplicant_ids = profile_supplicant::Entity::replace_for_profile(
+        &tx,
+        &profile,
+        &current_user.user_id,
+        profile_creation_dto.age_supplicant_ids.unwrap_or_default(),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(Json((profile, age_supplicant_ids).into()))
 }
 
 pub async fn update_one_profile(
@@ -589,28 +600,39 @@ pub async fn update_one_profile(
     Extension(current_user): Extension<CurrentUser>,
     Json(profile_update_dto): Json<ProfileUpdateDto>,
 ) -> Result<Json<ProfileDto>, AppError> {
-    let db = &state.conn;
-    let mut pm = profile::Entity::find_by_id(id)
-        .find_with_related(confluence::Entity)
+    let tx = state.conn.begin().await?;
+    let pm = profile::Entity::find_by_id(id)
+        .join(JoinType::InnerJoin, profile::Relation::Confluence.def())
         .filter(confluence::Column::Creator.eq(&current_user.user_id))
-        .limit(1)
-        .all(db)
-        .await?;
-    if let Some((pm, _)) = pm.pop() {
-        let mut pam = pm.into_active_model();
-        if let Some(transform_script) = profile_update_dto.transform_script {
-            let transform_script_transpiled = compile_profile_transform_script(&transform_script)?;
-            pam.transform_script = Set(Some(transform_script));
-            pam.transform_script_transpiled = Set(transform_script_transpiled);
-        }
-        let pam = pam.save(db).await?;
-        let pm = pam.try_into_model()?;
-        Ok(Json(pm.into()))
-    } else {
-        Err(AppError::DbNotFound {
-            message: format!("cannot find profile id = {}", id),
-        })
+        .lock_exclusive()
+        .one(&tx)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("cannot find profile id = {id}")))?;
+    let mut active = pm.clone().into_active_model();
+    if let Some(transform_script) = profile_update_dto.transform_script {
+        let transform_script_transpiled = compile_profile_transform_script(&transform_script)?;
+        active.transform_script = Set(Some(transform_script));
+        active.transform_script_transpiled = Set(transform_script_transpiled);
     }
+    if let Some(allow) = profile_update_dto.allow_unsafe_age_private_key {
+        active.allow_unsafe_age_private_key = Set(allow);
+    }
+    let pm = if active.is_changed() {
+        active.update(&tx).await?
+    } else {
+        pm
+    };
+    let age_supplicant_ids = if let Some(ids) = profile_update_dto.age_supplicant_ids {
+        profile_supplicant::Entity::replace_for_profile(&tx, &pm, &current_user.user_id, ids)
+            .await?
+    } else {
+        profile_supplicant::Entity::load_ids(&tx, std::slice::from_ref(&pm))
+            .await?
+            .pop()
+            .unwrap_or_default()
+    };
+    tx.commit().await?;
+    Ok(Json((pm, age_supplicant_ids).into()))
 }
 
 pub async fn delete_one_profile(
@@ -748,7 +770,7 @@ pub async fn sync_one_subscribe_source(
     State(state): State<Arc<AppState>>,
     Extension(current_user): Extension<CurrentUser>,
     Path(id): Path<uuid::Uuid>,
-) -> Result<(), AppError> {
+) -> Result<Json<SubscribeSourceDto>, AppError> {
     let db = &state.conn;
     let mut pm = subscribe_source::Entity::find_by_id(id)
         .find_with_related(confluence::Entity)
@@ -759,8 +781,8 @@ pub async fn sync_one_subscribe_source(
 
     if let Some((sm, cm)) = pm.pop() {
         let cm = &cm[0];
-        sync_one_subscribe_source_with_url(sm, &cm.user_agent, db).await?;
-        Ok(())
+        let sm = sync_one_subscribe_source_with_url(sm, &cm.user_agent, db).await?;
+        Ok(Json(sm.into()))
     } else {
         Err(AppError::DbNotFound {
             message: format!("cannot find subscribe source id = {}", id),

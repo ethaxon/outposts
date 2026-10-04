@@ -1,5 +1,6 @@
 use crate::clash::ProxyServerNameserverPolicySource;
 use crate::models;
+use crate::models::subscribe_source::SubscribeSourceSyncError;
 use crate::scalars::{UuidV4, UuidV7};
 use crate::traffic_reset::SubscribeSourceTrafficResetPolicy;
 use serde::{Deserialize, Serialize};
@@ -22,6 +23,9 @@ pub struct ProfileDto {
     pub transform_script: Option<String>,
     #[ts(optional)]
     pub transform_script_transpiled: Option<String>,
+    #[ts(as = "Vec<UuidV7>")]
+    pub age_supplicant_ids: Vec<uuid::Uuid>,
+    pub allow_unsafe_age_private_key: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -38,6 +42,7 @@ pub struct SubscribeSourceDto {
     pub confluence_id: uuid::Uuid,
     pub name: String,
     pub content: String,
+    pub last_sync_error: Option<SubscribeSourceSyncError>,
     #[ts(type = "number", optional)]
     pub sub_upload: Option<i64>,
     #[ts(type = "number", optional)]
@@ -72,6 +77,7 @@ impl From<models::subscribe_source::Model> for SubscribeSourceDto {
             updated_at: value.updated_at.and_utc().timestamp_millis(),
             name: value.name,
             content: value.content,
+            last_sync_error: value.last_sync_error,
             sub_download: value.sub_download,
             sub_expire: sub_expire_at.map(|s| s.timestamp_millis()),
             sub_total: value.sub_total,
@@ -90,8 +96,8 @@ impl From<models::subscribe_source::Model> for SubscribeSourceDto {
     }
 }
 
-impl From<models::profile::Model> for ProfileDto {
-    fn from(value: models::profile::Model) -> Self {
+impl From<(models::profile::Model, Vec<uuid::Uuid>)> for ProfileDto {
+    fn from((value, age_supplicant_ids): (models::profile::Model, Vec<uuid::Uuid>)) -> Self {
         Self {
             id: value.id,
             confluence_id: value.confluence_id,
@@ -100,6 +106,8 @@ impl From<models::profile::Model> for ProfileDto {
             resource_token: value.resource_token,
             transform_script: value.transform_script,
             transform_script_transpiled: value.transform_script_transpiled,
+            age_supplicant_ids,
+            allow_unsafe_age_private_key: value.allow_unsafe_age_private_key,
         }
     }
 }
@@ -146,7 +154,7 @@ impl ConfluenceDto {
     pub fn from_orm(
         confluence: models::confluence::Model,
         sms: Vec<models::subscribe_source::Model>,
-        pms: Vec<models::profile::Model>,
+        profiles: Vec<ProfileDto>,
         vlan_ids: Vec<uuid::Uuid>,
     ) -> Self {
         Self {
@@ -157,7 +165,7 @@ impl ConfluenceDto {
             creator: confluence.creator,
             mux_content: confluence.mux_content,
             subscribe_sources: sms.into_iter().map(|s| s.into()).collect(),
-            profiles: pms.into_iter().map(|s| s.into()).collect(),
+            profiles,
             name: confluence.name,
             sub_download: confluence.sub_download,
             sub_expire: confluence
@@ -187,6 +195,10 @@ pub struct ProfileCreationDto {
     pub confluence_id: uuid::Uuid,
     #[ts(optional)]
     pub transform_script: Option<String>,
+    #[ts(as = "Option<Vec<UuidV7>>", optional)]
+    pub age_supplicant_ids: Option<Vec<uuid::Uuid>>,
+    #[ts(optional)]
+    pub allow_unsafe_age_private_key: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -194,6 +206,10 @@ pub struct ProfileCreationDto {
 pub struct ProfileUpdateDto {
     #[ts(optional)]
     pub transform_script: Option<String>,
+    #[ts(as = "Option<Vec<UuidV7>>", optional)]
+    pub age_supplicant_ids: Option<Vec<uuid::Uuid>>,
+    #[ts(optional)]
+    pub allow_unsafe_age_private_key: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
@@ -270,6 +286,7 @@ mod tests {
             confluence_id: uuid::Uuid::from_u128(1),
             name: "example".to_string(),
             content: String::new(),
+            last_sync_error: None,
             sub_upload: None,
             sub_download: None,
             sub_total: None,

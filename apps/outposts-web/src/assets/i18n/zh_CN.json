@@ -143,6 +143,19 @@
       "cronHint": "支持 Unix 风格 cron 表达式，最小粒度为小时，例如",
       "profileScriptHint": "脚本接收 ProfileTransformContext，并返回修改后的 ClashMetaConfig；ctx.request 包含 headers、url 与 body。",
       "profileScriptSchemaLink": "Schema 来源",
+      "profileAge": {
+        "title": "age 加密接收者",
+        "hint": "只有选中的 supplicant 能解密此 profile。不选择任何接收方则不加密。",
+        "loading": "正在加载 supplicant…",
+        "loadError": "无法加载 supplicant。",
+        "encrypted": "已加密 · {{count}} 个接收方",
+        "plain": "未加密",
+        "empty": "还没有 supplicant 密钥。",
+        "manage": "管理 supplicant",
+        "retry": "重试",
+        "unsafeCompatibility": "允许不安全的 age 私钥兼容模式",
+        "unsafeHint": "在 User-Agent 中发送匹配的私钥后返回明文。请使用 HTTPS。客户端和代理日志可能记录私钥。"
+      },
       "qrcodeAlt": "配置链接的二维码",
       "dialogs": {
         "editSubscribeSource": "编辑订阅源",
@@ -203,6 +216,22 @@
         "totalTraffic": "总计流量",
         "updatedAt": "更新时间",
         "usedTraffic": "已用流量"
+      },
+      "syncError": {
+        "view": "查看最近的同步错误",
+        "refreshFailed": "有订阅源刷新失败，可通过卡片操作区的错误详情按钮查看。",
+        "headers": "响应头",
+        "body": "响应正文",
+        "emptyBody": "响应正文为空",
+        "truncatedBody": "仅显示响应正文的前 64 KiB。",
+        "types": {
+          "request": "请求失败",
+          "http_status": "HTTP 状态异常",
+          "read_body": "读取响应正文失败",
+          "invalid_yaml": "YAML 格式无效",
+          "missing_proxies": "缺少非空的 proxies 列表",
+          "invalid_config": "Clash 配置无效"
+        }
       },
       "trafficResetPolicy": {
         "default": "默认（按月）",
@@ -274,7 +303,7 @@
         "loading": "正在加载 VLAN…",
         "deleteNetworkHint": "删除此 VLAN 会同时解除所有工作区对它的引用。",
         "members": "允许接入的 supplicant",
-        "removeMemberHint": "移除 {{name}} 会同时删除其 {{count}} 个隧道授权及凭据。",
+        "removeMemberHint": "移除 {{name}} 会同时撤销其 {{count}} 个隧道授权。",
         "tunnels": "隧道",
         "easytier-gateway": "EasyTier Portal",
         "wireguard-compatible": "WireGuard",
@@ -292,11 +321,15 @@
         "tunnelCount": "已在 {{count}} 个隧道中授权",
         "tunnelsHint": "成员接入 VLAN 的方式。EasyTier Portal 按槽位分配地址；WireGuard 隧道为每个成员使用独立的客户端配置。",
         "unnamed": "未命名隧道",
-        "removeTunnelHint": "删除此隧道及其 {{count}} 个授权？保存后已存储的密钥会被丢弃。",
+        "removeTunnelHint": "删除此隧道及其授权和已存储的凭据？",
         "allowedIps": "AllowedIPs",
         "access": "访问权限",
         "accessEmpty": "先在上方添加 VLAN 成员，再在这里授权。",
-        "removeGrantHint": "从此隧道移除 {{name}} 的 WireGuard 凭据？",
+        "addClientConfig": "添加客户端配置",
+        "clientConfig": "WireGuard 客户端",
+        "unassignedClient": "未分配",
+        "assignClient": "VLAN 成员",
+        "removeClientConfig": "删除这份 WireGuard 配置及其凭据，并撤销关联的访问权限？",
         "peerCount": "{{count}} 个 Peer",
         "mtu": "MTU",
         "keepalive": "PersistentKeepalive（秒）",
@@ -309,8 +342,8 @@
         "routesHint": "发往这些 CIDR 的流量会路由进 VLAN，需覆盖所有隧道的 AllowedIPs。",
         "blockers": {
           "invalid": "请先修正标红的字段。",
-          "incompleteWireGuard": "每个 WireGuard 成员都需要至少一个地址和一个 Peer。",
-          "enabledIncomplete": "启用的 VLAN 至少需要一个成员、一个隧道和一个 CIDR。"
+          "incompleteWireGuard": "每份 WireGuard 配置都需要至少一个地址和一个 Peer。",
+          "enabledIncomplete": "启用的 VLAN 至少需要一个隧道和一个 CIDR。"
         },
         "unsavedLinks": "VLAN 关联未保存",
         "linkNetwork": "将 {{name}} 关联到此工作区",

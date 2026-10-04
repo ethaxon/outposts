@@ -1,6 +1,6 @@
 [package]
 name = "confluence"
-version = "0.4.6"
+version = "0.4.7"
 edition = "2024"
 
 [lib]
@@ -22,7 +22,6 @@ uuid = { version = "1", features = [
 addr = "0.15"
 url = "2"
 axum = "0.8"
-axum-extra = "0.12"
 boa_engine = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 openidconnect = { version = "4", features = ["reqwest"] }

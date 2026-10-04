@@ -292,6 +292,7 @@ mod tests {
             confluence_id: uuid::Uuid::nil(),
             name: name.to_string(),
             content: String::new(),
+            last_sync_error: None,
             sub_upload: None,
             sub_download: None,
             sub_total: None,

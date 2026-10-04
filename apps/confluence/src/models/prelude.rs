@@ -3,6 +3,7 @@
 pub use super::confluence::Entity as Confluence;
 pub use super::confluence_vlan::Entity as ConfluenceVlan;
 pub use super::profile::Entity as Profile;
+pub use super::profile_supplicant::Entity as ProfileSupplicant;
 pub use super::subscribe_source::Entity as SubscribeSource;
 pub use super::vlan_grant::Entity as VlanGrant;
 pub use super::vlan_network::Entity as VlanNetwork;
@@ -10,4 +11,5 @@ pub use super::vlan_route::Entity as VlanRoute;
 pub use super::vlan_supplicant::Entity as VlanSupplicant;
 pub use super::vlan_tunnel::Entity as VlanTunnel;
 pub use super::vlan_tunnel_grant::Entity as VlanTunnelGrant;
+pub use super::vlan_wireguard_config::Entity as VlanWireguardConfig;
 pub use super::vlan_wireguard_peer::Entity as VlanWireguardPeer;

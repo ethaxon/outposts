@@ -1,7 +1,6 @@
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use reqwest::Error as FetchError;
 use sea_orm::{DbErr, SqlErr};
 use securitydept_core::oauth_resource_server::OAuthResourceServerError;
 use securitydept_core::token_set_context::access_token_substrate::AccessTokenSubstrateResourceServiceError;
@@ -53,14 +52,10 @@ pub enum AppError {
     DbNotFound { message: String },
     #[snafu(display("config error: {source}"))]
     Config { source: ConfigError },
-    #[snafu(display("fetch error: {source}"))]
-    Fetch { source: FetchError },
     #[snafu(display("UNAUTHORIZED: caused by {message}"))]
     Unauthorized { message: String },
     #[snafu(display("{message}"))]
     BadRequest { message: String },
-    #[snafu(display("Invalid proxy auth header"))]
-    InvalidProxyAuthHeader,
     #[snafu(display("internal error: {message}"))]
     Internal { message: String },
 }
@@ -74,12 +69,6 @@ impl From<DbErr> for AppError {
 impl From<ConfigError> for AppError {
     fn from(source: ConfigError) -> Self {
         Self::Config { source }
-    }
-}
-
-impl From<FetchError> for AppError {
-    fn from(source: FetchError) -> Self {
-        Self::Fetch { source }
     }
 }
 
@@ -192,9 +181,7 @@ impl IntoResponse for AppError {
             Self::Config { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
-            Self::Fetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Self::BadRequest { .. } => StatusCode::BAD_REQUEST,
-            Self::InvalidProxyAuthHeader => StatusCode::BAD_REQUEST,
         };
         let error_msg = self.to_string();
 

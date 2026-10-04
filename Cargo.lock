@@ -618,27 +618,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-extra"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be44683b41ccb9ab2d23a5230015c9c3c55be97a25e4428366de8873103f7970"
-dependencies = [
- "axum",
- "axum-core",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-body-util",
- "mime",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
 name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1225,12 +1204,11 @@ dependencies = [
 
 [[package]]
 name = "confluence"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "addr",
  "age",
  "axum",
- "axum-extra",
  "base64 0.23.1",
  "boa_engine",
  "chrono",

@@ -18,6 +18,10 @@ mod m20260430_000003_subscribe_source_traffic_next_reset_at;
 mod m20261117_000001_uuidv7_primary_keys;
 mod m20261117_000002_confluence_vlan;
 mod m20261120_000001_vlan_tunnels;
+mod m20261120_000002_wireguard_configs;
+mod m20261120_000003_profile_supplicants;
+mod m20261120_000004_profile_unsafe_age;
+mod m20261120_000005_subscribe_source_last_sync_error;
 
 pub struct Migrator;
 
@@ -41,6 +45,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20261117_000001_uuidv7_primary_keys::Migration),
             Box::new(m20261117_000002_confluence_vlan::Migration),
             Box::new(m20261120_000001_vlan_tunnels::Migration),
+            Box::new(m20261120_000002_wireguard_configs::Migration),
+            Box::new(m20261120_000003_profile_supplicants::Migration),
+            Box::new(m20261120_000004_profile_unsafe_age::Migration),
+            Box::new(m20261120_000005_subscribe_source_last_sync_error::Migration),
         ]
     }
 }

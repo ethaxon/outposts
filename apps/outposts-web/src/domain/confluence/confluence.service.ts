@@ -136,7 +136,7 @@ export class ConfluenceService {
   }
 
   syncSubscribeSource(id: string) {
-    return this.httpClient.post(
+    return this.httpClient.post<SubscribeSourceDto>(
       `${environment.CONFLUENCE_API_ENDPOINT}/subscribe_source/sync/${id}`,
       {},
       {

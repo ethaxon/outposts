@@ -10,4 +10,6 @@ export type ProfileDto = {
   resource_token: UUIDV4;
   transform_script?: string;
   transform_script_transpiled?: string;
+  age_supplicant_ids: Array<UUIDV7>;
+  allow_unsafe_age_private_key: boolean;
 };

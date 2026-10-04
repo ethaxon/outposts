@@ -64,7 +64,7 @@
       [attr.aria-label]="!catalog() ? ('confluence.workspace.vlan.loading' | transloco) : null"
     >
       <app-card
-        class="cursor-pointer vlan-card vlan-card-create h-full dark:bg-surface-950"
+        class="cursor-pointer vlan-card vlan-card-create h-full"
         role="button"
         [class.vlan-card-pending]="!catalog()"
         [attr.tabindex]="catalog() ? 0 : -1"
@@ -83,7 +83,7 @@
           @let linked = !!workspaceId() && selected().has(network.id);
           @let types = tunnelTypes(network);
           <app-card
-            class="vlan-card h-full relative dark:bg-surface-950"
+            class="vlan-card h-full relative"
             [class.vlan-card-selected]="linked"
             [class.cursor-pointer]="workspaceId()"
             (click)="toggleSelection(network.id)"
@@ -199,7 +199,7 @@
       } @else {
         <!-- Same anatomy as a VLAN card so nothing shifts when data arrives. -->
         @for (index of skeletons; track index) {
-          <app-card class="vlan-card h-full dark:bg-surface-950" aria-hidden="true">
+          <app-card class="vlan-card h-full" aria-hidden="true">
             <div class="vlan-card-head">
               <app-skeleton width="55%" height="1.125rem" />
               <app-skeleton class="ms-auto" shape="circle" width="3.5rem" height="1.25rem" />
@@ -229,7 +229,7 @@
       </div>
       <div class="vlan-card-grid" [attr.aria-busy]="!catalog()">
         <app-card
-          class="cursor-pointer vlan-card vlan-card-create h-full dark:bg-surface-950"
+          class="cursor-pointer vlan-card vlan-card-create h-full"
           role="button"
           [class.vlan-card-pending]="!catalog()"
           [attr.tabindex]="catalog() ? 0 : -1"
@@ -246,7 +246,7 @@
         @if (catalog()) {
           @for (identity of supplicants(); track identity.id) {
             @let memberships = membershipCount(identity.id);
-            <app-card class="vlan-card h-full relative dark:bg-surface-950">
+            <app-card class="vlan-card h-full relative">
               <div class="vlan-card-head">
                 <ng-icon name="lucideKeyRound" class="text-muted-foreground" aria-hidden="true" />
                 <span class="vlan-card-title">{{ identity.name }}</span>
@@ -312,7 +312,7 @@
           }
         } @else {
           @for (index of skeletons; track index) {
-            <app-card class="vlan-card h-full dark:bg-surface-950" aria-hidden="true">
+            <app-card class="vlan-card h-full" aria-hidden="true">
               <div class="vlan-card-head">
                 <app-skeleton shape="circle" size="1rem" />
                 <app-skeleton width="45%" height="1.125rem" />

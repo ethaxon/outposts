@@ -32,6 +32,7 @@ pub enum Profile {
     ResourceToken,
     TransformScript,
     TransformScriptTranspiled,
+    AllowUnsafeAgePrivateKey,
 }
 
 #[derive(DeriveIden)]
@@ -54,6 +55,55 @@ pub enum SubscribeSource {
     ProxyServerNameserverPolicySource,
     TrafficResetPolicy,
     TrafficNextResetAt,
+    LastSyncError,
+}
+
+#[derive(DeriveIden)]
+pub enum VlanTable {
+    #[sea_orm(iden = "vlan_network")]
+    Network,
+    #[sea_orm(iden = "vlan_grant")]
+    Grant,
+    #[sea_orm(iden = "vlan_gateway")]
+    Gateway,
+    #[sea_orm(iden = "vlan_route")]
+    Route,
+    #[sea_orm(iden = "vlan_tunnel")]
+    Tunnel,
+    #[sea_orm(iden = "vlan_tunnel_grant")]
+    TunnelGrant,
+    #[sea_orm(iden = "vlan_wireguard_config")]
+    WireguardConfig,
+    #[sea_orm(iden = "vlan_wireguard_peer")]
+    WireguardPeer,
+    #[sea_orm(iden = "vlan_supplicant")]
+    Supplicant,
+}
+
+#[derive(DeriveIden, Clone, Copy)]
+pub enum VlanColumn {
+    Id,
+    Creator,
+    VlanId,
+    SupplicantId,
+    TunnelId,
+    ConfigId,
+    GrantId,
+    Cidr,
+    Name,
+    Kind,
+    Server,
+    Port,
+    Subnet,
+    PrivateKey,
+    AllowedIps,
+    Slots,
+    Addresses,
+    Mtu,
+    PersistentKeepalive,
+    Position,
+    PublicKey,
+    PreSharedKey,
 }
 
 pub async fn create_postgres_auto_update_ts_fn(

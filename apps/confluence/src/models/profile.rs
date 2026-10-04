@@ -16,6 +16,7 @@ pub struct Model {
     pub resource_token: String,
     pub transform_script: Option<String>,
     pub transform_script_transpiled: Option<String>,
+    pub allow_unsafe_age_private_key: bool,
     #[sea_orm(
         belongs_to,
         from = "confluence_id",
@@ -24,6 +25,12 @@ pub struct Model {
         on_delete = "Cascade"
     )]
     pub confluence: HasOne<super::confluence::Entity>,
+    #[sea_orm(has_many)]
+    #[serde(skip)]
+    pub recipient_links: HasMany<super::profile_supplicant::Entity>,
+    #[sea_orm(has_many, via = "profile_supplicant")]
+    #[serde(skip)]
+    pub supplicants: HasMany<super::vlan_supplicant::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

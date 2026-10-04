@@ -11,6 +11,7 @@ pub mod services;
 pub mod tasks;
 pub mod traffic_reset;
 
+mod subscribe_source_sync;
 mod subscription_encryption;
 pub mod vlan;
 

@@ -72,9 +72,10 @@ describe("VLAN editor", () => {
         id: "",
         name: "b",
         type: "wireguard-compatible",
-        grants: [
+        grants: [{ supplicant_id: "identity-id", config_id: "client-config" }],
+        configs: [
           {
-            supplicant_id: "identity-id",
+            id: "client-config",
             has_private_key: true,
             addresses: ["192.0.2.2/32"],
             mtu: null,
@@ -104,6 +105,7 @@ describe("VLAN editor", () => {
     component.removeMember("identity-id");
     expect(component.network.accept_supplicants).toEqual([]);
     expect(component.network.tunnels[1].grants).toEqual([]);
+    expect(component.network.tunnels[1]).toMatchObject({ configs: [{ id: "client-config" }] });
   });
 
   it("saves independently and prevents a duplicate update while pending", () => {
@@ -138,7 +140,8 @@ describe("VLAN editor", () => {
 
     component.addTunnel("easytier-gateway");
     const tunnel = component.network.tunnels[0];
-    component.toggleGrant(tunnel, "identity-id");
+    if (tunnel.type !== "easytier-gateway") throw new Error("Expected EasyTier tunnel");
+    component.togglePortalGrant(tunnel, "identity-id");
     expect(component.hasGrant(tunnel, "identity-id")).toBe(true);
 
     component.toggleMember("identity-id");
@@ -146,22 +149,42 @@ describe("VLAN editor", () => {
     expect(component.pendingRemoval()).toEqual({ kind: "member", id: "identity-id" });
   });
 
-  it("only asks before removing WireGuard grants or tunnels that hold credentials", () => {
-    const { component } = harness();
+  it("imports and saves a WireGuard config without a member, then assigns it separately", () => {
+    const { component, service } = harness();
+    component.network.enabled = true;
+    component.network.accept_supplicants = [];
     component.addTunnel("wireguard-compatible");
     const tunnel = component.network.tunnels[0];
+    if (tunnel.type !== "wireguard-compatible") throw new Error("Expected WireGuard tunnel");
+    component.addWireGuardConfig(tunnel);
+    const config = tunnel.configs[0];
+    const key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    const content = [
+      "[Interface]",
+      "PrivateKey = " + key,
+      "Address = 192.0.2.2/32",
+      "[Peer]",
+      "PublicKey = " + key,
+      "AllowedIPs = 10.20.0.0/24",
+      "Endpoint = vpn.example.test:51820",
+    ].join("\n");
 
-    component.toggleGrant(tunnel, "identity-id");
-    component.toggleGrant(tunnel, "identity-id");
-    expect(component.hasGrant(tunnel, "identity-id")).toBe(false);
+    expect(component.importClient(config, content)).toBe(true);
+    const form = { invalid: false } as NgForm;
+    component.submit(form);
+    expect(service.saveVlan).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ accept_supplicants: [], tunnels: [tunnel] }),
+    );
+    expect(tunnel.grants).toEqual([]);
 
-    component.toggleGrant(tunnel, "identity-id");
-    const grant = tunnel.grants[0];
-    if (!("peers" in grant)) throw new Error("Expected WireGuard grant");
-    component.addPeer(grant);
-    component.toggleGrant(tunnel, "identity-id");
-    expect(component.hasGrant(tunnel, "identity-id")).toBe(true);
-    expect(component.isPending({ kind: "grant", tunnel, id: "identity-id" })).toBe(true);
+    component.assignWireGuardConfig(tunnel, config, "identity-id");
+    expect(tunnel.grants).toEqual([]);
+    component.toggleMember("identity-id");
+    component.assignWireGuardConfig(tunnel, config, "identity-id");
+    expect(tunnel.grants).toEqual([{ supplicant_id: "identity-id", config_id: config.id }]);
+    component.assignWireGuardConfig(tunnel, config, "");
+    expect(tunnel.grants).toEqual([]);
+    expect(tunnel.configs).toEqual([config]);
 
     component.requestRemoveTunnel(tunnel);
     expect(component.isPending({ kind: "tunnel", tunnel })).toBe(true);
