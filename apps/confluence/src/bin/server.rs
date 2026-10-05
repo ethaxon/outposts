@@ -13,7 +13,7 @@ use confluence::services::{
     AppState, create_one_confluence, create_one_profile, create_one_subscribe_source,
     delete_one_confluence, delete_one_profile, delete_one_subscribe_source, find_many_confluences,
     find_one_confluence, find_one_profile_as_subscription_by_token, mux_one_confluence,
-    sync_one_confluence, sync_one_subscribe_source, update_one_confluence,
+    preview_one_profile, sync_one_confluence, sync_one_subscribe_source, update_one_confluence,
     update_one_confluence_cron, update_one_profile, update_one_subscribe_source,
 };
 use confluence::tasks::init_backend_jobs;
@@ -218,6 +218,8 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
     let profile_api = Router::<Arc<AppState>>::new()
         .route("/", post(create_one_profile))
         .route("/{id}", put(update_one_profile).delete(delete_one_profile))
+        // Behind `auth` and scoped to the creator; deliberately not on the token API.
+        .route("/{id}/preview", post(preview_one_profile))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
     let subscribe_source_api = Router::<Arc<AppState>>::new()

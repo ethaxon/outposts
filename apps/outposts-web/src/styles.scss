@@ -159,3 +159,12 @@ body {
     color: var(--muted-foreground);
   }
 }
+
+// `app-dialog` with styleClass="app-dialog-fill": the dialog has a fixed height and its
+// projected body fills it as a column (e.g. a full-height editor with a pinned footer),
+// instead of growing and adding a second scrollbar around an editor that scrolls itself.
+// Global because the dialog renders in an overlay portal outside any component host.
+hlm-dialog-content.app-dialog-fill {
+  display: flex;
+  flex-direction: column;
+}

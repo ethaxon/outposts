@@ -5,18 +5,21 @@ use crate::clash::http::{
 };
 use crate::config::AppConfig;
 use crate::dto::{
-    ConfluenceUpdateCronDto, ProfileUpdateDto, SubscribeSourceCreationDto, SubscribeSourceDto,
-    SubscribeSourceUpdateDto,
+    ConfluenceUpdateCronDto, ProfilePreviewDto, ProfilePreviewRequestDto, ProfileUpdateDto,
+    SubscribeSourceCreationDto, SubscribeSourceDto, SubscribeSourceUpdateDto,
 };
 use crate::error::ConfigError;
 use crate::models::{confluence_vlan, profile_supplicant, subscribe_source, vlan_supplicant};
 use crate::mux::mux_configs;
 use crate::profile_script::{
-    apply_profile_transform_script_transpiled, build_profile_script_request,
+    ProfileScriptRequest, apply_profile_transform_script_transpiled, build_profile_script_request,
     compile_profile_transform_script,
 };
 pub use crate::subscribe_source_sync::sync_one_subscribe_source_with_url;
-use crate::vlan::{parse_request, redact_subscription_user_agent, render_subscription};
+use crate::vlan::{
+    PreparedSubscription, SubscriptionRequest, VlanConfig, VlanSupplicant, parse_request,
+    prepare_subscription, redact_subscription_user_agent,
+};
 use crate::{
     dto::ProfileCreationDto,
     error::AppError,
@@ -533,29 +536,148 @@ pub async fn find_one_profile_as_subscription_by_token(
             headers.insert(header::VARY, HeaderValue::from_static("User-Agent"));
             headers.remove(header::ETAG);
         }
-        let mux_content = if let Some(script) = transform_script_transpiled.as_deref() {
-            let mut request = build_profile_script_request(&request_headers, &uri, &body);
-            if let Some(user_agent) = request.headers.get_mut("user-agent") {
-                // Profile transforms may serialize the request context into the output.
-                *user_agent = redact_subscription_user_agent(user_agent).into_owned();
-            }
-            apply_profile_transform_script_transpiled(script, &cm.mux_content, request)?
-        } else {
-            cm.mux_content
-        };
-        let mux_content = render_subscription(
-            &mux_content,
+        let mux_content = prepare_profile_subscription(
+            &cm.mux_content,
+            transform_script_transpiled.as_deref(),
+            build_profile_script_request(&request_headers, &uri, &body),
             vlan_config.as_ref(),
             &profile_supplicants,
             subscription_request,
             pm.allow_unsafe_age_private_key,
-        )?;
+        )?
+        .into_served()?;
         Ok((headers, mux_content))
     } else {
         Err(AppError::DbNotFound {
             message: format!("cannot find profile token = {}", token),
         })
     }
+}
+
+/// The transform → VLAN → recipient pipeline shared by the public subscription
+/// endpoint and the owner preview, stopping before encryption so each caller
+/// decides what to expose. Keeping one implementation is what makes the preview faithful.
+fn prepare_profile_subscription(
+    mux_content: &str,
+    transform_script_transpiled: Option<&str>,
+    mut script_request: ProfileScriptRequest,
+    vlan_config: Option<&VlanConfig>,
+    profile_supplicants: &[VlanSupplicant],
+    subscription_request: Option<SubscriptionRequest>,
+    allow_unsafe_age_private_key: bool,
+) -> Result<PreparedSubscription, AppError> {
+    let content = if let Some(script) = transform_script_transpiled {
+        if let Some(user_agent) = script_request.headers.get_mut("user-agent") {
+            // Profile transforms may serialize the request context into the output.
+            *user_agent = redact_subscription_user_agent(user_agent).into_owned();
+        }
+        apply_profile_transform_script_transpiled(script, mux_content, script_request)?
+    } else {
+        mux_content.to_owned()
+    };
+    prepare_subscription(
+        &content,
+        vlan_config,
+        profile_supplicants,
+        subscription_request,
+        allow_unsafe_age_private_key,
+    )
+}
+
+/// Renders a profile for a simulated request, showing plaintext and served output.
+///
+/// Owner-only by construction: the profile is resolved by id within the caller's
+/// workspaces, never by resource token, so token holders cannot use it to obtain
+/// plaintext or sidestep encryption. Read-only: a missing transpiled script is
+/// compiled in memory, not persisted.
+pub async fn preview_one_profile(
+    Path(id): Path<uuid::Uuid>,
+    State(state): State<Arc<AppState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    Json(preview): Json<ProfilePreviewRequestDto>,
+) -> Result<Json<ProfilePreviewDto>, AppError> {
+    let url = url::Url::parse(&preview.url).map_err(|_| AppError::BadRequest {
+        message: "Preview URL must be an absolute URL".into(),
+    })?;
+    let headers = preview
+        .headers
+        .into_iter()
+        .map(|(name, value)| (name.to_ascii_lowercase(), value))
+        .collect::<std::collections::HashMap<_, _>>();
+    let user_agent = headers
+        .get("user-agent")
+        .map(String::as_str)
+        .unwrap_or_default();
+    let subscription_request = parse_request(user_agent, url.query().unwrap_or_default())?;
+    let supplicant = subscription_request
+        .as_ref()
+        .map(|request| request.supplicant().to_owned());
+    let vlans = subscription_request
+        .as_ref()
+        .map(SubscriptionRequest::vlan_keys)
+        .unwrap_or_default();
+
+    // Same snapshot semantics as the public endpoint.
+    let tx = state
+        .conn
+        .begin_with_config(
+            Some(IsolationLevel::RepeatableRead),
+            Some(AccessMode::ReadOnly),
+        )
+        .await?;
+    let not_found = || AppError::not_found(format!("cannot find profile id = {id}"));
+    let (pm, cm) = profile::Entity::find_by_id(id)
+        .find_also_related(confluence::Entity)
+        .filter(confluence::Column::Creator.eq(&current_user.user_id))
+        .one(&tx)
+        .await?
+        .ok_or_else(not_found)?;
+    let cm = cm.ok_or_else(not_found)?;
+    let vlan_config = cm.load_vlan_subscription(&tx).await?;
+    let profile_supplicants = pm
+        .find_related(vlan_supplicant::Entity)
+        .all(&tx)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>();
+    tx.commit().await?;
+
+    let transform_script_transpiled = match pm.transform_script_transpiled {
+        Some(script) => Some(script),
+        None => pm
+            .transform_script
+            .as_deref()
+            .filter(|script| !script.trim().is_empty())
+            .map(compile_profile_transform_script)
+            .transpose()?
+            .flatten(),
+    };
+    let prepared = prepare_profile_subscription(
+        &cm.mux_content,
+        transform_script_transpiled.as_deref(),
+        ProfileScriptRequest {
+            headers,
+            url: preview.url,
+            body: preview.body.unwrap_or_default(),
+        },
+        vlan_config.as_ref(),
+        &profile_supplicants,
+        subscription_request,
+        pm.allow_unsafe_age_private_key,
+    )?;
+    let encrypted = prepared.encrypt()?;
+    Ok(Json(ProfilePreviewDto {
+        recipients: prepared
+            .recipients
+            .iter()
+            .map(|recipient| recipient.name.clone())
+            .collect(),
+        plaintext: prepared.content,
+        encrypted,
+        supplicant,
+        vlans,
+    }))
 }
 
 pub async fn create_one_profile(

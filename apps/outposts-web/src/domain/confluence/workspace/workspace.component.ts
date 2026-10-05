@@ -13,7 +13,6 @@ import { RxwebValidators } from "@rxweb/reactive-form-validators";
 import { format } from "date-fns";
 import { isEqual } from "es-toolkit";
 import type { editor as MonacoEditor } from "monaco-editor";
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   BehaviorSubject,
   catchError,
@@ -26,6 +25,7 @@ import {
   skip,
   switchMap,
   take,
+  type Subscription,
   tap,
 } from "rxjs";
 import { AppConfigService } from "@/core/servces/app-config.service";
@@ -37,6 +37,7 @@ import { QrcodeService } from "@/tools/qrcode/qrcode.service";
 import type { RecursiveNonNullable } from "@/tools/type-assert";
 import type { ConfluenceDto } from "../bindings/ConfluenceDto";
 import type { ProfileDto } from "../bindings/ProfileDto";
+import type { ProfilePreviewDto } from "../bindings/ProfilePreviewDto";
 import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import type { SubscribeSourceDto } from "../bindings/SubscribeSourceDto";
 import type { SubscribeSourceSyncError } from "../bindings/SubscribeSourceSyncError";
@@ -51,12 +52,17 @@ const DEFAULT_PROFILE_TRANSFORM_SCRIPT = `export default function transform(ctx:
 }
 `;
 
-type ProfileTransformHeaders = Record<string, string>;
-
-type ProfileTransformRequest = {
-  headers: ProfileTransformHeaders;
+/** Draft request + last server render for the Test Profile Transform dialog. */
+type ProfilePreviewState = {
+  profile: ProfileDto;
   url: string;
-  body: string;
+  headersJson: string;
+  /** Inputs changed since the last render; the result no longer matches them. */
+  stale: boolean;
+  loading: boolean;
+  result?: ProfilePreviewDto;
+  view: "plaintext" | "served";
+  error?: string;
 };
 
 @Component({
@@ -89,6 +95,8 @@ export class WorkspaceComponent implements OnInit {
     theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
     language: "yaml",
     automaticLayout: true,
+    // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+    fixedOverflowWidgets: true,
     tabSize: 2,
     insertSpaces: true,
   };
@@ -96,6 +104,8 @@ export class WorkspaceComponent implements OnInit {
     theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
     language: "typescript",
     automaticLayout: true,
+    // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+    fixedOverflowWidgets: true,
     tabSize: 2,
     insertSpaces: true,
     minimap: { enabled: false },
@@ -106,6 +116,8 @@ export class WorkspaceComponent implements OnInit {
       theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
       language: "json",
       automaticLayout: true,
+      // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+      fixedOverflowWidgets: true,
       tabSize: 2,
       insertSpaces: true,
       minimap: { enabled: false },
@@ -117,6 +129,8 @@ export class WorkspaceComponent implements OnInit {
       theme: this.appConfigService.theme() === "dark" ? "vs-dark" : "vs",
       language: "yaml",
       automaticLayout: true,
+      // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+      fixedOverflowWidgets: true,
       tabSize: 2,
       insertSpaces: true,
       readOnly: true,
@@ -226,9 +240,10 @@ export class WorkspaceComponent implements OnInit {
     content: string;
     id: string;
   };
-  readonly subscribeSourceError = signal<{ name: string; error: SubscribeSourceSyncError } | null>(
-    null,
-  );
+  readonly subscribeSourceError = signal<{
+    name: string;
+    error: SubscribeSourceSyncError;
+  } | null>(null);
   urlPreview?: {
     url: string;
     qrcodeDataUrl?: string;
@@ -240,13 +255,9 @@ export class WorkspaceComponent implements OnInit {
     unsafeAgeCompatibility: boolean;
   };
   readonly profileSupplicants = signal<VlanSupplicant[] | null | undefined>(undefined);
-  profileTransformPreview?: {
-    profile: ProfileDto;
-    url: string;
-    headersJson: string;
-    resultYaml: string;
-    error?: string;
-  };
+  // A signal because renders arrive asynchronously and this component is OnPush.
+  readonly profileTransformPreview = signal<ProfilePreviewState | undefined>(undefined);
+  private profilePreviewRequest?: Subscription;
   cronUpdateForm = this.fb.group({
     cronExpr: this.fb.control("", [hourPlusLevelCronExprValidator]),
   });
@@ -331,6 +342,8 @@ export class WorkspaceComponent implements OnInit {
           theme: theme === "dark" ? "vs-dark" : "vs",
           language: "yaml",
           automaticLayout: true,
+          // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+          fixedOverflowWidgets: true,
           tabSize: 2,
           insertSpaces: true,
         };
@@ -338,6 +351,8 @@ export class WorkspaceComponent implements OnInit {
           theme: theme === "dark" ? "vs-dark" : "vs",
           language: "typescript",
           automaticLayout: true,
+          // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+          fixedOverflowWidgets: true,
           tabSize: 2,
           insertSpaces: true,
           minimap: { enabled: false },
@@ -347,6 +362,8 @@ export class WorkspaceComponent implements OnInit {
           theme: theme === "dark" ? "vs-dark" : "vs",
           language: "json",
           automaticLayout: true,
+          // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+          fixedOverflowWidgets: true,
           tabSize: 2,
           insertSpaces: true,
           minimap: { enabled: false },
@@ -357,6 +374,8 @@ export class WorkspaceComponent implements OnInit {
           theme: theme === "dark" ? "vs-dark" : "vs",
           language: "yaml",
           automaticLayout: true,
+          // Let suggest/hover widgets escape clipping (overflow-hidden) containers.
+          fixedOverflowWidgets: true,
           tabSize: 2,
           insertSpaces: true,
           readOnly: true,
@@ -810,72 +829,89 @@ export class WorkspaceComponent implements OnInit {
   }
 
   openProfileTransformPreviewDialog(item: ProfileDto) {
-    this.profileTransformPreview = {
+    this.profileTransformPreview.set({
       profile: item,
       url: this.confluenceService.getProfileUrl(item.resource_token),
-      headersJson: JSON.stringify(
-        {
-          "user-agent": this.window.navigator.userAgent,
-        },
-        null,
-        2,
-      ),
-      resultYaml: "",
-    };
+      headersJson: JSON.stringify({ "user-agent": this.window.navigator.userAgent }, null, 2),
+      stale: true,
+      loading: false,
+      view: "plaintext",
+    });
+    // One render on open so the dialog is useful immediately; later edits wait for Refresh.
     this.refreshProfileTransformPreview();
   }
 
   cancelProfileTransformPreviewDialog() {
-    this.profileTransformPreview = undefined;
+    this.profilePreviewRequest?.unsubscribe();
+    this.profileTransformPreview.set(undefined);
   }
 
-  updateProfileTransformPreviewUrl(url: string) {
-    if (!this.profileTransformPreview) {
-      return;
-    }
-    this.profileTransformPreview.url = url;
-    this.refreshProfileTransformPreview();
+  /** Edits only touch the draft: rendering per keystroke made typing a User-Agent lag. */
+  updateProfileTransformPreviewDraft(
+    patch: Partial<Pick<ProfilePreviewState, "url" | "headersJson">>,
+  ) {
+    this.profileTransformPreview.update(
+      (preview) => preview && { ...preview, ...patch, stale: true },
+    );
   }
 
-  updateProfileTransformPreviewHeaders(headersJson: string) {
-    if (!this.profileTransformPreview) {
-      return;
-    }
-    this.profileTransformPreview.headersJson = headersJson;
-    this.refreshProfileTransformPreview();
+  setProfileTransformPreviewView(view: ProfilePreviewState["view"]) {
+    this.profileTransformPreview.update((preview) => preview && { ...preview, view });
   }
 
   refreshProfileTransformPreview() {
-    const preview = this.profileTransformPreview;
-    const confluence = this.confluence$.getValue();
-    if (!preview || !confluence) {
+    const preview = this.profileTransformPreview();
+    if (!preview) return;
+
+    let headers: Record<string, string>;
+    try {
+      headers = this.parseProfileTransformHeaders(preview.headersJson);
+    } catch (err: unknown) {
+      this.profileTransformPreview.set({
+        ...preview,
+        error: err instanceof Error ? err.message : `${err}`,
+      });
       return;
     }
 
-    try {
-      const script = preview.profile.transform_script_transpiled?.trim();
-      if (!script) {
-        preview.resultYaml = confluence.mux_content;
-        preview.error = this.i18nService.translate(
-          "confluence.workspace.profileTransformPreview.noTranspiledScript",
-        );
-        return;
-      }
-
-      const request: ProfileTransformRequest = {
-        headers: this.parseProfileTransformHeaders(preview.headersJson),
-        url: preview.url,
-        body: "",
-      };
-      preview.resultYaml = this.runProfileTransformScript(script, confluence.mux_content, request);
-      preview.error = undefined;
-    } catch (err: unknown) {
-      preview.resultYaml = confluence.mux_content;
-      preview.error = err instanceof Error ? err.message : `${err}`;
-    }
+    // A newer refresh supersedes one still in flight.
+    this.profilePreviewRequest?.unsubscribe();
+    this.profileTransformPreview.set({
+      ...preview,
+      loading: true,
+      error: undefined,
+    });
+    this.profilePreviewRequest = this.confluenceService
+      .previewProfile(preview.profile.id, { url: preview.url, headers })
+      .pipe(takeUntilDestroyed(this.destoryRef))
+      .subscribe({
+        next: (result) =>
+          this.profileTransformPreview.update(
+            (current) =>
+              current && {
+                ...current,
+                result,
+                // Keep the user's tab unless the served body is now plaintext.
+                view: result.encrypted ? current.view : "plaintext",
+                loading: false,
+                stale: current.url !== preview.url || current.headersJson !== preview.headersJson,
+              },
+          ),
+        error: (err: unknown) =>
+          this.profileTransformPreview.update(
+            (current) =>
+              current && {
+                ...current,
+                loading: false,
+                error:
+                  (err as { error?: { error_msg?: string } })?.error?.error_msg ??
+                  (err instanceof Error ? err.message : `${err}`),
+              },
+          ),
+      });
   }
 
-  private parseProfileTransformHeaders(headersJson: string): ProfileTransformHeaders {
+  private parseProfileTransformHeaders(headersJson: string): Record<string, string> {
     const headers = JSON.parse(headersJson || "{}") as unknown;
     if (!headers || Array.isArray(headers) || typeof headers !== "object") {
       throw new Error(
@@ -888,33 +924,6 @@ export class WorkspaceComponent implements OnInit {
     return Object.fromEntries(
       Object.entries(headers).map(([name, value]) => [name.toLowerCase(), `${value ?? ""}`]),
     );
-  }
-
-  private runProfileTransformScript(
-    script: string,
-    profileYaml: string,
-    request: ProfileTransformRequest,
-  ) {
-    const profile = parseYaml(profileYaml || "{}") ?? {};
-    const context = { request, profile };
-    const execute = new Function(
-      "__ctx",
-      `
-        var __exports = {};
-        ${script}
-        var __fn = __exports.default;
-        if (typeof __fn !== "function") {
-          throw new Error("No default export function found in the profile transform script");
-        }
-        var __result = __fn(__ctx);
-        if (__result && typeof __result.then === "function") {
-          throw new Error("Async profile transform scripts are not supported");
-        }
-        return __result === undefined ? __ctx.profile : __result;
-      `,
-    ) as (profileContext: unknown) => unknown;
-
-    return stringifyYaml(execute(context));
   }
 
   saveCron() {

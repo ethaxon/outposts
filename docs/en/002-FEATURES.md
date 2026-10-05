@@ -37,6 +37,10 @@ Client/1 confluence/supplicant=example-user&vlans=office:100&_unsafe_supplicant_
 
 Confluence checks the key against the supplicant's stored public key and applies the usual Profile and VLAN permissions before returning plaintext YAML. It rejects this parameter in URL queries and excludes it from Profile transforms. Requests without the parameter keep the normal subscription format. Client and reverse-proxy logs may capture User-Agent headers. Use a dedicated key for this mode.
 
+### Testing a Profile
+
+**Test Profile Transform** on a Profile card renders the saved Profile on the server through the same pipeline as its subscription URL. Edit the request URL (including any `vlans`/`supplicant` query) and headers such as `User-Agent`, then select **Refresh**. The result shows the YAML before encryption and the body actually served, with the supplicant, VLANs and age recipients the request resolved to. Only the workspace creator can use it: the preview is addressed by Profile id behind sign-in and never accepts a Profile token.
+
 ## VLAN subscriptions
 
 Open **Apps → Confluence → VLAN**. A workspace can link multiple VLANs. Each VLAN defines destination CIDRs and an allowed supplicant list. Each tunnel grants access to a subset of that list. Removing a VLAN member revokes their tunnel grants.

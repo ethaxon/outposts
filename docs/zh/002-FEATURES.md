@@ -34,6 +34,10 @@ Client/1 confluence/supplicant=example-user&vlans=office:100&_unsafe_supplicant_
 
 Confluence 会用该 supplicant 的公钥校验私钥，并检查 Profile 和 VLAN 授权后返回明文 YAML。URL 查询里的该参数会被拒绝，Profile transform 也不会收到它。未携带该参数的请求继续使用原有订阅格式。客户端和反向代理可能记录 User-Agent，请为此模式使用专用密钥。
 
+### 测试 Profile
+
+Profile 卡片上的 **测试配置转换** 会在服务端按订阅 URL 的同一流程渲染已保存的 Profile。修改请求 URL（含 `vlans`/`supplicant` 查询参数）和 `User-Agent` 等请求头后点击 **刷新**。结果同时展示加密前的 YAML 和实际下发的内容，以及该请求解析出的 supplicant、VLAN 与 age 接收者。只有工作区创建者可以使用：预览按 Profile id 在登录后访问，不接受 Profile token。
+
 ## 认证
 
 - `AUTH_TYPE=OIDC` 在浏览器使用 Authorization Code + PKCE，在 Confluence

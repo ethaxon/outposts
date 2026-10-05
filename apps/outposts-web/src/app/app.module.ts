@@ -66,11 +66,21 @@ interface ProfileTransformContext {
 }
 `;
 
+/**
+ * Where the profile script types live in the editor's virtual file system.
+ *
+ * Scripts kept in local tooling start with `/// <reference path="./outposts-profile-transform.d.ts" />`,
+ * which Monaco resolves next to the editor model (`inmemory://model/<n>`). Registering the
+ * types at exactly that path makes the reference resolve; registering them anywhere else
+ * as well would declare every type twice.
+ */
+const PROFILE_SCRIPT_TYPES_PATH = "inmemory://model/outposts-profile-transform.d.ts";
+
 function configureMonacoTypes() {
   const monaco = (globalThis as typeof globalThis & { monaco?: typeof Monaco }).monaco;
   monaco?.typescript.typescriptDefaults.addExtraLib(
     PROFILE_SCRIPT_TYPES,
-    "outposts://confluence/profile-transform.d.ts",
+    PROFILE_SCRIPT_TYPES_PATH,
   );
 }
 

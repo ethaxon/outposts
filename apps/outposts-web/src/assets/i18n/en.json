@@ -200,7 +200,16 @@
       },
       "profileTransformPreview": {
         "headersObjectOnly": "Request headers must be a JSON object.",
-        "noTranspiledScript": "No saved transpiled transform script is available."
+        "hint": "Renders the saved profile on the server exactly as the subscription endpoint would, including VLAN injection and age encryption. Edit the request, then Refresh.",
+        "refresh": "Refresh",
+        "stale": "Request changed — refresh to update",
+        "plaintext": "Before encryption",
+        "served": "Served (encrypted)",
+        "servedPlain": "Served as plaintext — not encrypted",
+        "supplicant": "Supplicant",
+        "vlans": "VLANs",
+        "recipients": "Encrypted to",
+        "empty": "Refresh to render this profile."
       },
       "sections": {
         "profiles": "Profiles",

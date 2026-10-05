@@ -200,7 +200,16 @@
       },
       "profileTransformPreview": {
         "headersObjectOnly": "请求 headers 必须是 JSON 对象。",
-        "noTranspiledScript": "当前没有已保存的预转译转换脚本。"
+        "hint": "在服务端按订阅接口的实际流程渲染已保存的 profile，包括 VLAN 注入和 age 加密。修改请求后点击刷新。",
+        "refresh": "刷新",
+        "stale": "请求已修改，刷新后更新",
+        "plaintext": "加密前",
+        "served": "实际下发（加密）",
+        "servedPlain": "以明文下发，未加密",
+        "supplicant": "Supplicant",
+        "vlans": "VLAN",
+        "recipients": "加密给",
+        "empty": "点击刷新以渲染此 profile。"
       },
       "sections": {
         "profiles": "配置",

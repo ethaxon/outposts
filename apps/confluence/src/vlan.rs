@@ -475,6 +475,14 @@ impl SubscriptionRequest {
     pub(crate) fn uses_unsafe_key(&self) -> bool {
         self.unsafe_identity.is_some()
     }
+
+    pub(crate) fn supplicant(&self) -> &str {
+        &self.supplicant
+    }
+
+    pub(crate) fn vlan_keys(&self) -> Vec<String> {
+        self.vlans.keys().cloned().collect()
+    }
 }
 
 fn confluence_parameters(word: &str) -> Option<&str> {
@@ -619,6 +627,38 @@ fn derive_client_key(master: &[u8; 32], slot: u8) -> [u8; 32] {
     output
 }
 
+/// A subscription after VLAN injection, before the optional age encryption.
+///
+/// Kept separate so the owner-only preview can show both stages from the exact
+/// pipeline the public endpoint serves.
+pub(crate) struct PreparedSubscription {
+    pub(crate) content: String,
+    /// Who the served body is encrypted to; empty means it is served as plaintext.
+    pub(crate) recipients: Vec<VlanSupplicant>,
+}
+
+impl PreparedSubscription {
+    pub(crate) fn encrypt(&self) -> Result<Option<String>, AppError> {
+        if self.recipients.is_empty() {
+            return Ok(None);
+        }
+        encrypt_profile(
+            &self.content,
+            self.recipients
+                .iter()
+                .map(|recipient| recipient.age_recipient.as_str()),
+        )
+        .map(Some)
+    }
+
+    pub(crate) fn into_served(self) -> Result<String, AppError> {
+        Ok(self.encrypt()?.unwrap_or(self.content))
+    }
+}
+
+/// Encrypted-or-plaintext output in one step; production code goes through
+/// `prepare_subscription` so the preview can share the pipeline.
+#[cfg(test)]
 pub(crate) fn render_subscription(
     content: &str,
     stored: Option<&VlanConfig>,
@@ -626,17 +666,28 @@ pub(crate) fn render_subscription(
     request: Option<SubscriptionRequest>,
     allow_unsafe_age_private_key: bool,
 ) -> Result<String, AppError> {
+    prepare_subscription(
+        content,
+        stored,
+        profile_supplicants,
+        request,
+        allow_unsafe_age_private_key,
+    )?
+    .into_served()
+}
+
+pub(crate) fn prepare_subscription(
+    content: &str,
+    stored: Option<&VlanConfig>,
+    profile_supplicants: &[VlanSupplicant],
+    request: Option<SubscriptionRequest>,
+    allow_unsafe_age_private_key: bool,
+) -> Result<PreparedSubscription, AppError> {
     let Some(request) = request else {
-        return if profile_supplicants.is_empty() {
-            Ok(content.into())
-        } else {
-            encrypt_profile(
-                content,
-                profile_supplicants
-                    .iter()
-                    .map(|supplicant| supplicant.age_recipient.as_str()),
-            )
-        };
+        return Ok(PreparedSubscription {
+            content: content.into(),
+            recipients: profile_supplicants.to_vec(),
+        });
     };
     if request.uses_unsafe_key() && !allow_unsafe_age_private_key {
         return Err(bad("Unsafe age compatibility is disabled for this Profile"));
@@ -700,11 +751,16 @@ pub(crate) fn render_subscription(
         }
         None => content.into(),
     };
-    if uses_unsafe_key {
-        Ok(yaml)
+    // The unsafe-key compatibility mode serves plaintext by design.
+    let recipients = if uses_unsafe_key {
+        Vec::new()
     } else {
-        encrypt_profile(&yaml, std::iter::once(supplicant.age_recipient.as_str()))
-    }
+        vec![supplicant.clone()]
+    };
+    Ok(PreparedSubscription {
+        content: yaml,
+        recipients,
+    })
 }
 
 fn render_peer(server: &str, port: u16, public_key: &str, allowed_ips: &[String]) -> Value {
@@ -1074,6 +1130,53 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn prepared_stage_is_what_the_served_ciphertext_decrypts_to() {
+        let identity = age::x25519::Identity::generate();
+        let stored = config(&identity.to_public().to_string());
+        let owner = stored.supplicant_configs[0].clone();
+        let content = "proxies: []\nrules: [\"MATCH,DIRECT\"]";
+
+        // VLAN request: injected plaintext, encrypted only to the requesting supplicant.
+        let prepared = prepare_subscription(
+            content,
+            Some(&stored),
+            &[],
+            parse_request("", "supplicant=owner&vlans=home:10").unwrap(),
+            false,
+        )
+        .unwrap();
+        assert_eq!(prepared.recipients, vec![owner.clone()]);
+        let encrypted = prepared.encrypt().unwrap().unwrap();
+        assert_eq!(
+            decrypt_profile(&identity, &encrypted),
+            serde_yaml::from_str::<Value>(&prepared.content).unwrap()
+        );
+
+        // No request: content untouched, encrypted to every profile recipient.
+        let prepared =
+            prepare_subscription(content, None, std::slice::from_ref(&owner), None, false).unwrap();
+        assert_eq!(prepared.content, content);
+        assert_eq!(prepared.recipients, vec![owner.clone()]);
+
+        // Unsafe-key compatibility serves plaintext, so there is nothing to encrypt.
+        let ua = format!(
+            "confluence/supplicant=owner&_unsafe_supplicant_private={}",
+            age::secrecy::ExposeSecret::expose_secret(&identity.to_string())
+        );
+        let prepared = prepare_subscription(
+            content,
+            Some(&stored),
+            std::slice::from_ref(&owner),
+            parse_request(&ua, "").unwrap(),
+            true,
+        )
+        .unwrap();
+        assert!(prepared.recipients.is_empty());
+        assert_eq!(prepared.encrypt().unwrap(), None);
+        assert_eq!(prepared.into_served().unwrap(), content);
     }
 
     #[test]

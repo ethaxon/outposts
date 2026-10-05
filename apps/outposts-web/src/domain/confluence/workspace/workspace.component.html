@@ -656,7 +656,6 @@
   <app-dialog
     [header]="'confluence.workspace.dialogs.previewMuxContent' | transloco"
     [visible]="true"
-    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelPreviewMuxContentDialog()"
     [modal]="true"
     [style]="{ width: '50vw', minWidth: '300px' }"
@@ -730,7 +729,6 @@
   <app-dialog
     [header]="'confluence.workspace.dialogs.previewSubscribeSourceContent' | transloco"
     [visible]="true"
-    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelPreviewSubscribeSourceContentDialog()"
     [modal]="true"
     [style]="{ width: '50vw', minWidth: '300px' }"
@@ -766,167 +764,171 @@
   <app-dialog
     [header]="'confluence.workspace.dialogs.editProfile' | transloco"
     [visible]="true"
-    styleClass="workspace-monaco-dialog"
+    styleClass="app-dialog-fill"
     (visibleChange)="cancelUpdateProfileDialog()"
     [modal]="true"
-    [style]="{ width: '70vw', minWidth: '300px' }"
+    [style]="{ width: '70vw', minWidth: '300px', height: 'min(90vh, 60rem)' }"
     [draggable]="false"
     [resizable]="false"
     [baseZIndex]="100"
   >
-    <!-- Recipients and script are separate concerns: each gets its own header + panel. -->
-    @let recipientCount = profileUpdate.ageSupplicantIds.length;
-    <section class="profile-panel" aria-labelledby="profile-age-title">
-      <header class="profile-script-editor-header profile-panel-header">
-        <div class="min-w-0 flex-1">
-          <h3 id="profile-age-title" class="profile-script-editor-label">
-            {{ "confluence.workspace.profileAge.title" | transloco }}
-          </h3>
-          <p class="profile-script-editor-hint">
-            {{ "confluence.workspace.profileAge.hint" | transloco }}
-          </p>
-        </div>
-        <span hlmBadge [variant]="recipientCount ? 'secondary' : 'outline'" class="shrink-0">
-          <ng-icon
-            [name]="recipientCount ? 'lucideLock' : 'lucideLockOpen'"
-            data-icon="inline-start"
-            aria-hidden="true"
-          />
-          {{
-            (recipientCount
-              ? "confluence.workspace.profileAge.encrypted"
-              : "confluence.workspace.profileAge.plain"
-            ) | transloco: { count: recipientCount }
-          }}
-        </span>
-      </header>
-      <div class="profile-panel-body" [attr.aria-busy]="profileSupplicants() === undefined">
-        @if (profileSupplicants(); as supplicants) {
-          @if (supplicants.length) {
-            <div
-              class="app-chips"
-              role="group"
-              [attr.aria-label]="'confluence.workspace.profileAge.title' | transloco"
-            >
-              @for (supplicant of supplicants; track supplicant.id) {
-                @let included = profileUpdate.ageSupplicantIds.includes(supplicant.id);
-                <button
-                  type="button"
-                  class="app-chip"
-                  [attr.aria-pressed]="included"
-                  [title]="supplicant.age_recipient"
-                  (click)="toggleProfileSupplicant(supplicant.id)"
-                >
-                  <ng-icon [name]="included ? 'lucideCheck' : 'lucidePlus'" aria-hidden="true" />
-                  <span class="font-mono">{{ supplicant.name }}</span>
-                  <span class="app-chip-count font-mono">{{
-                    shortRecipient(supplicant.age_recipient)
-                  }}</span>
-                </button>
-              }
+    <!--
+      Fixed-height layout: settings take their natural height, the editor fills the rest and
+      scrolls on its own, and the footer stays pinned, so Save is always in view.
+    -->
+    <div class="profile-edit">
+      <!-- Recipients and script are separate concerns: each gets its own header + panel. -->
+      @let recipientCount = profileUpdate.ageSupplicantIds.length;
+      <section class="profile-panel" aria-labelledby="profile-age-title">
+        <header class="profile-script-editor-header profile-panel-header">
+          <div class="min-w-0 flex-1">
+            <h3 id="profile-age-title" class="profile-script-editor-label">
+              {{ "confluence.workspace.profileAge.title" | transloco }}
+            </h3>
+            <p class="profile-script-editor-hint">
+              {{ "confluence.workspace.profileAge.hint" | transloco }}
+            </p>
+          </div>
+          <span hlmBadge [variant]="recipientCount ? 'secondary' : 'outline'" class="shrink-0">
+            <ng-icon
+              [name]="recipientCount ? 'lucideLock' : 'lucideLockOpen'"
+              data-icon="inline-start"
+              aria-hidden="true"
+            />
+            {{
+              (recipientCount
+                ? "confluence.workspace.profileAge.encrypted"
+                : "confluence.workspace.profileAge.plain"
+              ) | transloco: { count: recipientCount }
+            }}
+          </span>
+        </header>
+        <div class="profile-panel-body" [attr.aria-busy]="profileSupplicants() === undefined">
+          @if (profileSupplicants(); as supplicants) {
+            @if (supplicants.length) {
+              <div
+                class="app-chips"
+                role="group"
+                [attr.aria-label]="'confluence.workspace.profileAge.title' | transloco"
+              >
+                @for (supplicant of supplicants; track supplicant.id) {
+                  @let included = profileUpdate.ageSupplicantIds.includes(supplicant.id);
+                  <button
+                    type="button"
+                    class="app-chip"
+                    [attr.aria-pressed]="included"
+                    [title]="supplicant.age_recipient"
+                    (click)="toggleProfileSupplicant(supplicant.id)"
+                  >
+                    <ng-icon [name]="included ? 'lucideCheck' : 'lucidePlus'" aria-hidden="true" />
+                    <span class="font-mono">{{ supplicant.name }}</span>
+                    <span class="app-chip-count font-mono">{{
+                      shortRecipient(supplicant.age_recipient)
+                    }}</span>
+                  </button>
+                }
+              </div>
+            } @else {
+              <div class="profile-panel-empty">
+                <span>{{ "confluence.workspace.profileAge.empty" | transloco }}</span>
+                <a hlmBtn variant="outline" size="sm" routerLink="/confluence/vlans">
+                  <ng-icon name="lucideKeyRound" aria-hidden="true" />
+                  {{ "confluence.workspace.profileAge.manage" | transloco }}
+                </a>
+              </div>
+            }
+          } @else if (profileSupplicants() === null) {
+            <div class="profile-panel-empty text-destructive" role="alert">
+              <span>{{ "confluence.workspace.profileAge.loadError" | transloco }}</span>
+              <button
+                hlmBtn
+                type="button"
+                variant="outline"
+                size="sm"
+                (click)="loadProfileSupplicants()"
+              >
+                <ng-icon name="lucideRefreshCw" aria-hidden="true" />
+                {{ "confluence.workspace.profileAge.retry" | transloco }}
+              </button>
             </div>
           } @else {
-            <div class="profile-panel-empty">
-              <span>{{ "confluence.workspace.profileAge.empty" | transloco }}</span>
-              <a hlmBtn variant="outline" size="sm" routerLink="/confluence/vlans">
-                <ng-icon name="lucideKeyRound" aria-hidden="true" />
-                {{ "confluence.workspace.profileAge.manage" | transloco }}
-              </a>
+            <!-- Chip-shaped placeholders, so the panel keeps its height while loading. -->
+            <div
+              class="app-chips"
+              role="status"
+              [attr.aria-label]="'confluence.workspace.profileAge.loading' | transloco"
+            >
+              <div hlmSkeleton class="h-[1.875rem] w-40 rounded-full"></div>
+              <div hlmSkeleton class="h-[1.875rem] w-32 rounded-full"></div>
+              <div hlmSkeleton class="h-[1.875rem] w-36 rounded-full"></div>
             </div>
           }
-        } @else if (profileSupplicants() === null) {
-          <div class="profile-panel-empty text-destructive" role="alert">
-            <span>{{ "confluence.workspace.profileAge.loadError" | transloco }}</span>
-            <button
-              hlmBtn
-              type="button"
-              variant="outline"
-              size="sm"
-              (click)="loadProfileSupplicants()"
-            >
-              <ng-icon name="lucideRefreshCw" aria-hidden="true" />
-              {{ "confluence.workspace.profileAge.retry" | transloco }}
-            </button>
+          <div class="mt-4 border-t pt-3">
+            <label class="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                class="accent-primary"
+                aria-describedby="profile-unsafe-age-hint"
+                [(ngModel)]="profileUpdate.unsafeAgeCompatibility"
+              />
+              {{ "confluence.workspace.profileAge.unsafeCompatibility" | transloco }}
+            </label>
+            <p id="profile-unsafe-age-hint" class="profile-script-editor-hint">
+              {{ "confluence.workspace.profileAge.unsafeHint" | transloco }}
+            </p>
+            @if (profileUpdate.unsafeAgeCompatibility) {
+              <code class="block break-all text-xs">
+                Client/1 confluence/supplicant=NAME&amp;_unsafe_supplicant_private=PRIVATE_KEY
+              </code>
+            }
           </div>
-        } @else {
-          <!-- Chip-shaped placeholders, so the panel keeps its height while loading. -->
-          <div
-            class="app-chips"
-            role="status"
-            [attr.aria-label]="'confluence.workspace.profileAge.loading' | transloco"
-          >
-            <div hlmSkeleton class="h-[1.875rem] w-40 rounded-full"></div>
-            <div hlmSkeleton class="h-[1.875rem] w-32 rounded-full"></div>
-            <div hlmSkeleton class="h-[1.875rem] w-36 rounded-full"></div>
-          </div>
-        }
-        <div class="mt-4 border-t pt-3">
-          <label class="flex items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              class="accent-primary"
-              aria-describedby="profile-unsafe-age-hint"
-              [(ngModel)]="profileUpdate.unsafeAgeCompatibility"
-            />
-            {{ "confluence.workspace.profileAge.unsafeCompatibility" | transloco }}
-          </label>
-          <p id="profile-unsafe-age-hint" class="profile-script-editor-hint">
-            {{ "confluence.workspace.profileAge.unsafeHint" | transloco }}
-          </p>
-          @if (profileUpdate.unsafeAgeCompatibility) {
-            <code class="block break-all text-xs">
-              Client/1 confluence/supplicant=NAME&amp;_unsafe_supplicant_private=PRIVATE_KEY
-            </code>
-          }
         </div>
+      </section>
+      <div class="profile-script-editor-header">
+        <label class="profile-script-editor-label" for="profile-transform-script">
+          {{ "confluence.workspace.fields.transform_script" | transloco }}
+        </label>
+        <p class="profile-script-editor-hint">
+          {{ "confluence.workspace.profileScriptHint" | transloco }}
+          <a
+            class="profile-script-schema-link"
+            href="https://raw.githubusercontent.com/dongchengjie/meta-json-schema/refs/heads/main/src/meta-json-schema.json"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {{ "confluence.workspace.profileScriptSchemaLink" | transloco }}
+          </a>
+        </p>
       </div>
-    </section>
-    <div class="profile-script-editor-header">
-      <label class="profile-script-editor-label" for="profile-transform-script">
-        {{ "confluence.workspace.fields.transform_script" | transloco }}
-      </label>
-      <p class="profile-script-editor-hint">
-        {{ "confluence.workspace.profileScriptHint" | transloco }}
-        <a
-          class="profile-script-schema-link"
-          href="https://raw.githubusercontent.com/dongchengjie/meta-json-schema/refs/heads/main/src/meta-json-schema.json"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {{ "confluence.workspace.profileScriptSchemaLink" | transloco }}
-        </a>
-      </p>
-    </div>
-    <div class="profile-script-editor-shell">
-      <ngx-monaco-editor
-        id="profile-transform-script"
-        [options]="profileScriptEditorOptions"
-        [(ngModel)]="profileUpdate.transformScript"
-        style="min-height: 260px; height: 55vh"
-      ></ngx-monaco-editor>
-    </div>
-    <div class="flex justify-end gap-2 mt-6">
-      <app-action
-        size="small"
-        [label]="'common.actions.cancel' | transloco"
-        icon="lucideX"
-        [outlined]="true"
-        (click)="cancelUpdateProfileDialog()"
-      ></app-action>
-      <app-action
-        size="small"
-        [label]="'common.actions.save' | transloco"
-        icon="lucideCheck"
-        (click)="acceptUpdateProfileDialog()"
-      ></app-action>
+      <div class="profile-script-editor-shell profile-edit-editor">
+        <ngx-monaco-editor
+          id="profile-transform-script"
+          [options]="profileScriptEditorOptions"
+          [(ngModel)]="profileUpdate.transformScript"
+        ></ngx-monaco-editor>
+      </div>
+      <div class="profile-edit-footer">
+        <app-action
+          size="small"
+          [label]="'common.actions.cancel' | transloco"
+          icon="lucideX"
+          [outlined]="true"
+          (click)="cancelUpdateProfileDialog()"
+        ></app-action>
+        <app-action
+          size="small"
+          [label]="'common.actions.save' | transloco"
+          icon="lucideCheck"
+          (click)="acceptUpdateProfileDialog()"
+        ></app-action>
+      </div>
     </div>
   </app-dialog>
 }
-@if (profileTransformPreview) {
+@if (profileTransformPreview(); as preview) {
   <app-dialog
     [header]="'confluence.workspace.dialogs.testProfileTransform' | transloco"
     [visible]="true"
-    styleClass="workspace-monaco-dialog"
     (visibleChange)="cancelProfileTransformPreviewDialog()"
     [modal]="true"
     [style]="{ width: '78vw', minWidth: '320px' }"
@@ -935,19 +937,25 @@
     [baseZIndex]="100"
   >
     <div class="profile-transform-preview">
-      <label class="profile-transform-preview-label" for="profile-transform-preview-url">
-        {{ "confluence.workspace.fields.requestUrl" | transloco }}
-      </label>
-      <input
-        hlmInput
-        id="profile-transform-preview-url"
-        class="w-full"
-        [ngModel]="profileTransformPreview.url"
-        (ngModelChange)="updateProfileTransformPreviewUrl($event)"
-      />
-
+      <p class="profile-script-editor-hint">
+        {{ "confluence.workspace.profileTransformPreview.hint" | transloco }}
+      </p>
       <div class="profile-transform-preview-grid">
+        <!-- Request: edits only change the draft; Refresh renders it on the server. -->
         <div class="profile-transform-preview-section">
+          <label class="profile-transform-preview-label" for="profile-transform-preview-url">
+            {{ "confluence.workspace.fields.requestUrl" | transloco }}
+          </label>
+          <input
+            hlmInput
+            id="profile-transform-preview-url"
+            class="w-full font-mono text-xs"
+            autocomplete="off"
+            spellcheck="false"
+            [ngModel]="preview.url"
+            (ngModelChange)="updateProfileTransformPreviewDraft({ url: $event })"
+            (keydown.enter)="refreshProfileTransformPreview()"
+          />
           <label class="profile-transform-preview-label" for="profile-transform-preview-headers">
             {{ "confluence.workspace.fields.requestHeaders" | transloco }}
           </label>
@@ -955,30 +963,134 @@
             <ngx-monaco-editor
               id="profile-transform-preview-headers"
               [options]="profileTransformHeadersEditorOptions"
-              [ngModel]="profileTransformPreview.headersJson"
-              (ngModelChange)="updateProfileTransformPreviewHeaders($event)"
-              style="height: 9rem"
+              [ngModel]="preview.headersJson"
+              (ngModelChange)="updateProfileTransformPreviewDraft({ headersJson: $event })"
+              style="height: 12rem"
             ></ngx-monaco-editor>
+          </div>
+          <div class="profile-transform-preview-actions">
+            @if (preview.stale && preview.result && !preview.loading) {
+              <span class="profile-transform-preview-stale" role="status">
+                {{ "confluence.workspace.profileTransformPreview.stale" | transloco }}
+              </span>
+            }
+            <app-action
+              size="small"
+              icon="lucideRefreshCw"
+              [label]="'confluence.workspace.profileTransformPreview.refresh' | transloco"
+              [outlined]="!preview.stale"
+              [loading]="preview.loading"
+              (click)="!preview.loading && refreshProfileTransformPreview()"
+            />
           </div>
         </div>
 
+        <!-- Result: both stages of the real subscription pipeline. -->
         <div class="profile-transform-preview-section">
-          <label class="profile-transform-preview-label" for="profile-transform-preview-result">
-            {{ "confluence.workspace.fields.transformResult" | transloco }}
-          </label>
-          @if (profileTransformPreview.error) {
-            <p class="profile-transform-preview-error">
-              {{ profileTransformPreview.error }}
+          <div class="profile-transform-preview-result-header">
+            <span class="profile-transform-preview-label">
+              {{ "confluence.workspace.fields.transformResult" | transloco }}
+            </span>
+            <div class="profile-transform-preview-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="preview.view === 'plaintext'"
+                (click)="setProfileTransformPreviewView('plaintext')"
+              >
+                <ng-icon name="lucideLockOpen" aria-hidden="true" />
+                {{ "confluence.workspace.profileTransformPreview.plaintext" | transloco }}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="preview.view === 'served'"
+                [disabled]="!preview.result?.encrypted"
+                [title]="
+                  preview.result && !preview.result.encrypted
+                    ? ('confluence.workspace.profileTransformPreview.servedPlain' | transloco)
+                    : ''
+                "
+                (click)="setProfileTransformPreviewView('served')"
+              >
+                <ng-icon name="lucideLock" aria-hidden="true" />
+                {{ "confluence.workspace.profileTransformPreview.served" | transloco }}
+              </button>
+            </div>
+          </div>
+
+          @if (preview.error) {
+            <p class="profile-transform-preview-error" role="alert">
+              {{ preview.error }}
             </p>
           }
-          <div class="profile-transform-preview-editor-shell profile-transform-preview-result">
-            <ngx-monaco-editor
-              id="profile-transform-preview-result"
-              [options]="profileTransformResultEditorOptions"
-              [(ngModel)]="profileTransformPreview.resultYaml"
-              [disabled]="true"
-              style="min-height: 260px; height: 46vh"
-            ></ngx-monaco-editor>
+
+          @if (preview.result; as result) {
+            <dl class="profile-transform-preview-summary">
+              <div>
+                <dt>
+                  {{ "confluence.workspace.profileTransformPreview.supplicant" | transloco }}
+                </dt>
+                <dd>{{ result.supplicant ?? "—" }}</dd>
+              </div>
+              <div>
+                <dt>
+                  {{ "confluence.workspace.profileTransformPreview.vlans" | transloco }}
+                </dt>
+                <dd>
+                  {{ result.vlans.length ? result.vlans.join(", ") : "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  {{ "confluence.workspace.profileTransformPreview.recipients" | transloco }}
+                </dt>
+                <dd>
+                  @if (result.encrypted) {
+                    <ng-icon name="lucideLock" aria-hidden="true" />
+                    {{ result.recipients.join(", ") }}
+                  } @else {
+                    <ng-icon name="lucideLockOpen" aria-hidden="true" />
+                    {{ "confluence.workspace.profileTransformPreview.servedPlain" | transloco }}
+                  }
+                </dd>
+              </div>
+            </dl>
+          }
+
+          <div
+            class="profile-transform-preview-editor-shell profile-transform-preview-result"
+            [class.profile-transform-preview-outdated]="
+              preview.stale || preview.loading || !!preview.error
+            "
+            [attr.aria-busy]="preview.loading"
+          >
+            @if (preview.result; as result) {
+              <ngx-monaco-editor
+                id="profile-transform-preview-result"
+                [options]="profileTransformResultEditorOptions"
+                [ngModel]="
+                  preview.view === 'served' && result.encrypted
+                    ? result.encrypted
+                    : result.plaintext
+                "
+                [disabled]="true"
+                style="min-height: 260px; height: 46vh"
+              ></ngx-monaco-editor>
+            } @else {
+              <!-- Editor-shaped placeholder until the first render arrives. -->
+              <div class="profile-transform-preview-placeholder" role="status">
+                @if (preview.loading) {
+                  @for (width of ["70%", "45%", "60%", "35%", "55%", "40%"]; track $index) {
+                    <div hlmSkeleton class="h-3" [style.width]="width"></div>
+                  }
+                } @else {
+                  <span>{{
+                    "confluence.workspace.profileTransformPreview.empty" | transloco
+                  }}</span>
+                }
+              </div>
+            }
           </div>
         </div>
       </div>

@@ -6,6 +6,8 @@ import type { ConfluenceUpdateCronDto } from "./bindings/ConfluenceUpdateCronDto
 import type { ConfluenceUpdateDto } from "./bindings/ConfluenceUpdateDto";
 import type { ProfileCreationDto } from "./bindings/ProfileCreationDto";
 import type { ProfileDto } from "./bindings/ProfileDto";
+import type { ProfilePreviewDto } from "./bindings/ProfilePreviewDto";
+import type { ProfilePreviewRequestDto } from "./bindings/ProfilePreviewRequestDto";
 import type { ProfileUpdateDto } from "./bindings/ProfileUpdateDto";
 import type { SubscribeSourceCreationDto } from "./bindings/SubscribeSourceCreationDto";
 import type { SubscribeSourceDto } from "./bindings/SubscribeSourceDto";
@@ -178,6 +180,14 @@ export class ConfluenceService {
       {
         responseType: "json",
       },
+    );
+  }
+
+  /** Owner-only render of a saved profile for a simulated subscription request. */
+  previewProfile(id: string, request: ProfilePreviewRequestDto) {
+    return this.httpClient.post<ProfilePreviewDto>(
+      `${environment.CONFLUENCE_API_ENDPOINT}/profile/${id}/preview`,
+      request,
     );
   }
 

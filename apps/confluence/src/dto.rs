@@ -201,6 +201,35 @@ pub struct ProfileCreationDto {
     pub allow_unsafe_age_private_key: Option<bool>,
 }
 
+/// A simulated subscription request for the owner-only profile preview.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+pub struct ProfilePreviewRequestDto {
+    /// Absolute subscription URL; its query carries the VLAN request like the real one.
+    pub url: String,
+    #[ts(type = "Record<string, string>")]
+    pub headers: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    #[ts(optional)]
+    pub body: Option<String>,
+}
+
+/// What the public endpoint would serve for the simulated request, at both stages.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+pub struct ProfilePreviewDto {
+    /// After the transform script and VLAN injection, before age encryption.
+    pub plaintext: String,
+    /// The served age-armored body; `null` when the subscription is served as plaintext.
+    pub encrypted: Option<String>,
+    /// Supplicant names the served body is encrypted to.
+    pub recipients: Vec<String>,
+    /// Supplicant named by the VLAN request, if any.
+    pub supplicant: Option<String>,
+    /// VLAN keys named by the request.
+    pub vlans: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct ProfileUpdateDto {

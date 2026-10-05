@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.8
+
+- **Profile preview** — **Test Profile Transform** renders the saved Profile on the server through the same pipeline as its subscription URL, including VLAN injection and age encryption. The result shows the YAML before encryption and the body actually served, with the resolved supplicant, VLANs, and age recipients. Only the workspace creator can use it: the preview is addressed by Profile id behind sign-in and never accepts a Profile token.
+
 ## 0.4.7
 
 - **WireGuard tunnels** — client configurations and their peers now belong to the tunnel. You can save or import configurations before assigning them to VLAN members. Revoking an assignment keeps the configuration on the tunnel.
