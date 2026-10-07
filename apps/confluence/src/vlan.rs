@@ -92,8 +92,8 @@ fn bad(message: &str) -> AppError {
 
 /// Names travel unescaped in `confluence/supplicants=<key>,…&vlans=<net>,…`,
 /// whose separators survive percent-decoding, so escaping cannot protect them.
-/// Allow only RFC 3986 unreserved characters, lowercase so tunnel names stay
-/// unique after being uppercased into Clash proxy names.
+/// Restrict names to lowercase RFC 3986 unreserved characters so uppercasing
+/// preserves their uniqueness in the generated Clash config.
 fn valid_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 64
@@ -576,8 +576,9 @@ fn inject_network(
     config: &VlanNetwork,
     supplicant_ids: &[&str],
 ) -> Result<(), AppError> {
-    let group_name = format!("VLAN-{}", config.network);
-    let proxy_prefix = format!("{group_name}-");
+    let group_name = format!("VLAN-{}", config.network.to_ascii_uppercase());
+    // Names may contain hyphens, so use a separator outside their allowed alphabet.
+    let proxy_prefix = format!("{group_name}::");
     let mut proxies = Vec::new();
     let mut proxy_names = Vec::new();
     for tunnel in &config.tunnels {
@@ -833,7 +834,7 @@ mod tests {
             assert_eq!(profile["proxy-groups"].as_array().unwrap().len(), 1);
             assert_eq!(profile["proxies"].as_array().unwrap().len(), 1);
             let wireguard = &profile["proxies"][0];
-            assert_eq!(wireguard["name"], "VLAN-home-WIRE-WG");
+            assert_eq!(wireguard["name"], "VLAN-HOME::WIRE-WG");
             assert_eq!(wireguard["peers"].as_array().unwrap().len(), 2);
             assert_eq!(wireguard["ip"], "10.42.0.2");
             assert_eq!(wireguard["private-key"], STANDARD.encode([5; 32]));
@@ -890,6 +891,40 @@ mod tests {
     }
 
     #[test]
+    fn clash_names_keep_hyphenated_vlans_and_tunnels_distinct() {
+        let identity = age::x25519::Identity::generate();
+        let mut stored = config(&identity.to_public().to_string());
+        stored.vlan_configs[0].network = "lab".into();
+        stored.vlan_configs[0].tunnels[0].name = "west-wire".into();
+        let west = &mut stored.vlan_configs[1];
+        west.network = "lab-west".into();
+        west.routes = vec!["10.40.0.0/24".into()];
+        west.tunnels[0].config.peers[0].allowed_ips = west.routes.clone();
+
+        let encrypted = render_test_subscription("{}", &stored, "", "vlans=lab,lab-west").unwrap();
+        let profile = decrypt_profile(&identity, &encrypted);
+        assert_eq!(
+            profile["proxy-groups"],
+            json!([
+                { "name": "VLAN-LAB", "type": "select", "proxies": ["VLAN-LAB::WEST-WIRE-WG", "REJECT", "DIRECT"] },
+                { "name": "VLAN-LAB-WEST", "type": "select", "proxies": ["VLAN-LAB-WEST::WIRE-WG", "REJECT", "DIRECT"] }
+            ])
+        );
+        let proxies = profile["proxies"].as_array().unwrap();
+        assert_eq!(proxies.len(), 2);
+        assert_eq!(proxies[0]["name"], "VLAN-LAB-WEST::WIRE-WG");
+        assert_eq!(proxies[1]["name"], "VLAN-LAB::WEST-WIRE-WG");
+        assert_eq!(
+            profile["rules"],
+            json!([
+                "IP-CIDR,10.40.0.0/24,VLAN-LAB-WEST,no-resolve",
+                "IP-CIDR,10.20.0.0/24,VLAN-LAB,no-resolve",
+                "IP-CIDR,10.30.0.0/24,VLAN-LAB,no-resolve"
+            ])
+        );
+    }
+
+    #[test]
     fn prepared_stage_is_what_the_served_ciphertext_decrypts_to() {
         let identity = age::x25519::Identity::generate();
         let stored = config(&identity.to_public().to_string());
@@ -940,7 +975,7 @@ mod tests {
         assert!(prepared.recipients().is_empty());
         assert_eq!(prepared.encrypt().unwrap(), None);
         assert_eq!(prepared.supplicants, std::slice::from_ref(&owner));
-        assert!(prepared.into_served().unwrap().contains("VLAN-home"));
+        assert!(prepared.into_served().unwrap().contains("VLAN-HOME"));
     }
 
     #[test]

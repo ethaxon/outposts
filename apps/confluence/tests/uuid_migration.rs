@@ -1147,9 +1147,9 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
         decrypt(&default_ciphertext, bob).as_deref(),
         Some(default_yaml.as_str())
     );
-    assert!(default_yaml.contains("VLAN-lab-COMMON-WG"));
-    assert!(!default_yaml.contains("VLAN-lab-PRIVATE-WG"));
-    assert!(!default_yaml.contains("VLAN-office"));
+    assert!(default_yaml.contains("VLAN-LAB::COMMON-WG"));
+    assert!(!default_yaml.contains("VLAN-LAB::PRIVATE-WG"));
+    assert!(!default_yaml.contains("VLAN-OFFICE"));
     assert!(decrypt(&default_ciphertext, eve).is_none());
 
     let shared_query = "?supplicants=bob,alice&vlans=lab";
@@ -1166,8 +1166,8 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     assert!(fetch("?supplicant=alice&vlans=office").await.is_err());
     let (_, solo_ciphertext) = fetch("?supplicants=alice").await.unwrap();
     let solo_yaml = decrypt(&solo_ciphertext, alice).unwrap();
-    assert!(solo_yaml.contains("VLAN-office"));
-    assert!(solo_yaml.contains("VLAN-lab-PRIVATE-WG"));
+    assert!(solo_yaml.contains("VLAN-OFFICE"));
+    assert!(solo_yaml.contains("VLAN-LAB::PRIVATE-WG"));
     assert!(decrypt(&solo_ciphertext, bob).is_none());
 
     let Json(preview) = preview_one_profile(
@@ -1195,7 +1195,7 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     assert!(
         decrypt(&vlan_ciphertext, alice)
             .unwrap()
-            .contains("VLAN-office")
+            .contains("VLAN-OFFICE")
     );
     assert!(decrypt(&vlan_ciphertext, bob).is_none());
     assert!(
@@ -1277,7 +1277,7 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
         .unwrap();
     assert_eq!(headers[header::CACHE_CONTROL], "private, no-store");
     let plaintext: serde_json::Value = serde_yaml::from_str(&plaintext).unwrap();
-    assert_eq!(plaintext["proxy-groups"][0]["name"], "VLAN-office");
+    assert_eq!(plaintext["proxy-groups"][0]["name"], "VLAN-OFFICE");
     assert_eq!(
         plaintext["x-test-user-agent"],
         "TestClient/1 confluence/supplicants=alice&vlans=office"

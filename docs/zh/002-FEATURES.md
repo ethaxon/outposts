@@ -84,7 +84,7 @@ Profile 卡片上的 **测试配置转换** 会在服务端按订阅 URL 的同�
 
 每条 **WireGuard** 隧道保存一份客户端配置。可填写或导入配置后再授权，允许选择零个或多个 VLAN 成员。所有获准成员各自在订阅中收到同一套 WireGuard 配置。撤销授权会保留配置。支持导入一个 [Interface] 和一个或多个 [Peer]，包括 Address、PrivateKey、MTU、Endpoint、PublicKey、PresharedKey、AllowedIPs 和 PersistentKeepalive。所有 Peer 使用相同保活设置。
 
-各隧道的 AllowedIPs 必须在 VLAN CIDR 内。**从隧道重算 VLAN CIDR** 会用各 Peer AllowedIPs 的规范化并集替换路由草稿。每条隧道是一个可选的 Mihomo 代理，WireGuard 自行选择 Peer。VLAN 路由统一指向同一个选择组，选中的隧道可能只覆盖部分网段。管理接口只返回密钥配置状态。
+各隧道的 AllowedIPs 必须在 VLAN CIDR 内。**从隧道重算 VLAN CIDR** 会用各 Peer AllowedIPs 的规范化并集替换路由草稿。每条隧道是一个可选的 Mihomo 代理，WireGuard 自行选择 Peer。VLAN `office` 生成选择组 `VLAN-OFFICE`，其隧道 `west-wire` 生成代理 `VLAN-OFFICE::WEST-WIRE-WG`。VLAN 路由统一指向同一个选择组，选中的隧道可能只覆盖部分网段。管理接口只返回密钥配置状态。
 
 两个选择参数都默认使用通配符。`vlans=*` 选择 Confluence 已关联且启用的 VLAN，`supplicants=*` 选择 Profile 已关联的全部 supplicant。用逗号分隔的名称列表可缩小任一范围。例如，订阅 URL 使用 `?vlans=office,lab&supplicants=alice,bob`，或在 User-Agent 追加 `confluence/vlans=office,lab&supplicants=alice,bob`。同一参数出现在两处时，其取值须一致。
 
