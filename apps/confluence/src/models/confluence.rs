@@ -1,12 +1,10 @@
-use std::collections::BTreeMap;
-
 use sea_orm::LoaderTrait;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::{confluence_vlan, vlan_grant, vlan_network, vlan_supplicant};
+use super::{confluence_vlan, vlan_network};
 use crate::error::AppError;
-use crate::vlan::VlanConfig;
+use crate::vlan::VlanNetwork;
 
 #[sea_orm::model]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
@@ -62,7 +60,7 @@ impl Model {
     pub(crate) async fn load_vlan_subscription(
         &self,
         db: &impl ConnectionTrait,
-    ) -> Result<Option<VlanConfig>, AppError> {
+    ) -> Result<Vec<VlanNetwork>, AppError> {
         let networks = std::slice::from_ref(self)
             .load_many_to_many(
                 vlan_network::Entity::find()
@@ -73,26 +71,7 @@ impl Model {
             .await?
             .pop()
             .unwrap_or_default();
-        if networks.is_empty() {
-            return Ok(None);
-        }
-        let supplicants = networks
-            .load_many_to_many(
-                vlan_supplicant::Entity::find()
-                    .filter(vlan_supplicant::Column::Creator.eq(&self.creator)),
-                vlan_grant::Entity,
-                db,
-            )
-            .await?
-            .into_iter()
-            .flatten()
-            .map(|row| (row.id, row))
-            .collect::<BTreeMap<_, _>>();
-        let vlan_configs = vlan_network::Entity::load_details(db, networks).await?;
-        Ok(Some(VlanConfig {
-            vlan_configs,
-            supplicant_configs: supplicants.into_values().map(Into::into).collect(),
-        }))
+        vlan_network::Entity::load_details(db, networks).await
     }
 }
 

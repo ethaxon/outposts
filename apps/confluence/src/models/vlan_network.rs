@@ -15,9 +15,9 @@ pub struct Model {
     pub name: String,
     pub enabled: bool,
     #[sea_orm(has_many)]
-    pub workspace_links: HasMany<super::confluence_vlan::Entity>,
+    pub confluence_links: HasMany<super::confluence_vlan::Entity>,
     #[sea_orm(has_many, via = "confluence_vlan")]
-    pub workspaces: HasMany<super::confluence::Entity>,
+    pub confluences: HasMany<super::confluence::Entity>,
     #[sea_orm(has_many)]
     pub grants: HasMany<super::vlan_grant::Entity>,
     #[sea_orm(has_many, via = "vlan_grant")]

@@ -7,10 +7,10 @@ import { VlanCatalogComponent } from "./vlan-catalog.component";
 
 /**
  * Route shell for `/confluence/vlans`. The breadcrumb, title and page card render
- * immediately (like `workspace/:id`), so only the catalog grids show loading state.
+ * immediately (like `confluence/:id`), so only the catalog grids show loading state.
  */
 @Component({
-  selector: "app-vlan-page",
+  selector: "app-vlans-page",
   imports: [TranslocoModule, NgIcon, ...HlmBreadcrumbImports, VlanCatalogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   viewProviders: [provideIcons({ lucideHouse })],
@@ -29,24 +29,24 @@ import { VlanCatalogComponent } from "./vlan-catalog.component";
         <li hlmBreadcrumbSeparator></li>
         <li hlmBreadcrumbItem>
           <a hlmBreadcrumbLink [link]="['/confluence']">{{
-            "confluence.workspace.breadcrumb.confluence" | transloco
+            "confluence.breadcrumb.confluence" | transloco
           }}</a>
         </li>
         <li hlmBreadcrumbSeparator></li>
         <li hlmBreadcrumbItem>
-          <span hlmBreadcrumbPage>{{ "confluence.workspace.vlan.title" | transloco }}</span>
+          <span hlmBreadcrumbPage>{{ "confluence.vlans.title" | transloco }}</span>
         </li>
       </ol>
     </nav>
     <section class="mt-2 mb-4 min-w-0 rounded-lg border bg-card p-4 sm:p-6">
       <header class="px-2">
-        <h1 class="text-2xl font-bold">{{ "confluence.workspace.vlan.title" | transloco }}</h1>
+        <h1 class="text-2xl font-bold">{{ "confluence.vlans.title" | transloco }}</h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          {{ "confluence.workspace.vlan.pageDescription" | transloco }}
+          {{ "confluence.vlans.pageDescription" | transloco }}
         </p>
       </header>
       <app-vlan-catalog />
     </section>
   `,
 })
-export class VlanPageComponent {}
+export class VlansPageComponent {}

@@ -22,13 +22,13 @@ export function hourPlusLevelCronExprValidator(
     })
       ? {
           invalidCronExprSupportLevel: true,
-          messageKey: "confluence.workspace.validation.cron.hourlyMinimum",
+          messageKey: "confluence.confluence.validation.cron.hourlyMinimum",
         }
       : null;
   } catch (e: unknown) {
     return {
       parseCronExprError: e,
-      messageKey: "confluence.workspace.validation.cron.invalidFormat",
+      messageKey: "confluence.confluence.validation.cron.invalidFormat",
     };
   }
 }

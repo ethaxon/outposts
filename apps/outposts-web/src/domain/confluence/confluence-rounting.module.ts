@@ -1,24 +1,19 @@
 import { NgModule } from "@angular/core";
 import { RouterModule, type Routes } from "@angular/router";
-import { DashboardComponent } from "./dashboard/dashboard.component";
-import { VlanPageComponent } from "./vlan/vlan-page.component";
-import { WorkspaceComponent } from "./workspace/workspace.component";
+import { ConfluencePageComponent } from "./confluence/confluence-page.component";
+import { ConfluencesPageComponent } from "./confluences/confluences-page.component";
+import { SupplicantsPageComponent } from "./supplicants/supplicants-page.component";
+import { VlansPageComponent } from "./vlans/vlans-page.component";
 
 const routes: Routes = [
-  {
-    path: "dashboard",
-    component: DashboardComponent,
-  },
-  { path: "vlans", component: VlanPageComponent },
-  {
-    path: "workspace/:id",
-    component: WorkspaceComponent,
-  },
-  {
-    path: "",
-    redirectTo: "/confluence/dashboard",
-    pathMatch: "full",
-  },
+  { path: "confluences", component: ConfluencesPageComponent },
+  { path: "confluence/:id", component: ConfluencePageComponent },
+  { path: "vlans", component: VlansPageComponent },
+  { path: "supplicants", component: SupplicantsPageComponent },
+  // Former paths, kept so existing bookmarks and post-login redirects still land.
+  { path: "dashboard", redirectTo: "confluences" },
+  { path: "workspace/:id", redirectTo: "confluence/:id" },
+  { path: "", redirectTo: "confluences", pathMatch: "full" },
 ];
 
 @NgModule({

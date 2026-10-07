@@ -160,6 +160,232 @@ body {
   }
 }
 
+// Section heading bar: a muted strip with the section title and its actions. Used for
+// every section of a Confluence page and above each catalog grid, so all pages share it.
+@layer components {
+  .app-section-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: var(--muted);
+  }
+
+  .app-section-bar-title {
+    min-width: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.75rem;
+  }
+
+  .app-section-bar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+// Catalog cards (VLANs, supplicants): head / label-value rows / centered footer actions,
+// with a leading "+" card so a grid never collapses when empty. Skeletons reuse the same
+// classes, which is what keeps their size identical to the loaded cards.
+@layer components {
+  .entity-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+  }
+
+  .entity-card {
+    display: block;
+    width: 100%;
+    min-height: 9rem;
+
+    > article {
+      transition: box-shadow 120ms;
+    }
+
+    // Stretch the body so footers line up across a row of unequal cards.
+    [data-slot="card-content"] {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      flex-direction: column;
+    }
+  }
+
+  .entity-card-create {
+    cursor: pointer;
+    text-align: center;
+
+    [data-slot="card-content"] {
+      align-items: center;
+      justify-content: center;
+    }
+
+    .entity-card-actions {
+      margin-top: 0.75rem;
+    }
+
+    &:hover > article {
+      box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 40%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+      border-radius: var(--radius-xl, 0.75rem);
+    }
+  }
+
+  // The "+" card renders before data arrives so the grid never reflows, but it stays
+  // inert until there is data to edit against.
+  .entity-card-pending {
+    cursor: default;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .entity-card-selected > article {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  .entity-card-head {
+    display: flex;
+    min-width: 0;
+    min-height: 1.25rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .entity-card-icon {
+    flex: none;
+    color: var(--muted-foreground);
+  }
+
+  .entity-card-title {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // A long machine value (key, token) on one line, truncated, with the full value on hover.
+  .entity-card-code {
+    display: block;
+    height: 1.75rem;
+    margin-top: 0.75rem;
+    padding: 0 0.5rem;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    background: var(--muted);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    line-height: 1.75rem;
+    color: var(--muted-foreground);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Same label/value rows as the Confluence subscription source cards. Rows keep a fixed
+  // line height so skeleton bars (which have no text line box) occupy the same space.
+  .entity-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin: 0.875rem 0 0;
+
+    > div {
+      display: flex;
+      min-height: 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.8125rem;
+      line-height: 1.25rem;
+    }
+
+    dt {
+      color: var(--muted-foreground);
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 700;
+      color: var(--foreground);
+    }
+  }
+
+  .entity-card-footer {
+    margin-top: auto;
+    padding-top: 0.75rem;
+  }
+
+  .entity-card-actions {
+    display: flex;
+    min-height: 1.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem 0.5rem;
+  }
+
+  .entity-card-confirm {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    color: var(--muted-foreground);
+    text-align: center;
+  }
+
+  // Same emerald "active" badge as the Confluence list's status.
+  .entity-badge-on {
+    background: oklch(0.596 0.145 163.225);
+    color: white;
+  }
+
+  .entity-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--destructive) 35%, var(--border));
+    border-radius: 0.625rem;
+    background: color-mix(in oklab, var(--destructive) 8%, transparent);
+    font-size: 0.8125rem;
+    color: var(--destructive);
+  }
+
+  .entity-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    text-align: center;
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
 // `app-dialog` with styleClass="app-dialog-fill": the dialog has a fixed height and its
 // projected body fills it as a column (e.g. a full-height editor with a pinned footer),
 // instead of growing and adding a second scrollbar around an editor that scrolls itself.

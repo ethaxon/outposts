@@ -32,11 +32,11 @@ pub struct Model {
 }
 
 impl Entity {
-    pub(crate) async fn load_ids_for_workspaces<C: ConnectionTrait>(
+    pub(crate) async fn load_ids_for_confluences<C: ConnectionTrait>(
         db: &C,
-        workspaces: &[confluence::Model],
+        confluences: &[confluence::Model],
     ) -> Result<Vec<Vec<Uuid>>, AppError> {
-        Ok(workspaces
+        Ok(confluences
             .load_many(Self::find().order_by_asc(Column::VlanId), db)
             .await?
             .into_iter()
@@ -44,19 +44,19 @@ impl Entity {
             .collect())
     }
 
-    pub(crate) async fn replace_for_workspace(
+    pub(crate) async fn replace_for_confluence(
         db: &DatabaseConnection,
         creator: &str,
-        workspace_id: Uuid,
+        confluence_id: Uuid,
         ids: Vec<Uuid>,
     ) -> Result<Vec<Uuid>, AppError> {
         let tx = db.begin().await?;
-        confluence::Entity::find_by_id(workspace_id)
+        confluence::Entity::find_by_id(confluence_id)
             .filter(confluence::Column::Creator.eq(creator))
             .lock_exclusive()
             .one(&tx)
             .await?
-            .ok_or_else(|| AppError::not_found("Workspace not found"))?;
+            .ok_or_else(|| AppError::not_found("Confluence not found"))?;
         let ids: BTreeSet<_> = ids.into_iter().collect();
         if !ids.is_empty() {
             let owned = vlan_network::Entity::find()
@@ -69,14 +69,14 @@ impl Entity {
             }
         }
         Self::delete_many()
-            .filter(Column::ConfluenceId.eq(workspace_id))
+            .filter(Column::ConfluenceId.eq(confluence_id))
             .filter(Column::Creator.eq(creator))
             .exec(&tx)
             .await?;
         if !ids.is_empty() {
             Self::insert_many(ids.iter().map(|id| ActiveModel {
                 creator: Set(creator.to_owned()),
-                confluence_id: Set(workspace_id),
+                confluence_id: Set(confluence_id),
                 vlan_id: Set(*id),
                 ..Default::default()
             }))

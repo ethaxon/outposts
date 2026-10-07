@@ -13,5 +13,4 @@ pub mod vlan_route;
 pub mod vlan_supplicant;
 pub mod vlan_tunnel;
 pub mod vlan_tunnel_grant;
-pub mod vlan_wireguard_config;
 pub mod vlan_wireguard_peer;

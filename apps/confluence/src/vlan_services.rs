@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     auth::CurrentUser,
-    dto::WorkspaceVlansUpdateDto,
+    dto::{ConfluenceVlansUpdateDto, SupplicantSummaryDto},
     error::AppError,
     models::{confluence_vlan, vlan_network, vlan_supplicant},
     services::AppState,
@@ -82,6 +82,22 @@ pub async fn create_supplicant(
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
+pub async fn list_supplicants(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<CurrentUser>,
+) -> Result<Json<Vec<SupplicantSummaryDto>>, AppError> {
+    let tx = state
+        .conn
+        .begin_with_config(
+            Some(IsolationLevel::RepeatableRead),
+            Some(AccessMode::ReadOnly),
+        )
+        .await?;
+    let supplicants = vlan_supplicant::Entity::list_owned_with_usage(&tx, &user.user_id).await?;
+    tx.commit().await?;
+    Ok(Json(supplicants))
+}
+
 pub async fn update_supplicant(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<CurrentUser>,
@@ -102,14 +118,14 @@ pub async fn delete_supplicant(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn update_workspace_vlans(
+pub async fn update_confluence_vlans(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<CurrentUser>,
     Path(id): Path<Uuid>,
-    Json(input): Json<WorkspaceVlansUpdateDto>,
+    Json(input): Json<ConfluenceVlansUpdateDto>,
 ) -> Result<Json<Vec<Uuid>>, AppError> {
     Ok(Json(
-        confluence_vlan::Entity::replace_for_workspace(
+        confluence_vlan::Entity::replace_for_confluence(
             &state.conn,
             &user.user_id,
             id,

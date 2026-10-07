@@ -24,88 +24,18 @@ function harness() {
 }
 
 describe("VLAN editor", () => {
-  it("prefills the Portal without storing the exported client secret or changing VLAN routes", () => {
+  it("replaces the route draft with the aggregated AllowedIPs across tunnels", () => {
     const { component, service } = harness();
-    component.addTunnel("easytier-gateway");
-    const portal = component.network.tunnels[0];
-    if (portal.type !== "easytier-gateway") throw new Error("Expected EasyTier tunnel");
-    const pasted = [
-      "[Interface]",
-      "PrivateKey = example-client-key",
-      "Address = 192.0.2.2/32",
-      "[Peer]",
-      "PublicKey = example-peer-key",
-      "AllowedIPs = 10.20.0.0/24, 10.22.0.0/24",
-      "Endpoint = portal.example.test:24",
-      "PersistentKeepalive = 25",
-    ].join("\n");
-    expect(component.importPortal(portal, pasted)).toBe(true);
-    expect(portal).toMatchObject({
-      name: "",
-      server: "portal.example.test",
-      port: 24,
-      subnet: "192.0.2.0/24",
-      allowed_ips: ["10.20.0.0/24", "10.22.0.0/24"],
-    });
-    expect(portal.private_key).toBeUndefined();
-    expect(component.network.routes).toEqual(["10.20.0.0/24", "10.21.0.0/24"]);
-    expect(service.saveVlan).not.toHaveBeenCalled();
-    expect(component.importPortal(portal, pasted.replace(":24", ":0"))).toBe(false);
-    expect(portal.port).toBe(24);
-  });
-
-  it("replaces the route draft with the aggregated union of both tunnel types", () => {
-    const { component, service } = harness();
-    component.network.tunnels = [
-      {
-        id: "",
-        name: "a",
-        type: "easytier-gateway",
-        server: "a.test",
-        port: 24,
-        subnet: "10.3.0.0/24",
-        has_private_key: true,
-        allowed_ips: ["10.20.0.0/24"],
-        grants: [],
-      },
-      {
-        id: "",
-        name: "b",
-        type: "wireguard-compatible",
-        grants: [{ supplicant_id: "identity-id", config_id: "client-config" }],
-        configs: [
-          {
-            id: "client-config",
-            has_private_key: true,
-            addresses: ["192.0.2.2/32"],
-            mtu: null,
-            persistent_keepalive: null,
-            peers: [
-              {
-                server: "b.test",
-                port: 51820,
-                public_key: "key",
-                has_pre_shared_key: false,
-                allowed_ips: ["10.21.0.0/24"],
-              },
-            ],
-          },
-        ],
-      },
-    ];
+    for (const cidr of ["10.20.0.0/24", "10.21.0.0/24"]) {
+      component.addTunnel();
+      const { config } = component.network.tunnels.at(-1)!;
+      component.addPeer(config);
+      config.peers[0].allowed_ips = [cidr];
+    }
     component.recomputeRoutes();
-    expect(service.aggregateVlanRoutes).toHaveBeenCalledWith([
-      "10.20.0.0/24",
-      "10.3.0.0/24",
-      "10.21.0.0/24",
-    ]);
+    expect(service.aggregateVlanRoutes).toHaveBeenCalledWith(["10.20.0.0/24", "10.21.0.0/24"]);
     expect(component.network.routes).toEqual(["10.0.0.0/8"]);
     expect(service.saveVlan).not.toHaveBeenCalled();
-    expect(component.memberGrantCount("identity-id")).toBe(1);
-    component.removeMember("identity-id");
-    expect(component.network.accept_supplicants).toEqual([]);
-    expect(component.network.tunnels[1].grants).toEqual([]);
-    expect(component.network.tunnels[1]).toMatchObject({ configs: [{ id: "client-config" }] });
   });
 
   it("saves independently and prevents a duplicate update while pending", () => {
@@ -138,10 +68,9 @@ describe("VLAN editor", () => {
     component.toggleMember("other-id");
     expect(component.isMember("other-id")).toBe(false);
 
-    component.addTunnel("easytier-gateway");
+    component.addTunnel();
     const tunnel = component.network.tunnels[0];
-    if (tunnel.type !== "easytier-gateway") throw new Error("Expected EasyTier tunnel");
-    component.togglePortalGrant(tunnel, "identity-id");
+    component.toggleTunnelGrant(tunnel, "identity-id");
     expect(component.hasGrant(tunnel, "identity-id")).toBe(true);
 
     component.toggleMember("identity-id");
@@ -149,15 +78,13 @@ describe("VLAN editor", () => {
     expect(component.pendingRemoval()).toEqual({ kind: "member", id: "identity-id" });
   });
 
-  it("imports and saves a WireGuard config without a member, then assigns it separately", () => {
+  it("imports and saves a WireGuard config without a member, then grants the same tunnel to multiple VLAN members", () => {
     const { component, service } = harness();
     component.network.enabled = true;
     component.network.accept_supplicants = [];
-    component.addTunnel("wireguard-compatible");
+    component.addTunnel();
     const tunnel = component.network.tunnels[0];
-    if (tunnel.type !== "wireguard-compatible") throw new Error("Expected WireGuard tunnel");
-    component.addWireGuardConfig(tunnel);
-    const config = tunnel.configs[0];
+    const config = tunnel.config;
     const key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
     const content = [
       "[Interface]",
@@ -175,16 +102,18 @@ describe("VLAN editor", () => {
     expect(service.saveVlan).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ accept_supplicants: [], tunnels: [tunnel] }),
     );
-    expect(tunnel.grants).toEqual([]);
+    expect(tunnel.supplicant_ids).toEqual([]);
 
-    component.assignWireGuardConfig(tunnel, config, "identity-id");
-    expect(tunnel.grants).toEqual([]);
-    component.toggleMember("identity-id");
-    component.assignWireGuardConfig(tunnel, config, "identity-id");
-    expect(tunnel.grants).toEqual([{ supplicant_id: "identity-id", config_id: config.id }]);
-    component.assignWireGuardConfig(tunnel, config, "");
-    expect(tunnel.grants).toEqual([]);
-    expect(tunnel.configs).toEqual([config]);
+    component.toggleTunnelGrant(tunnel, "identity-id");
+    expect(tunnel.supplicant_ids).toEqual([]);
+    for (const member of ["identity-id", "second-id"]) {
+      component.toggleMember(member);
+      component.toggleTunnelGrant(tunnel, member);
+    }
+    expect(tunnel.supplicant_ids).toEqual(["identity-id", "second-id"]);
+    component.removeMember("identity-id");
+    expect(tunnel.supplicant_ids).toEqual(["second-id"]);
+    expect(tunnel.config).toBe(config);
 
     component.requestRemoveTunnel(tunnel);
     expect(component.isPending({ kind: "tunnel", tunnel })).toBe(true);

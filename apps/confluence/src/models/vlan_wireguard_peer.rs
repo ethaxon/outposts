@@ -9,15 +9,15 @@ use crate::vlan::WireGuardPeer;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: Uuid,
-    pub config_id: Uuid,
+    pub tunnel_id: Uuid,
     pub position: i32,
     pub server: String,
     pub port: i32,
     pub public_key: String,
     pub pre_shared_key: Option<String>,
     pub allowed_ips: Vec<String>,
-    #[sea_orm(belongs_to, from = "config_id", to = "id", on_delete = "Cascade")]
-    pub config: HasOne<super::vlan_wireguard_config::Entity>,
+    #[sea_orm(belongs_to, from = "tunnel_id", to = "id", on_delete = "Cascade")]
+    pub tunnel: HasOne<super::vlan_tunnel::Entity>,
 }
 
 impl From<Model> for WireGuardPeer {
@@ -34,9 +34,9 @@ impl From<Model> for WireGuardPeer {
 }
 
 impl ActiveModel {
-    pub(super) fn from_peer(config_id: Uuid, position: i32, peer: &WireGuardPeer) -> Self {
+    pub(super) fn from_peer(tunnel_id: Uuid, position: i32, peer: &WireGuardPeer) -> Self {
         Self {
-            config_id: Set(config_id),
+            tunnel_id: Set(tunnel_id),
             position: Set(position),
             server: Set(peer.server.clone()),
             port: Set(i32::from(peer.port)),

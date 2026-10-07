@@ -11,7 +11,11 @@
     </li>
     <li hlmBreadcrumbSeparator></li>
     <li hlmBreadcrumbItem>
-      <span hlmBreadcrumbPage>{{ workspaceCrumbLabel() }}</span>
+      <a hlmBreadcrumbLink [link]="['/confluence/confluences']">{{ confluencesCrumbLabel() }}</a>
+    </li>
+    <li hlmBreadcrumbSeparator></li>
+    <li hlmBreadcrumbItem>
+      <span hlmBreadcrumbPage class="max-w-48 truncate">{{ (confluence$ | async)?.name }}</span>
     </li>
   </ol>
 </nav>
@@ -31,34 +35,34 @@
   <div>
     @let confluence = confluence$ | async;
     @if (confluence) {
-      <div class="workspace-metadata">
-        <div class="workspace-metadata-item">
-          <span>{{ "confluence.workspace.metadata.totalTraffic" | transloco }}</span>
+      <div class="confluence-metadata">
+        <div class="confluence-metadata-item">
+          <span>{{ "confluence.confluence.metadata.totalTraffic" | transloco }}</span>
           <strong>{{ formatTrafficGb(confluence.sub_total) }}</strong>
         </div>
-        <div class="workspace-metadata-item">
-          <span>{{ "confluence.workspace.metadata.usedTraffic" | transloco }}</span>
+        <div class="confluence-metadata-item">
+          <span>{{ "confluence.confluence.metadata.usedTraffic" | transloco }}</span>
           <strong>{{ formatTrafficGb(usedTraffic(confluence)) }}</strong>
         </div>
-        <div class="workspace-metadata-item">
-          <span>{{ "confluence.workspace.metadata.expireAt" | transloco }}</span>
+        <div class="confluence-metadata-item">
+          <span>{{ "confluence.confluence.metadata.expireAt" | transloco }}</span>
           <strong>{{ formatOptionalTime(confluence.sub_expire) }}</strong>
         </div>
-        <div class="workspace-metadata-item">
-          <span>{{ "confluence.workspace.metadata.subscribeSources" | transloco }}</span>
+        <div class="confluence-metadata-item">
+          <span>{{ "confluence.confluence.metadata.subscribeSources" | transloco }}</span>
           <strong>{{ confluence.subscribe_sources.length }}</strong>
         </div>
-        <div class="workspace-metadata-item">
-          <span>{{ "confluence.workspace.metadata.profiles" | transloco }}</span>
+        <div class="confluence-metadata-item">
+          <span>{{ "confluence.confluence.metadata.profiles" | transloco }}</span>
           <strong>{{ confluence.profiles.length }}</strong>
         </div>
       </div>
     }
-    <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-      <div class="text-xl">
-        {{ "confluence.workspace.sections.template" | transloco }}
+    <div class="app-section-bar">
+      <div class="app-section-bar-title">
+        {{ "confluence.confluence.sections.template" | transloco }}
       </div>
-      <div class="flex gap-2">
+      <div class="app-section-bar-actions">
         <app-action
           size="small"
           [label]="'common.actions.save' | transloco"
@@ -76,18 +80,18 @@
         ></app-action>
       </div>
     </div>
-    <div class="m-0 rounded-lg border workspace-monaco-shell workspace-monaco-shell-stable">
+    <div class="m-0 rounded-lg border confluence-monaco-shell confluence-monaco-shell-stable">
       <ngx-monaco-editor
         [options]="tmplEditorOptions"
         [(ngModel)]="tmpl"
         style="min-height: 200px; height: 50vh"
       ></ngx-monaco-editor>
     </div>
-    <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-      <div class="text-xl">
-        {{ "confluence.workspace.sections.subscribeSources" | transloco }}
+    <div class="app-section-bar">
+      <div class="app-section-bar-title">
+        {{ "confluence.confluence.sections.subscribeSources" | transloco }}
       </div>
-      <div class="flex gap-2">
+      <div class="app-section-bar-actions">
         <app-action
           size="small"
           [label]="'common.actions.sync' | transloco"
@@ -98,13 +102,13 @@
       </div>
     </div>
     <div class="mt-6">
-      <div class="workspace-card-grid workspace-subscribe-source-grid text-center">
+      <div class="confluence-card-grid confluence-subscribe-source-grid text-center">
         <div>
           <app-card
             class="cursor-pointer text-center relative confluence-subscribe-source-item confluence-subscribe-source-create h-full"
             (click)="openCreateSubscribeSourceDialog()"
           >
-            <div>{{ "confluence.workspace.cards.import" | transloco }}</div>
+            <div>{{ "confluence.confluence.cards.import" | transloco }}</div>
             <div class="flex items-center justify-center gap-1 mt-2">
               <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
             </div>
@@ -165,8 +169,8 @@
                     variant="ghost"
                     size="icon-sm"
                     class="text-destructive"
-                    [attr.aria-label]="'confluence.workspace.syncError.view' | transloco"
-                    [title]="'confluence.workspace.syncError.view' | transloco"
+                    [attr.aria-label]="'confluence.confluence.syncError.view' | transloco"
+                    [title]="'confluence.confluence.syncError.view' | transloco"
                     (click)="subscribeSourceError.set({ name: item.name, error })"
                   >
                     <ng-icon name="lucideCircleAlert" aria-hidden="true" />
@@ -186,24 +190,24 @@
               ></span>
               <div class="subscription-source-meta">
                 <div class="subscription-source-meta-row">
-                  <span>{{ "confluence.workspace.subscription.updatedAt" | transloco }}</span>
+                  <span>{{ "confluence.confluence.subscription.updatedAt" | transloco }}</span>
                   <strong>{{ formatTime(item.updated_at, "MM-dd HH:mm") }}</strong>
                 </div>
                 <div class="subscription-source-meta-row">
-                  <span>{{ "confluence.workspace.subscription.expireAt" | transloco }}</span>
+                  <span>{{ "confluence.confluence.subscription.expireAt" | transloco }}</span>
                   <strong>{{ formatOptionalTime(item.sub_expire) }}</strong>
                 </div>
                 <div class="subscription-source-meta-row">
-                  <span>{{ "confluence.workspace.subscription.usedTraffic" | transloco }}</span>
+                  <span>{{ "confluence.confluence.subscription.usedTraffic" | transloco }}</span>
                   <strong>{{ formatTrafficGb(usedTraffic(item)) }}</strong>
                 </div>
                 <div class="subscription-source-meta-row">
-                  <span>{{ "confluence.workspace.subscription.totalTraffic" | transloco }}</span>
+                  <span>{{ "confluence.confluence.subscription.totalTraffic" | transloco }}</span>
                   <strong>{{ formatTrafficGb(item.sub_total) }}</strong>
                 </div>
                 <div class="subscription-source-meta-row">
                   <span>{{
-                    "confluence.workspace.subscription.trafficResetPolicy" | transloco
+                    "confluence.confluence.subscription.trafficResetPolicy" | transloco
                   }}</span>
                   <strong>{{
                     trafficResetPolicyLabelKey(item.traffic_reset_policy) | transloco
@@ -211,7 +215,7 @@
                 </div>
                 <div class="subscription-source-meta-row">
                   <span>{{
-                    "confluence.workspace.subscription.trafficNextResetAt" | transloco
+                    "confluence.confluence.subscription.trafficNextResetAt" | transloco
                   }}</span>
                   <strong>{{ formatOptionalTime(item.traffic_next_reset_at) }}</strong>
                 </div>
@@ -230,16 +234,16 @@
     </div>
     @if (confluence) {
       <app-vlan-catalog
-        [workspaceId]="confluence.id"
+        [confluenceId]="confluence.id"
         [vlanIds]="confluence.vlan_ids"
         (referencesSaved)="saveVlanReferences($event)"
       />
     }
-    <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-      <div class="text-xl">
-        {{ "confluence.workspace.sections.profiles" | transloco }}
+    <div class="app-section-bar">
+      <div class="app-section-bar-title">
+        {{ "confluence.confluence.sections.profiles" | transloco }}
       </div>
-      <div class="flex items-center justify-center gap-1 mt-2">
+      <div class="app-section-bar-actions">
         <app-action
           size="small"
           [label]="'common.actions.mux' | transloco"
@@ -257,12 +261,12 @@
       </div>
     </div>
     <div class="mt-6">
-      <div class="workspace-card-grid workspace-profile-grid text-center">
+      <div class="confluence-card-grid confluence-profile-grid text-center">
         <app-card class="cursor-pointer confluence-profile-item h-full" (click)="createProfile()">
           <div>
-            {{ "confluence.workspace.cards.newProfilePrefix" | transloco }}
+            {{ "confluence.confluence.cards.newProfilePrefix" | transloco }}
             <br />
-            {{ "confluence.workspace.cards.newProfileSuffix" | transloco }}
+            {{ "confluence.confluence.cards.newProfileSuffix" | transloco }}
           </div>
           <div class="profile-card-actions">
             <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
@@ -276,11 +280,11 @@
                 class="profile-card-lock"
                 role="img"
                 [attr.aria-label]="
-                  'confluence.workspace.profileAge.encrypted'
+                  'confluence.confluence.profileAge.encrypted'
                     | transloco: { count: item.age_supplicant_ids.length }
                 "
                 [title]="
-                  'confluence.workspace.profileAge.encrypted'
+                  'confluence.confluence.profileAge.encrypted'
                     | transloco: { count: item.age_supplicant_ids.length }
                 "
               />
@@ -336,11 +340,11 @@
         }
       </div>
     </div>
-    <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-      <div class="text-xl">
-        {{ "confluence.workspace.sections.syncSchedule" | transloco }}
+    <div class="app-section-bar">
+      <div class="app-section-bar-title">
+        {{ "confluence.confluence.sections.syncSchedule" | transloco }}
       </div>
-      <div class="flex gap-2">
+      <div class="app-section-bar-actions">
         <app-action
           size="small"
           [label]="'common.actions.save' | transloco"
@@ -377,17 +381,17 @@
           ) {
             <span>{{ cronUpdateForm.controls.cronExpr.errors?.["messageKey"] | transloco }}</span>
           } @else {
-            {{ "confluence.workspace.cronHint" | transloco }}
+            {{ "confluence.confluence.cronHint" | transloco }}
             <code>0 0 8 * * *</code>
           }
         </small>
       </form>
     </div>
-    <div class="flex justify-between items-center mt-6 mb-6 p-4 font-bold bg-surface-auto-50">
-      <div class="text-xl">
-        {{ "confluence.workspace.sections.syncUserAgent" | transloco }}
+    <div class="app-section-bar">
+      <div class="app-section-bar-title">
+        {{ "confluence.confluence.sections.syncUserAgent" | transloco }}
       </div>
-      <div class="flex gap-2">
+      <div class="app-section-bar-actions">
         <app-action
           size="small"
           [label]="'common.actions.save' | transloco"
@@ -409,7 +413,7 @@
           id="ua-update-user-agent"
           formControlName="userAgent"
           autocomplete="off"
-          [placeholder]="'confluence.workspace.userAgentPlaceholder' | transloco"
+          [placeholder]="'confluence.confluence.userAgentPlaceholder' | transloco"
         />
       </form>
     </div>
@@ -417,7 +421,7 @@
 </section>
 @if (subscribeSourceCreation) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.newSubscribeSource' | transloco"
+    [header]="'confluence.confluence.dialogs.newSubscribeSource' | transloco"
     [visible]="true"
     (visibleChange)="cancelCreateSubscribeSourceDialog()"
   >
@@ -432,7 +436,7 @@
           [ngClass]="{ 'mt-4': !$first }"
           for="subscribe-source-creation-{{ control.key }}"
         >
-          {{ "confluence.workspace.fields." + control.key | transloco }}
+          {{ "confluence.confluence.fields." + control.key | transloco }}
         </label>
         @if (control.key === "passive_sync") {
           <hlm-checkbox
@@ -507,7 +511,7 @@
 }
 @if (nameUpdateDialog) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.rename' | transloco"
+    [header]="'confluence.confluence.dialogs.rename' | transloco"
     [visible]="true"
     (visibleChange)="cancelUpdateNameDialog()"
   >
@@ -518,7 +522,7 @@
           [ngClass]="{ 'mt-4': !$first }"
           for="update-name-{{ item.key }}"
         >
-          {{ "confluence.workspace.fields." + item.key | transloco }}
+          {{ "confluence.confluence.fields." + item.key | transloco }}
         </label>
         <input
           hlmInput
@@ -553,7 +557,7 @@
 }
 @if (subscribeSourceUpdate) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.editSubscribeSource' | transloco"
+    [header]="'confluence.confluence.dialogs.editSubscribeSource' | transloco"
     [visible]="true"
     (visibleChange)="cancelUpdateSubscribeSourceDialog()"
   >
@@ -563,7 +567,7 @@
       onsubmit="return false;"
     >
       <label style="text-transform: capitalize" for="subscribe-source-creation-id">
-        {{ "confluence.workspace.fields.id" | transloco }}
+        {{ "confluence.confluence.fields.id" | transloco }}
       </label>
       <input
         hlmInput
@@ -580,7 +584,7 @@
           class="mt-6"
           for="subscribe-source-creation-{{ control.key }}"
         >
-          {{ "confluence.workspace.fields." + control.key | transloco }}
+          {{ "confluence.confluence.fields." + control.key | transloco }}
         </label>
         @if (control.key === "passive_sync") {
           <hlm-checkbox
@@ -654,7 +658,7 @@
   </app-dialog>
 } @else if (muxContentPreview) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.previewMuxContent' | transloco"
+    [header]="'confluence.confluence.dialogs.previewMuxContent' | transloco"
     [visible]="true"
     (visibleChange)="cancelPreviewMuxContentDialog()"
     [modal]="true"
@@ -663,7 +667,7 @@
     [resizable]="false"
     [baseZIndex]="100"
   >
-    <div class="workspace-monaco-shell">
+    <div class="confluence-monaco-shell">
       <ngx-monaco-editor
         [options]="tmplEditorOptions"
         [(ngModel)]="muxContentPreview.content"
@@ -674,7 +678,7 @@
   </app-dialog>
 } @else if (subscribeSourceError(); as details) {
   <app-dialog
-    [header]="'confluence.workspace.syncError.view' | transloco"
+    [header]="'confluence.confluence.syncError.view' | transloco"
     [visible]="true"
     (visibleChange)="subscribeSourceError.set(null)"
   >
@@ -687,7 +691,7 @@
       </div>
       <div>
         <p class="font-medium text-destructive">
-          {{ "confluence.workspace.syncError.types." + details.error.kind | transloco }}
+          {{ "confluence.confluence.syncError.types." + details.error.kind | transloco }}
           @if (details.error.status !== null) {
             <span class="text-muted-foreground"> · HTTP {{ details.error.status }}</span>
           }
@@ -697,7 +701,7 @@
       @if (details.error.headers.length) {
         <section>
           <h3 class="mb-1 text-sm font-semibold">
-            {{ "confluence.workspace.syncError.headers" | transloco }}
+            {{ "confluence.confluence.syncError.headers" | transloco }}
           </h3>
           <div class="max-h-40 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
             @for (header of details.error.headers; track $index) {
@@ -709,16 +713,16 @@
       @if (details.error.body !== null) {
         <section>
           <h3 class="mb-1 text-sm font-semibold">
-            {{ "confluence.workspace.syncError.body" | transloco }}
+            {{ "confluence.confluence.syncError.body" | transloco }}
           </h3>
           <pre
             class="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all"
             >{{
-              details.error.body || ("confluence.workspace.syncError.emptyBody" | transloco)
+              details.error.body || ("confluence.confluence.syncError.emptyBody" | transloco)
             }}</pre>
           @if (details.error.body_truncated) {
             <p class="mt-1 text-xs text-muted-foreground">
-              {{ "confluence.workspace.syncError.truncatedBody" | transloco }}
+              {{ "confluence.confluence.syncError.truncatedBody" | transloco }}
             </p>
           }
         </section>
@@ -727,7 +731,7 @@
   </app-dialog>
 } @else if (subscribeSourceContentPreview) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.previewSubscribeSourceContent' | transloco"
+    [header]="'confluence.confluence.dialogs.previewSubscribeSourceContent' | transloco"
     [visible]="true"
     (visibleChange)="cancelPreviewSubscribeSourceContentDialog()"
     [modal]="true"
@@ -736,7 +740,7 @@
     [resizable]="false"
     [baseZIndex]="100"
   >
-    <div class="workspace-monaco-shell">
+    <div class="confluence-monaco-shell">
       <ngx-monaco-editor
         [options]="tmplEditorOptions"
         [(ngModel)]="subscribeSourceContentPreview.content"
@@ -762,7 +766,7 @@
 }
 @if (profileUpdate) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.editProfile' | transloco"
+    [header]="'confluence.confluence.dialogs.editProfile' | transloco"
     [visible]="true"
     styleClass="app-dialog-fill"
     (visibleChange)="cancelUpdateProfileDialog()"
@@ -780,13 +784,13 @@
       <!-- Recipients and script are separate concerns: each gets its own header + panel. -->
       @let recipientCount = profileUpdate.ageSupplicantIds.length;
       <section class="profile-panel" aria-labelledby="profile-age-title">
-        <header class="profile-script-editor-header profile-panel-header">
-          <div class="min-w-0 flex-1">
+        <header class="profile-script-editor-header profile-panel-header flex-wrap">
+          <div class="min-w-0 basis-full sm:flex-1">
             <h3 id="profile-age-title" class="profile-script-editor-label">
-              {{ "confluence.workspace.profileAge.title" | transloco }}
+              {{ "confluence.confluence.profileAge.title" | transloco }}
             </h3>
             <p class="profile-script-editor-hint">
-              {{ "confluence.workspace.profileAge.hint" | transloco }}
+              {{ "confluence.confluence.profileAge.hint" | transloco }}
             </p>
           </div>
           <span hlmBadge [variant]="recipientCount ? 'secondary' : 'outline'" class="shrink-0">
@@ -797,11 +801,15 @@
             />
             {{
               (recipientCount
-                ? "confluence.workspace.profileAge.encrypted"
-                : "confluence.workspace.profileAge.plain"
+                ? "confluence.confluence.profileAge.encrypted"
+                : "confluence.confluence.profileAge.plain"
               ) | transloco: { count: recipientCount }
             }}
           </span>
+          <a hlmBtn variant="outline" size="sm" routerLink="/confluence/supplicants">
+            <ng-icon name="lucideKeyRound" aria-hidden="true" />
+            {{ "confluence.confluence.profileAge.manage" | transloco }}
+          </a>
         </header>
         <div class="profile-panel-body" [attr.aria-busy]="profileSupplicants() === undefined">
           @if (profileSupplicants(); as supplicants) {
@@ -809,7 +817,7 @@
               <div
                 class="app-chips"
                 role="group"
-                [attr.aria-label]="'confluence.workspace.profileAge.title' | transloco"
+                [attr.aria-label]="'confluence.confluence.profileAge.title' | transloco"
               >
                 @for (supplicant of supplicants; track supplicant.id) {
                   @let included = profileUpdate.ageSupplicantIds.includes(supplicant.id);
@@ -829,17 +837,13 @@
                 }
               </div>
             } @else {
-              <div class="profile-panel-empty">
-                <span>{{ "confluence.workspace.profileAge.empty" | transloco }}</span>
-                <a hlmBtn variant="outline" size="sm" routerLink="/confluence/vlans">
-                  <ng-icon name="lucideKeyRound" aria-hidden="true" />
-                  {{ "confluence.workspace.profileAge.manage" | transloco }}
-                </a>
-              </div>
+              <p class="profile-panel-empty">
+                {{ "confluence.confluence.profileAge.empty" | transloco }}
+              </p>
             }
           } @else if (profileSupplicants() === null) {
             <div class="profile-panel-empty text-destructive" role="alert">
-              <span>{{ "confluence.workspace.profileAge.loadError" | transloco }}</span>
+              <span>{{ "confluence.confluence.profileAge.loadError" | transloco }}</span>
               <button
                 hlmBtn
                 type="button"
@@ -848,7 +852,7 @@
                 (click)="loadProfileSupplicants()"
               >
                 <ng-icon name="lucideRefreshCw" aria-hidden="true" />
-                {{ "confluence.workspace.profileAge.retry" | transloco }}
+                {{ "confluence.confluence.profileAge.retry" | transloco }}
               </button>
             </div>
           } @else {
@@ -856,7 +860,7 @@
             <div
               class="app-chips"
               role="status"
-              [attr.aria-label]="'confluence.workspace.profileAge.loading' | transloco"
+              [attr.aria-label]="'confluence.confluence.profileAge.loading' | transloco"
             >
               <div hlmSkeleton class="h-[1.875rem] w-40 rounded-full"></div>
               <div hlmSkeleton class="h-[1.875rem] w-32 rounded-full"></div>
@@ -871,14 +875,14 @@
                 aria-describedby="profile-unsafe-age-hint"
                 [(ngModel)]="profileUpdate.unsafeAgeCompatibility"
               />
-              {{ "confluence.workspace.profileAge.unsafeCompatibility" | transloco }}
+              {{ "confluence.confluence.profileAge.unsafeCompatibility" | transloco }}
             </label>
             <p id="profile-unsafe-age-hint" class="profile-script-editor-hint">
-              {{ "confluence.workspace.profileAge.unsafeHint" | transloco }}
+              {{ "confluence.confluence.profileAge.unsafeHint" | transloco }}
             </p>
             @if (profileUpdate.unsafeAgeCompatibility) {
               <code class="block break-all text-xs">
-                Client/1 confluence/supplicant=NAME&amp;_unsafe_supplicant_private=PRIVATE_KEY
+                Client/1 confluence/supplicants=NAME&amp;_unsafe_supplicant_private=PRIVATE_KEY
               </code>
             }
           </div>
@@ -886,17 +890,17 @@
       </section>
       <div class="profile-script-editor-header">
         <label class="profile-script-editor-label" for="profile-transform-script">
-          {{ "confluence.workspace.fields.transform_script" | transloco }}
+          {{ "confluence.confluence.fields.transform_script" | transloco }}
         </label>
         <p class="profile-script-editor-hint">
-          {{ "confluence.workspace.profileScriptHint" | transloco }}
+          {{ "confluence.confluence.profileScriptHint" | transloco }}
           <a
             class="profile-script-schema-link"
             href="https://raw.githubusercontent.com/dongchengjie/meta-json-schema/refs/heads/main/src/meta-json-schema.json"
             target="_blank"
             rel="noreferrer"
           >
-            {{ "confluence.workspace.profileScriptSchemaLink" | transloco }}
+            {{ "confluence.confluence.profileScriptSchemaLink" | transloco }}
           </a>
         </p>
       </div>
@@ -927,7 +931,7 @@
 }
 @if (profileTransformPreview(); as preview) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.testProfileTransform' | transloco"
+    [header]="'confluence.confluence.dialogs.testProfileTransform' | transloco"
     [visible]="true"
     (visibleChange)="cancelProfileTransformPreviewDialog()"
     [modal]="true"
@@ -938,13 +942,13 @@
   >
     <div class="profile-transform-preview">
       <p class="profile-script-editor-hint">
-        {{ "confluence.workspace.profileTransformPreview.hint" | transloco }}
+        {{ "confluence.confluence.profileTransformPreview.hint" | transloco }}
       </p>
       <div class="profile-transform-preview-grid">
         <!-- Request: edits only change the draft; Refresh renders it on the server. -->
         <div class="profile-transform-preview-section">
           <label class="profile-transform-preview-label" for="profile-transform-preview-url">
-            {{ "confluence.workspace.fields.requestUrl" | transloco }}
+            {{ "confluence.confluence.fields.requestUrl" | transloco }}
           </label>
           <input
             hlmInput
@@ -957,7 +961,7 @@
             (keydown.enter)="refreshProfileTransformPreview()"
           />
           <label class="profile-transform-preview-label" for="profile-transform-preview-headers">
-            {{ "confluence.workspace.fields.requestHeaders" | transloco }}
+            {{ "confluence.confluence.fields.requestHeaders" | transloco }}
           </label>
           <div class="profile-transform-preview-editor-shell profile-transform-preview-headers">
             <ngx-monaco-editor
@@ -971,13 +975,13 @@
           <div class="profile-transform-preview-actions">
             @if (preview.stale && preview.result && !preview.loading) {
               <span class="profile-transform-preview-stale" role="status">
-                {{ "confluence.workspace.profileTransformPreview.stale" | transloco }}
+                {{ "confluence.confluence.profileTransformPreview.stale" | transloco }}
               </span>
             }
             <app-action
               size="small"
               icon="lucideRefreshCw"
-              [label]="'confluence.workspace.profileTransformPreview.refresh' | transloco"
+              [label]="'confluence.confluence.profileTransformPreview.refresh' | transloco"
               [outlined]="!preview.stale"
               [loading]="preview.loading"
               (click)="!preview.loading && refreshProfileTransformPreview()"
@@ -989,7 +993,7 @@
         <div class="profile-transform-preview-section">
           <div class="profile-transform-preview-result-header">
             <span class="profile-transform-preview-label">
-              {{ "confluence.workspace.fields.transformResult" | transloco }}
+              {{ "confluence.confluence.fields.transformResult" | transloco }}
             </span>
             <div class="profile-transform-preview-tabs" role="tablist">
               <button
@@ -999,7 +1003,7 @@
                 (click)="setProfileTransformPreviewView('plaintext')"
               >
                 <ng-icon name="lucideLockOpen" aria-hidden="true" />
-                {{ "confluence.workspace.profileTransformPreview.plaintext" | transloco }}
+                {{ "confluence.confluence.profileTransformPreview.plaintext" | transloco }}
               </button>
               <button
                 type="button"
@@ -1008,13 +1012,13 @@
                 [disabled]="!preview.result?.encrypted"
                 [title]="
                   preview.result && !preview.result.encrypted
-                    ? ('confluence.workspace.profileTransformPreview.servedPlain' | transloco)
+                    ? ('confluence.confluence.profileTransformPreview.servedPlain' | transloco)
                     : ''
                 "
                 (click)="setProfileTransformPreviewView('served')"
               >
                 <ng-icon name="lucideLock" aria-hidden="true" />
-                {{ "confluence.workspace.profileTransformPreview.served" | transloco }}
+                {{ "confluence.confluence.profileTransformPreview.served" | transloco }}
               </button>
             </div>
           </div>
@@ -1029,13 +1033,13 @@
             <dl class="profile-transform-preview-summary">
               <div>
                 <dt>
-                  {{ "confluence.workspace.profileTransformPreview.supplicant" | transloco }}
+                  {{ "confluence.confluence.profileTransformPreview.supplicants" | transloco }}
                 </dt>
-                <dd>{{ result.supplicant ?? "—" }}</dd>
+                <dd>{{ result.supplicants.length ? result.supplicants.join(", ") : "—" }}</dd>
               </div>
               <div>
                 <dt>
-                  {{ "confluence.workspace.profileTransformPreview.vlans" | transloco }}
+                  {{ "confluence.confluence.profileTransformPreview.vlans" | transloco }}
                 </dt>
                 <dd>
                   {{ result.vlans.length ? result.vlans.join(", ") : "—" }}
@@ -1043,7 +1047,7 @@
               </div>
               <div>
                 <dt>
-                  {{ "confluence.workspace.profileTransformPreview.recipients" | transloco }}
+                  {{ "confluence.confluence.profileTransformPreview.recipients" | transloco }}
                 </dt>
                 <dd>
                   @if (result.encrypted) {
@@ -1051,7 +1055,7 @@
                     {{ result.recipients.join(", ") }}
                   } @else {
                     <ng-icon name="lucideLockOpen" aria-hidden="true" />
-                    {{ "confluence.workspace.profileTransformPreview.servedPlain" | transloco }}
+                    {{ "confluence.confluence.profileTransformPreview.servedPlain" | transloco }}
                   }
                 </dd>
               </div>
@@ -1086,7 +1090,7 @@
                   }
                 } @else {
                   <span>{{
-                    "confluence.workspace.profileTransformPreview.empty" | transloco
+                    "confluence.confluence.profileTransformPreview.empty" | transloco
                   }}</span>
                 }
               </div>
@@ -1099,7 +1103,7 @@
 }
 @if (urlPreview) {
   <app-dialog
-    [header]="'confluence.workspace.dialogs.previewProfileContent' | transloco"
+    [header]="'confluence.confluence.dialogs.previewProfileContent' | transloco"
     [visible]="true"
     (visibleChange)="cancelUrlPreviewDialog()"
     [modal]="true"
@@ -1120,7 +1124,7 @@
       @if (urlPreview.qrcodeDataUrl) {
         <img
           [src]="urlPreview.qrcodeDataUrl"
-          [attr.alt]="'confluence.workspace.qrcodeAlt' | transloco"
+          [attr.alt]="'confluence.confluence.qrcodeAlt' | transloco"
           class="mx-auto mt-4"
         />
       }

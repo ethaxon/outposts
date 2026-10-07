@@ -22,6 +22,7 @@ mod m20261120_000002_wireguard_configs;
 mod m20261120_000003_profile_supplicants;
 mod m20261120_000004_profile_unsafe_age;
 mod m20261120_000005_subscribe_source_last_sync_error;
+mod m20261121_000001_wireguard_only_tunnels;
 
 pub struct Migrator;
 
@@ -49,6 +50,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20261120_000003_profile_supplicants::Migration),
             Box::new(m20261120_000004_profile_unsafe_age::Migration),
             Box::new(m20261120_000005_subscribe_source_last_sync_error::Migration),
+            Box::new(m20261121_000001_wireguard_only_tunnels::Migration),
         ]
     }
 }

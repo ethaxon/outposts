@@ -23,7 +23,7 @@ async function* clientsOf(...views: ReturnType<typeof fakeClient>[]) {
 }
 
 function invoke(...views: ReturnType<typeof fakeClient>[]) {
-  const context = { planContext: { routeState: { url: "/confluence/dashboard" } } };
+  const context = { planContext: { routeState: { url: "/confluence/confluences" } } };
   return redirectToLoginOnUnauthenticated(
     {} as HookArgs[0],
     context as unknown as HookArgs[1],
@@ -54,7 +54,7 @@ describe("auth activity", () => {
     void Promise.resolve(invoke(fakeClient(true), fakeClient(false, login))).then(settled);
 
     await vi.waitFor(() => expect(login).toHaveBeenCalledOnce());
-    expect(login).toHaveBeenCalledWith({ postAuthRedirectUri: "/confluence/dashboard" });
+    expect(login).toHaveBeenCalledWith({ postAuthRedirectUri: "/confluence/confluences" });
     expect(authActivity()).toBe(AuthActivity.Redirecting);
     await Promise.resolve();
     // The navigation stays pending while the page unloads.

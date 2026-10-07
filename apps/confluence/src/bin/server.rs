@@ -19,7 +19,7 @@ use confluence::services::{
 use confluence::tasks::init_backend_jobs;
 use confluence::vlan_services::{
     aggregate_vlan_routes, create_network, create_supplicant, delete_network, delete_supplicant,
-    list_catalog, update_network, update_supplicant, update_workspace_vlans,
+    list_catalog, list_supplicants, update_confluence_vlans, update_network, update_supplicant,
 };
 use sea_orm::sea_query::{Alias, ExprTrait, Func, Query};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database};
@@ -189,46 +189,52 @@ async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
+/// Management resources are plural nouns in kebab-case; per-item actions are POST
+/// sub-routes (`/{id}/sync`), and every route behind `auth` is scoped to the caller.
+/// `/api/profile_token/{token}` is the public subscription URL that clients store, so it
+/// keeps its original path.
 fn handle_confluence(state: Arc<AppState>) -> Router {
-    let confluence_api = Router::<Arc<AppState>>::new()
+    let confluences_api = Router::<Arc<AppState>>::new()
         .route("/", get(find_many_confluences).post(create_one_confluence))
         .route(
             "/{id}",
             get(find_one_confluence)
-                .delete(delete_one_confluence)
-                .put(update_one_confluence),
+                .put(update_one_confluence)
+                .delete(delete_one_confluence),
         )
-        .route("/{id}/vlans", put(update_workspace_vlans))
-        .route("/mux/{id}", post(mux_one_confluence))
-        .route("/sync/{id}", post(sync_one_confluence))
-        .route("/cron/{id}", post(update_one_confluence_cron))
+        .route("/{id}/cron", put(update_one_confluence_cron))
+        .route("/{id}/vlans", put(update_confluence_vlans))
+        .route("/{id}/sync", post(sync_one_confluence))
+        .route("/{id}/mux", post(mux_one_confluence))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
-    let vlan_api = Router::<Arc<AppState>>::new()
-        .route("/", get(list_catalog).post(create_network))
-        .route("/routes/aggregate", post(aggregate_vlan_routes))
-        .route("/{id}", put(update_network).delete(delete_network))
-        .route("/supplicants", post(create_supplicant))
+    let subscribe_sources_api = Router::<Arc<AppState>>::new()
+        .route("/", post(create_one_subscribe_source))
         .route(
-            "/supplicants/{id}",
-            put(update_supplicant).delete(delete_supplicant),
+            "/{id}",
+            put(update_one_subscribe_source).delete(delete_one_subscribe_source),
         )
+        .route("/{id}/sync", post(sync_one_subscribe_source))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
-    let profile_api = Router::<Arc<AppState>>::new()
+    let profiles_api = Router::<Arc<AppState>>::new()
         .route("/", post(create_one_profile))
         .route("/{id}", put(update_one_profile).delete(delete_one_profile))
         // Behind `auth` and scoped to the creator; deliberately not on the token API.
         .route("/{id}/preview", post(preview_one_profile))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
-    let subscribe_source_api = Router::<Arc<AppState>>::new()
-        .route("/", post(create_one_subscribe_source))
-        .route(
-            "/{id}",
-            put(update_one_subscribe_source).delete(delete_one_subscribe_source),
-        )
-        .route("/sync/{id}", post(sync_one_subscribe_source))
+    // `GET /` returns VLANs together with the supplicants they can reference, read in one
+    // snapshot so the editor never sees a member that is missing from the catalog.
+    let vlans_api = Router::<Arc<AppState>>::new()
+        .route("/", get(list_catalog).post(create_network))
+        .route("/routes/aggregate", post(aggregate_vlan_routes))
+        .route("/{id}", put(update_network).delete(delete_network))
+        .layer(middleware::from_fn_with_state(state.clone(), auth));
+
+    let supplicants_api = Router::<Arc<AppState>>::new()
+        .route("/", get(list_supplicants).post(create_supplicant))
+        .route("/{id}", put(update_supplicant).delete(delete_supplicant))
         .layer(middleware::from_fn_with_state(state.clone(), auth));
 
     let profile_token_api = Router::<Arc<AppState>>::new()
@@ -241,10 +247,11 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
     let auth_config_api = Router::<Arc<AppState>>::new().route("/config", get(get_oidc_config));
 
     Router::<Arc<AppState>>::new()
-        .nest("/api/profile", profile_api)
-        .nest("/api/confluence", confluence_api)
-        .nest("/api/vlan", vlan_api)
-        .nest("/api/subscribe_source", subscribe_source_api)
+        .nest("/api/confluences", confluences_api)
+        .nest("/api/subscribe_sources", subscribe_sources_api)
+        .nest("/api/profiles", profiles_api)
+        .nest("/api/vlans", vlans_api)
+        .nest("/api/supplicants", supplicants_api)
         .nest("/api/profile_token", profile_token_api)
         .nest("/api/health", health_api)
         .nest("/api/auth", auth_config_api)

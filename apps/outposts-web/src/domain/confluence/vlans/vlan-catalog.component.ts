@@ -10,7 +10,6 @@ import {
   type OnInit,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { FormsModule, type NgForm } from "@angular/forms";
 import { TranslocoModule } from "@jsverse/transloco";
 import { NgIcon, provideIcons } from "@ng-icons/core";
 import {
@@ -18,13 +17,9 @@ import {
   lucideCircleAlert,
   lucideCloudOff,
   lucideFilePenLine,
-  lucideKeyRound,
-  lucideNetwork,
   lucidePlus,
   lucideRefreshCw,
-  lucideShieldCheck,
   lucideTrash2,
-  lucideX,
 } from "@ng-icons/lucide";
 import { finalize, type Observable } from "rxjs";
 import { AppActionComponent } from "../../../components/ui/app-action.component";
@@ -34,27 +29,19 @@ import { AppSkeletonComponent } from "../../../components/ui/app-skeleton.compon
 import { HlmBadge } from "@/components/ui/badge";
 import { HlmButton } from "@/components/ui/button";
 import { HlmCheckboxImports } from "@/components/ui/checkbox";
-import { HlmInputImports } from "@/components/ui/input";
 import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import type { UUIDV7 } from "../bindings/UUIDV7";
 import type { VlanConfig } from "../bindings/VlanConfig";
 import type { VlanNetwork } from "../bindings/VlanNetwork";
-import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import { ConfluenceService } from "../confluence.service";
 import { VlanEditorComponent } from "./vlan-editor.component";
-import { VlanNameDirective } from "./vlan-name.directive";
-
-type Editor =
-  | { kind: "network"; item?: VlanNetwork }
-  | { kind: "supplicant"; item: VlanSupplicant; isNew: boolean };
 
 /** Which request is in flight, so only the control that started it shows a spinner. */
-type Action = "refresh" | "references" | "supplicant" | "delete";
+type Action = "refresh" | "references" | "delete";
 
 @Component({
   selector: "app-vlan-catalog",
   imports: [
-    FormsModule,
     TranslocoModule,
     NgIcon,
     AppActionComponent,
@@ -64,12 +51,9 @@ type Action = "refresh" | "references" | "supplicant" | "delete";
     HlmBadge,
     HlmButton,
     ...HlmCheckboxImports,
-    ...HlmInputImports,
     VlanEditorComponent,
-    VlanNameDirective,
   ],
   templateUrl: "./vlan-catalog.component.html",
-  styleUrl: "./vlan-catalog.component.scss",
   // Also rendered by the /vlans page outside the module's declarations, so it provides its own icons.
   viewProviders: [
     provideIcons({
@@ -77,13 +61,9 @@ type Action = "refresh" | "references" | "supplicant" | "delete";
       lucideCircleAlert,
       lucideCloudOff,
       lucideFilePenLine,
-      lucideKeyRound,
-      lucideNetwork,
       lucidePlus,
       lucideRefreshCw,
-      lucideShieldCheck,
       lucideTrash2,
-      lucideX,
     }),
   ],
 })
@@ -91,17 +71,17 @@ export class VlanCatalogComponent implements OnInit {
   private readonly service = inject(ConfluenceService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly overlay = inject(AppOverlayService);
-  readonly workspaceId = input<UUIDV7>();
+  readonly confluenceId = input<UUIDV7>();
   readonly vlanIds = input<UUIDV7[]>([]);
   readonly referencesSaved = output<UUIDV7[]>();
 
   readonly catalog = signal<VlanConfig | undefined>(undefined);
-  // Local draft of the workspace links, reset whenever the saved links or workspace change.
+  // Local draft of the Confluence links, reset whenever the saved links or Confluence change.
   readonly selected = linkedSignal<ReadonlySet<UUIDV7>>(() => {
-    this.workspaceId();
+    this.confluenceId();
     return new Set(this.vlanIds());
   });
-  readonly editor = signal<Editor | undefined>(undefined);
+  readonly editor = signal<{ item?: VlanNetwork } | undefined>(undefined);
   readonly pendingDeletion = signal<string | undefined>(undefined);
   readonly action = signal<Action | undefined>(undefined);
   readonly busy = computed(() => this.action() !== undefined);
@@ -149,15 +129,15 @@ export class VlanCatalogComponent implements OnInit {
   }
 
   toggleSelection(id: UUIDV7) {
-    if (this.workspaceId() && !this.busy()) this.select(id, !this.selected().has(id));
+    if (this.confluenceId() && !this.busy()) this.select(id, !this.selected().has(id));
   }
 
   saveReferences() {
-    const id = this.workspaceId();
+    const id = this.confluenceId();
     if (!id || !this.dirty()) return;
     this.request(
       "references",
-      this.service.updateWorkspaceVlans(id, { vlan_ids: [...this.selected()] }),
+      this.service.updateConfluenceVlans(id, { vlan_ids: [...this.selected()] }),
       (ids) => {
         this.selected.set(new Set(ids));
         this.referencesSaved.emit(ids);
@@ -167,16 +147,7 @@ export class VlanCatalogComponent implements OnInit {
 
   editNetwork(item?: VlanNetwork) {
     this.error.set("");
-    this.editor.set({ kind: "network", item });
-  }
-
-  editSupplicant(item?: VlanSupplicant) {
-    this.error.set("");
-    this.editor.set({
-      kind: "supplicant",
-      item: item ? { ...item } : { id: "", name: "", age_recipient: "" },
-      isNew: !item,
-    });
+    this.editor.set({ item });
   }
 
   closeEditor() {
@@ -193,57 +164,8 @@ export class VlanCatalogComponent implements OnInit {
           vlan_configs: [...data.vlan_configs.filter((item) => item.id !== network.id), network],
         },
     );
-    if (this.workspaceId() && editor?.kind === "network" && !editor.item)
-      this.select(network.id, true);
+    if (this.confluenceId() && editor && !editor.item) this.select(network.id, true);
     this.closeEditor();
-  }
-
-  submitSupplicant(form: NgForm, item: VlanSupplicant) {
-    if (form.invalid) {
-      form.control.markAllAsTouched();
-      return;
-    }
-    this.saveSupplicant(item);
-  }
-
-  saveSupplicant(item: VlanSupplicant) {
-    this.request("supplicant", this.service.saveSupplicant(item), (saved) => {
-      this.catalog.update(
-        (data) =>
-          data && {
-            ...data,
-            supplicant_configs: [
-              ...data.supplicant_configs.filter((identity) => identity.id !== saved.id),
-              saved,
-            ],
-          },
-      );
-      this.closeEditor();
-    });
-  }
-
-  isGranted(id: string) {
-    return this.membershipCount(id) > 0;
-  }
-
-  membershipCount(id: string) {
-    return (
-      this.catalog()?.vlan_configs.filter((vlan) =>
-        vlan.accept_supplicants.some((grant) => grant.supplicant_id === id),
-      ).length ?? 0
-    );
-  }
-
-  tunnelTypes(network: VlanNetwork) {
-    return {
-      portals: network.tunnels.filter((tunnel) => tunnel.type === "easytier-gateway").length,
-      wireguard: network.tunnels.filter((tunnel) => tunnel.type === "wireguard-compatible").length,
-    };
-  }
-
-  /** age recipients are long bech32 strings; the ends are what people compare. */
-  shortRecipient(recipient: string) {
-    return recipient.length > 20 ? `${recipient.slice(0, 10)}…${recipient.slice(-6)}` : recipient;
   }
 
   deleteNetwork(id: UUIDV7) {
@@ -260,19 +182,6 @@ export class VlanCatalogComponent implements OnInit {
     });
   }
 
-  deleteSupplicant(id: UUIDV7) {
-    this.request("delete", this.service.removeSupplicant(id), () => {
-      this.catalog.update(
-        (data) =>
-          data && {
-            ...data,
-            supplicant_configs: data.supplicant_configs.filter((identity) => identity.id !== id),
-          },
-      );
-      this.pendingDeletion.set(undefined);
-    });
-  }
-
   private request<T>(
     action: Action,
     request: Observable<T>,
@@ -283,9 +192,9 @@ export class VlanCatalogComponent implements OnInit {
     this.action.set(action);
     this.error.set("");
     // Standalone loads use the app-wide suspense (overlay spinner + error toast) like
-    // the dashboard. Embedded in a workspace, that page already drives the overlay and
+    // the Confluence list. Embedded in a Confluence, that page already drives the overlay and
     // `loading$$` is a shared boolean, so a second suspense would end it early.
-    const suspend = action === "refresh" && !this.workspaceId();
+    const suspend = action === "refresh" && !this.confluenceId();
     const source = suspend ? this.overlay.withSuspense(request) : request;
     source
       .pipe(

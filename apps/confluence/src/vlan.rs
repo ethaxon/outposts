@@ -1,16 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-use hkdf::Hkdf;
-use ipnet::{IpNet, Ipv4Net};
+use ipnet::IpNet;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::Sha256;
 use ts_rs::TS;
-use uuid::Uuid;
-use x25519_dalek::{PublicKey, StaticSecret};
 
-use crate::{error::AppError, scalars::UuidV7, subscription_encryption::encrypt_profile};
+use crate::{error::AppError, subscription_encryption::encrypt_profile};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
@@ -34,59 +30,18 @@ pub struct VlanNetwork {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
+#[serde(deny_unknown_fields)]
 pub struct VlanTunnel {
     pub id: String,
     pub name: String,
-    #[serde(flatten)]
-    pub source: VlanTunnelSource,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
-#[ts(export)]
-#[serde(tag = "type", rename_all = "kebab-case")]
-#[serde(deny_unknown_fields)]
-pub enum VlanTunnelSource {
-    EasytierGateway {
-        server: String,
-        port: u16,
-        subnet: String,
-        allowed_ips: Vec<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        #[ts(optional)]
-        private_key: Option<String>,
-        #[serde(default)]
-        has_private_key: bool,
-        grants: Vec<EasyTierTunnelGrant>,
-    },
-    WireguardCompatible {
-        configs: Vec<WireGuardClientConfig>,
-        grants: Vec<WireGuardTunnelGrant>,
-    },
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
-#[ts(export)]
-#[serde(deny_unknown_fields)]
-pub struct EasyTierTunnelGrant {
-    pub supplicant_id: String,
-    pub slots: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
-#[ts(export)]
-#[serde(deny_unknown_fields)]
-pub struct WireGuardTunnelGrant {
-    pub supplicant_id: String,
-    #[ts(as = "UuidV7")]
-    pub config_id: Uuid,
+    pub config: WireGuardClientConfig,
+    pub supplicant_ids: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 #[serde(deny_unknown_fields)]
 pub struct WireGuardClientConfig {
-    #[ts(as = "UuidV7")]
-    pub id: Uuid,
     pub addresses: Vec<String>,
     pub mtu: Option<u16>,
     pub persistent_keepalive: Option<u16>,
@@ -135,9 +90,9 @@ fn bad(message: &str) -> AppError {
     }
 }
 
-/// Names travel unescaped in `confluence/supplicant=<key>&vlans=<net>:<slot>,…`,
+/// Names travel unescaped in `confluence/supplicants=<key>,…&vlans=<net>,…`,
 /// whose separators survive percent-decoding, so escaping cannot protect them.
-/// Allow only RFC 3986 unreserved characters, lowercase so gateway names stay
+/// Allow only RFC 3986 unreserved characters, lowercase so tunnel names stay
 /// unique after being uppercased into Clash proxy names.
 fn valid_name(name: &str) -> bool {
     !name.is_empty()
@@ -193,34 +148,6 @@ fn validate_endpoint(server: &str, port: u16) -> Result<(), AppError> {
     Ok(())
 }
 
-impl VlanConfig {
-    pub fn validate(&self) -> Result<(), AppError> {
-        let mut identities = BTreeSet::new();
-        let mut slugs = BTreeSet::new();
-        for supplicant in &self.supplicant_configs {
-            supplicant.validate()?;
-            if !identities.insert(&supplicant.id) || !slugs.insert(&supplicant.name) {
-                return Err(bad("Duplicate supplicant identity"));
-            }
-        }
-        let mut names = BTreeSet::new();
-        for network in &self.vlan_configs {
-            if !names.insert(&network.network) {
-                return Err(bad("Duplicate VLAN network"));
-            }
-            network.validate()?;
-            if network
-                .accept_supplicants
-                .iter()
-                .any(|grant| !identities.contains(&grant.supplicant_id))
-            {
-                return Err(bad("Unknown supplicant reference"));
-            }
-        }
-        Ok(())
-    }
-}
-
 impl VlanSupplicant {
     pub(crate) fn validate(&self) -> Result<(), AppError> {
         if !valid_name(&self.name)
@@ -238,22 +165,10 @@ impl VlanSupplicant {
 impl VlanNetwork {
     pub(crate) fn redact_keys(mut self) -> Self {
         for tunnel in &mut self.tunnels {
-            match &mut tunnel.source {
-                VlanTunnelSource::EasytierGateway {
-                    private_key,
-                    has_private_key,
-                    ..
-                } => {
-                    *has_private_key = private_key.take().is_some();
-                }
-                VlanTunnelSource::WireguardCompatible { configs, .. } => {
-                    for config in configs {
-                        config.has_private_key = config.private_key.take().is_some();
-                        for peer in &mut config.peers {
-                            peer.has_pre_shared_key = peer.pre_shared_key.take().is_some();
-                        }
-                    }
-                }
+            let config = &mut tunnel.config;
+            config.has_private_key = config.private_key.take().is_some();
+            for peer in &mut config.peers {
+                peer.has_pre_shared_key = peer.pre_shared_key.take().is_some();
             }
         }
         self
@@ -265,42 +180,22 @@ impl VlanNetwork {
             if !tunnel.id.is_empty() && old.is_none() {
                 return Err(bad("Tunnel ID does not belong to this VLAN"));
             }
-            match (&mut tunnel.source, old.map(|old| &old.source)) {
-                (
-                    VlanTunnelSource::EasytierGateway { private_key, .. },
-                    Some(VlanTunnelSource::EasytierGateway {
-                        private_key: saved, ..
-                    }),
-                ) if private_key.as_deref().is_none_or(str::is_empty) => {
-                    private_key.clone_from(saved);
+            let config = &mut tunnel.config;
+            if config.private_key.as_deref().is_none_or(str::is_empty) {
+                config.private_key = old.and_then(|old| old.config.private_key.clone());
+            }
+            for peer in &mut config.peers {
+                if peer.pre_shared_key.as_deref() == Some("") {
+                    peer.pre_shared_key = None;
+                } else if peer.pre_shared_key.is_none() {
+                    peer.pre_shared_key = old.and_then(|old| {
+                        old.config
+                            .peers
+                            .iter()
+                            .find(|saved| saved.public_key == peer.public_key)
+                            .and_then(|saved| saved.pre_shared_key.clone())
+                    });
                 }
-                (VlanTunnelSource::WireguardCompatible { configs, .. }, old) => {
-                    let saved = match old {
-                        Some(VlanTunnelSource::WireguardCompatible { configs, .. }) => {
-                            configs.as_slice()
-                        }
-                        _ => &[],
-                    };
-                    for config in configs {
-                        let old = saved.iter().find(|old| old.id == config.id);
-                        if config.private_key.as_deref().is_none_or(str::is_empty) {
-                            config.private_key = old.and_then(|old| old.private_key.clone());
-                        }
-                        for peer in &mut config.peers {
-                            if peer.pre_shared_key.as_deref() == Some("") {
-                                peer.pre_shared_key = None;
-                            } else if peer.pre_shared_key.is_none() {
-                                peer.pre_shared_key = old.and_then(|old| {
-                                    old.peers
-                                        .iter()
-                                        .find(|saved| saved.public_key == peer.public_key)
-                                        .and_then(|saved| saved.pre_shared_key.clone())
-                                });
-                            }
-                        }
-                    }
-                }
-                _ => {}
             }
         }
         self.validate()
@@ -322,7 +217,6 @@ impl VlanNetwork {
         }
         let mut names = BTreeSet::new();
         let mut ids = BTreeSet::new();
-        let mut subnets = BTreeSet::new();
         for tunnel in &self.tunnels {
             if !valid_name(&tunnel.name)
                 || !names.insert(&tunnel.name)
@@ -330,58 +224,11 @@ impl VlanNetwork {
             {
                 return Err(bad("Invalid or duplicate VLAN tunnel"));
             }
+            tunnel.config.validate(&routes)?;
             let mut granted = BTreeSet::new();
-            let mut check_grant = |id: &'_ str| {
-                if !members.contains(id) || !granted.insert(id.to_owned()) {
+            for id in &tunnel.supplicant_ids {
+                if !members.contains(id.as_str()) || !granted.insert(id) {
                     return Err(bad("Tunnel grants require distinct VLAN supplicants"));
-                }
-                Ok(())
-            };
-            match &tunnel.source {
-                VlanTunnelSource::EasytierGateway {
-                    server,
-                    port,
-                    subnet,
-                    allowed_ips,
-                    private_key,
-                    grants,
-                    ..
-                } => {
-                    validate_endpoint(server, *port)?;
-                    let subnet = subnet
-                        .parse::<Ipv4Net>()
-                        .map_err(|_| bad("Invalid Portal subnet"))?;
-                    if subnet.prefix_len() != 24
-                        || subnet.addr() != subnet.network()
-                        || !subnets.insert(subnet)
-                    {
-                        return Err(bad(
-                            "Portal tunnels require distinct canonical IPv4 /24 subnets",
-                        ));
-                    }
-                    wireguard_key(private_key.as_deref(), "Invalid Portal server private key")?;
-                    validate_coverage(allowed_ips, &routes)?;
-                    for grant in grants {
-                        check_grant(&grant.supplicant_id)?;
-                        parse_slots(&grant.slots)?;
-                    }
-                }
-                VlanTunnelSource::WireguardCompatible { configs, grants } => {
-                    let mut config_ids = BTreeSet::new();
-                    for config in configs {
-                        if !config_ids.insert(config.id) {
-                            return Err(bad("Duplicate WireGuard config"));
-                        }
-                        config.validate(&routes)?;
-                    }
-                    for grant in grants {
-                        check_grant(&grant.supplicant_id)?;
-                        if !config_ids.remove(&grant.config_id) {
-                            return Err(bad(
-                                "WireGuard grants require distinct configs from this tunnel",
-                            ));
-                        }
-                    }
                 }
             }
         }
@@ -434,55 +281,21 @@ impl WireGuardClientConfig {
     }
 }
 
-fn parse_slots(expression: &str) -> Result<BTreeSet<u8>, AppError> {
-    let mut slots = BTreeSet::new();
-    fn number(value: &str) -> Result<u8, AppError> {
-        let value = value.trim();
-        let number = value
-            .parse::<u8>()
-            .map_err(|_| bad("Invalid slot number"))?;
-        if !(2..=254).contains(&number) || number.to_string() != value {
-            return Err(bad("Slots must be decimal numbers from 2 to 254"));
-        }
-        Ok(number)
-    }
-    for part in expression.split(',') {
-        let (start, end) = match part.trim().split_once('-') {
-            Some((start, end)) => (number(start)?, number(end)?),
-            None => {
-                let slot = number(part)?;
-                (slot, slot)
-            }
-        };
-        if start > end {
-            return Err(bad("Slot range must be ascending"));
-        }
-        slots.extend(start..=end);
-    }
-    Ok(slots)
-}
-
 const CONFLUENCE_MARKER: &str = "confluence/";
 const UNSAFE_PRIVATE_KEY: &str = "_unsafe_supplicant_private";
 
-pub(crate) struct SubscriptionRequest {
-    supplicant: String,
-    vlans: BTreeMap<String, Option<u8>>,
-    unsafe_identity: Option<age::x25519::Identity>,
+#[derive(Debug, Default, PartialEq, Eq)]
+enum Selection {
+    #[default]
+    All,
+    Named(BTreeSet<String>),
 }
 
-impl SubscriptionRequest {
-    pub(crate) fn uses_unsafe_key(&self) -> bool {
-        self.unsafe_identity.is_some()
-    }
-
-    pub(crate) fn supplicant(&self) -> &str {
-        &self.supplicant
-    }
-
-    pub(crate) fn vlan_keys(&self) -> Vec<String> {
-        self.vlans.keys().cloned().collect()
-    }
+#[derive(Default)]
+pub(crate) struct SubscriptionRequest {
+    supplicants: Selection,
+    vlans: Selection,
+    unsafe_identity: Option<age::x25519::Identity>,
 }
 
 fn confluence_parameters(word: &str) -> Option<&str> {
@@ -523,108 +336,88 @@ pub(crate) fn redact_subscription_user_agent(ua: &str) -> std::borrow::Cow<'_, s
     )
 }
 
-pub(crate) fn parse_request(
-    ua: &str,
-    search: &str,
-) -> Result<Option<SubscriptionRequest>, AppError> {
-    fn fields(encoded: &str, from_ua: bool) -> Result<Option<SubscriptionRequest>, AppError> {
-        let mut values = BTreeMap::new();
-        for (key, value) in url::form_urlencoded::parse(encoded.as_bytes()) {
-            match key.as_ref() {
-                UNSAFE_PRIVATE_KEY if !from_ua => {
-                    return Err(bad("Supply the unsafe age private key only in User-Agent"));
-                }
-                "supplicant" | "vlans" | UNSAFE_PRIVATE_KEY => {}
-                _ if from_ua => return Err(bad("Unknown Confluence request parameter")),
-                _ => continue,
-            }
-            if values.insert(key, value).is_some() {
-                return Err(bad("Duplicate Confluence request parameter"));
-            }
-        }
-        if values.is_empty() && !from_ua {
-            return Ok(None);
-        }
-        let supplicant = values
-            .remove("supplicant")
-            .filter(|value| valid_name(value))
-            .ok_or_else(|| bad("Missing or invalid supplicant"))?
-            .into_owned();
-        let unsafe_identity = values
-            .remove(UNSAFE_PRIVATE_KEY)
-            .map(|value| {
-                value
-                    .parse()
-                    .map_err(|_| bad("Invalid unsafe age private key"))
-            })
-            .transpose()?;
-
-        let mut vlans = BTreeMap::new();
-        if let Some(list) = values.get("vlans") {
-            for entry in list.split(',') {
-                let (network, slot) = entry
-                    .split_once(':')
-                    .map_or((entry, None), |(network, slot)| (network, Some(slot)));
-                if !valid_name(network) {
-                    return Err(bad("Invalid VLAN key"));
-                }
-                let slot = slot
-                    .map(|slot| {
-                        let value = slot.parse::<u8>().map_err(|_| bad("Invalid VLAN slot"))?;
-                        if !(2..=254).contains(&value) || value.to_string() != slot {
-                            return Err(bad("Invalid VLAN slot"));
-                        }
-                        Ok(value)
-                    })
-                    .transpose()?;
-                if vlans.insert(network.into(), slot).is_some() {
-                    return Err(bad("Duplicate VLAN in request"));
-                }
-            }
-        } else if unsafe_identity.is_none() {
-            return Err(bad("Missing VLAN list"));
-        }
-
-        Ok(Some(SubscriptionRequest {
-            supplicant,
-            vlans,
-            unsafe_identity,
-        }))
+pub(crate) fn parse_request(ua: &str, search: &str) -> Result<SubscriptionRequest, AppError> {
+    #[derive(Default)]
+    struct Parameters {
+        supplicants: Option<Selection>,
+        vlans: Option<Selection>,
+        unsafe_identity: Option<age::x25519::Identity>,
     }
 
-    let from_query = fields(search, false)?;
+    fn selection(value: &str) -> Result<Selection, AppError> {
+        if value == "*" {
+            return Ok(Selection::All);
+        }
+        let mut names = BTreeSet::new();
+        for name in value.split(',') {
+            if !valid_name(name) {
+                return Err(bad("Invalid name in subscription selector"));
+            }
+            if !names.insert(name.to_owned()) {
+                return Err(bad("Duplicate name in subscription selector"));
+            }
+        }
+        Ok(Selection::Named(names))
+    }
+
+    fn fields(encoded: &str, from_ua: bool) -> Result<Parameters, AppError> {
+        let mut params = Parameters::default();
+        for (key, value) in url::form_urlencoded::parse(encoded.as_bytes()) {
+            let field = match key.as_ref() {
+                "supplicants" => &mut params.supplicants,
+                "vlans" => &mut params.vlans,
+                "supplicant" => return Err(bad("Use the supplicants query parameter")),
+                UNSAFE_PRIVATE_KEY => {
+                    if !from_ua {
+                        return Err(bad("Supply the unsafe age private key only in User-Agent"));
+                    }
+                    if params.unsafe_identity.is_some() {
+                        return Err(bad("Duplicate Confluence request parameter"));
+                    }
+                    params.unsafe_identity = Some(
+                        value
+                            .parse()
+                            .map_err(|_| bad("Invalid unsafe age private key"))?,
+                    );
+                    continue;
+                }
+                _ if from_ua => return Err(bad("Unknown Confluence request parameter")),
+                _ => continue,
+            };
+            if field.is_some() {
+                return Err(bad("Duplicate Confluence request parameter"));
+            }
+            *field = Some(selection(&value)?);
+        }
+        Ok(params)
+    }
+
+    fn merge(query: Option<Selection>, ua: Option<Selection>) -> Result<Selection, AppError> {
+        if let (Some(query), Some(ua)) = (&query, &ua)
+            && query != ua
+        {
+            return Err(bad("UA and URL subscription selectors disagree"));
+        }
+        Ok(query.or(ua).unwrap_or_default())
+    }
+
+    let query = fields(search, false)?;
     let mut markers = ua
         .split_ascii_whitespace()
         .filter_map(confluence_parameters);
-    let from_ua = markers
+    let ua = markers
         .next()
         .map(|marker| fields(marker, true))
         .transpose()?
-        .flatten();
+        .unwrap_or_default();
     if markers.next().is_some() {
         return Err(bad("Duplicate Confluence UA marker"));
     }
-    match (from_ua, from_query) {
-        (Some(a), Some(b)) if a.supplicant != b.supplicant || a.vlans != b.vlans => {
-            Err(bad("UA and URL VLAN requests disagree"))
-        }
-        (Some(a), _) | (_, Some(a)) => Ok(Some(a)),
-        _ => Ok(None),
-    }
-}
-
-fn derive_client_key(master: &[u8; 32], slot: u8) -> [u8; 32] {
-    let name = format!("subscription-slot-{slot}");
-    let mut context = Vec::new();
-    for label in [b"wireguard-client".as_slice(), name.as_bytes()] {
-        context.extend_from_slice(&(label.len() as u32).to_be_bytes());
-        context.extend_from_slice(label);
-    }
-    let mut output = [0; 32];
-    Hkdf::<Sha256>::new(Some(b"easytier/wireguard-portal/v1"), master)
-        .expand(&context, &mut output)
-        .expect("32-byte HKDF output is valid");
-    output
+    Ok(SubscriptionRequest {
+        supplicants: merge(query.supplicants, ua.supplicants)?,
+        vlans: merge(query.vlans, ua.vlans)?,
+        unsafe_identity: ua.unsafe_identity,
+    })
 }
 
 /// A subscription after VLAN injection, before the optional age encryption.
@@ -633,18 +426,28 @@ fn derive_client_key(master: &[u8; 32], slot: u8) -> [u8; 32] {
 /// pipeline the public endpoint serves.
 pub(crate) struct PreparedSubscription {
     pub(crate) content: String,
-    /// Who the served body is encrypted to; empty means it is served as plaintext.
-    pub(crate) recipients: Vec<VlanSupplicant>,
+    pub(crate) supplicants: Vec<VlanSupplicant>,
+    pub(crate) vlans: Vec<String>,
+    unsafe_plaintext: bool,
 }
 
 impl PreparedSubscription {
+    pub(crate) fn recipients(&self) -> &[VlanSupplicant] {
+        if self.unsafe_plaintext {
+            &[]
+        } else {
+            &self.supplicants
+        }
+    }
+
     pub(crate) fn encrypt(&self) -> Result<Option<String>, AppError> {
-        if self.recipients.is_empty() {
+        let recipients = self.recipients();
+        if recipients.is_empty() {
             return Ok(None);
         }
         encrypt_profile(
             &self.content,
-            self.recipients
+            recipients
                 .iter()
                 .map(|recipient| recipient.age_recipient.as_str()),
         )
@@ -656,66 +459,37 @@ impl PreparedSubscription {
     }
 }
 
-/// Encrypted-or-plaintext output in one step; production code goes through
-/// `prepare_subscription` so the preview can share the pipeline.
-#[cfg(test)]
-pub(crate) fn render_subscription(
-    content: &str,
-    stored: Option<&VlanConfig>,
-    profile_supplicants: &[VlanSupplicant],
-    request: Option<SubscriptionRequest>,
-    allow_unsafe_age_private_key: bool,
-) -> Result<String, AppError> {
-    prepare_subscription(
-        content,
-        stored,
-        profile_supplicants,
-        request,
-        allow_unsafe_age_private_key,
-    )?
-    .into_served()
-}
-
 pub(crate) fn prepare_subscription(
     content: &str,
-    stored: Option<&VlanConfig>,
+    linked_vlans: &[VlanNetwork],
     profile_supplicants: &[VlanSupplicant],
-    request: Option<SubscriptionRequest>,
+    request: SubscriptionRequest,
     allow_unsafe_age_private_key: bool,
 ) -> Result<PreparedSubscription, AppError> {
-    let Some(request) = request else {
-        return Ok(PreparedSubscription {
-            content: content.into(),
-            recipients: profile_supplicants.to_vec(),
-        });
-    };
-    if request.uses_unsafe_key() && !allow_unsafe_age_private_key {
-        return Err(bad("Unsafe age compatibility is disabled for this Profile"));
-    }
-
-    let config = if request.vlans.is_empty() {
-        None
-    } else {
-        let config = stored.ok_or_else(|| bad("VLAN is not configured"))?;
-        config.validate()?;
-        Some(config)
-    };
-    let supplicant = config
-        .map(|config| config.supplicant_configs.as_slice())
-        .unwrap_or(profile_supplicants)
+    let mut profile_supplicants = profile_supplicants
         .iter()
-        .find(|s| s.name == request.supplicant)
-        .ok_or_else(|| bad("Unknown supplicant"))?;
-    if !profile_supplicants.is_empty()
-        && !profile_supplicants
-            .iter()
-            .any(|recipient| recipient.id == supplicant.id)
-    {
-        return Err(bad("Supplicant is not accepted by this Profile"));
+        .map(|supplicant| (supplicant.name.as_str(), supplicant))
+        .collect::<BTreeMap<_, _>>();
+    if let Selection::Named(names) = request.supplicants {
+        profile_supplicants.retain(|name, _| names.contains(*name));
+        if profile_supplicants.len() != names.len() {
+            return Err(bad("Supplicant is not accepted by this Profile"));
+        }
     }
-
-    let uses_unsafe_key = request.uses_unsafe_key();
+    let recipients = profile_supplicants
+        .into_values()
+        .cloned()
+        .collect::<Vec<_>>();
+    let unsafe_plaintext = request.unsafe_identity.is_some();
     if let Some(identity) = request.unsafe_identity {
+        if !allow_unsafe_age_private_key {
+            return Err(bad("Unsafe age compatibility is disabled for this Profile"));
+        }
+        let [supplicant] = recipients.as_slice() else {
+            return Err(bad(
+                "Unsafe age compatibility requires exactly one supplicant",
+            ));
+        };
         let recipient = supplicant
             .age_recipient
             .parse::<age::x25519::Recipient>()
@@ -725,41 +499,71 @@ pub(crate) fn prepare_subscription(
         }
     }
 
-    let yaml = match config {
-        Some(config) => {
-            let mut profile =
-                serde_yaml::from_str::<Value>(content).map_err(crate::error::ConfigError::from)?;
-            if !profile.is_object() {
-                return Err(bad("VLAN requires a YAML object"));
-            }
-            for (key, slot) in request.vlans {
-                let network = config
-                    .vlan_configs
-                    .iter()
-                    .find(|v| v.enabled && v.network == key)
-                    .ok_or_else(|| bad("Unknown or disabled VLAN"))?;
-                if !network
+    let ids = recipients
+        .iter()
+        .map(|recipient| recipient.id.as_str())
+        .collect::<Vec<_>>();
+    let accepted = |network: &VlanNetwork| {
+        !ids.is_empty()
+            && ids.iter().all(|id| {
+                network
                     .accept_supplicants
                     .iter()
-                    .any(|g| g.supplicant_id == supplicant.id)
-                {
-                    return Err(bad("Supplicant is not accepted by this VLAN"));
-                }
-                inject_network(&mut profile, network, &supplicant.id, slot)?;
-            }
-            serde_yaml::to_string(&profile).map_err(crate::error::ConfigError::from)?
-        }
-        None => content.into(),
+                    .any(|grant| grant.supplicant_id == *id)
+            })
     };
-    // The unsafe-key compatibility mode serves plaintext by design.
-    let recipients = if uses_unsafe_key {
-        Vec::new()
+    let enabled = linked_vlans
+        .iter()
+        .filter(|network| network.enabled)
+        .map(|network| (network.network.as_str(), network))
+        .collect::<BTreeMap<_, _>>();
+    let networks = match request.vlans {
+        Selection::All => enabled
+            .into_values()
+            .filter(|network| accepted(network))
+            .collect::<Vec<_>>(),
+        Selection::Named(names) => names
+            .iter()
+            .map(|name| {
+                let network = enabled
+                    .get(name.as_str())
+                    .copied()
+                    .ok_or_else(|| bad("Unknown or disabled VLAN"))?;
+                if !accepted(network) {
+                    return Err(bad(
+                        "Not all selected supplicants are accepted by this VLAN",
+                    ));
+                }
+                Ok(network)
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+    };
+
+    let yaml = if networks.is_empty() {
+        content.to_owned()
     } else {
-        vec![supplicant.clone()]
+        let mut profile: Value = if content.trim().is_empty() {
+            json!({})
+        } else {
+            serde_yaml::from_str(content).map_err(crate::error::ConfigError::from)?
+        };
+        if !profile.is_object() {
+            return Err(bad("VLAN requires a YAML object"));
+        }
+        for network in &networks {
+            network.validate()?;
+            inject_network(&mut profile, network, &ids)?;
+        }
+        serde_yaml::to_string(&profile).map_err(crate::error::ConfigError::from)?
     };
     Ok(PreparedSubscription {
         content: yaml,
-        recipients,
+        supplicants: recipients,
+        vlans: networks
+            .into_iter()
+            .map(|network| network.network.clone())
+            .collect(),
+        unsafe_plaintext,
     })
 }
 
@@ -770,90 +574,50 @@ fn render_peer(server: &str, port: u16, public_key: &str, allowed_ips: &[String]
 fn inject_network(
     profile: &mut Value,
     config: &VlanNetwork,
-    supplicant: &str,
-    slot: Option<u8>,
+    supplicant_ids: &[&str],
 ) -> Result<(), AppError> {
     let group_name = format!("VLAN-{}", config.network);
     let proxy_prefix = format!("{group_name}-");
     let mut proxies = Vec::new();
     let mut proxy_names = Vec::new();
     for tunnel in &config.tunnels {
+        if !supplicant_ids
+            .iter()
+            .all(|id| tunnel.supplicant_ids.iter().any(|grant| grant == id))
+        {
+            continue;
+        }
         let name = format!("{proxy_prefix}{}-WG", tunnel.name.to_ascii_uppercase());
         let mut node = json!({ "name": name, "type": "wireguard", "udp": true });
-        match &tunnel.source {
-            VlanTunnelSource::EasytierGateway {
-                server,
-                port,
-                subnet,
-                allowed_ips,
-                private_key,
-                grants,
-                ..
-            } => {
-                let Some(slot) = slot else { continue };
-                let Some(grant) = grants
-                    .iter()
-                    .find(|grant| grant.supplicant_id == supplicant)
-                else {
-                    continue;
-                };
-                if !parse_slots(&grant.slots)?.contains(&slot) {
-                    continue;
-                }
-                let master =
-                    wireguard_key(private_key.as_deref(), "Invalid Portal server private key")?;
-                let subnet = subnet
-                    .parse::<Ipv4Net>()
-                    .map_err(|_| bad("Invalid Portal subnet"))?;
-                let ip = std::net::Ipv4Addr::from(u32::from(subnet.network()) + u32::from(slot));
-                let public_key =
-                    STANDARD.encode(PublicKey::from(&StaticSecret::from(master)).as_bytes());
-                node["ip"] = json!(ip.to_string());
-                node["private-key"] = json!(STANDARD.encode(derive_client_key(&master, slot)));
-                node["peers"] = json!([render_peer(server, *port, &public_key, allowed_ips)]);
-            }
-            VlanTunnelSource::WireguardCompatible { configs, grants } => {
-                let Some(config) = grants
-                    .iter()
-                    .find(|grant| grant.supplicant_id == supplicant)
-                    .and_then(|grant| configs.iter().find(|config| config.id == grant.config_id))
-                else {
-                    continue;
-                };
-                node["private-key"] = json!(config.private_key);
-                if let Some(mtu) = config.mtu {
-                    node["mtu"] = json!(mtu);
-                }
-                if let Some(keepalive) = config.persistent_keepalive {
-                    node["persistent-keepalive"] = json!(keepalive);
-                }
-                for address in &config.addresses {
-                    let ip = address
-                        .parse::<IpNet>()
-                        .map_err(|_| bad("Invalid WireGuard client address"))?
-                        .addr();
-                    node[if ip.is_ipv4() { "ip" } else { "ipv6" }] = json!(ip.to_string());
-                }
-                node["peers"] = json!(
-                    config
-                        .peers
-                        .iter()
-                        .map(|peer| {
-                            let mut item = render_peer(
-                                &peer.server,
-                                peer.port,
-                                &peer.public_key,
-                                &peer.allowed_ips,
-                            );
-                            if let Some(key) = &peer.pre_shared_key {
-                                item["pre-shared-key"] = json!(key);
-                            }
-                            item
-                        })
-                        .collect::<Vec<_>>()
-                );
-            }
+        let config = &tunnel.config;
+        node["private-key"] = json!(config.private_key);
+        if let Some(mtu) = config.mtu {
+            node["mtu"] = json!(mtu);
         }
+        if let Some(keepalive) = config.persistent_keepalive {
+            node["persistent-keepalive"] = json!(keepalive);
+        }
+        for address in &config.addresses {
+            let ip = address
+                .parse::<IpNet>()
+                .map_err(|_| bad("Invalid WireGuard client address"))?
+                .addr();
+            node[if ip.is_ipv4() { "ip" } else { "ipv6" }] = json!(ip.to_string());
+        }
+        node["peers"] = json!(
+            config
+                .peers
+                .iter()
+                .map(|peer| {
+                    let mut item =
+                        render_peer(&peer.server, peer.port, &peer.public_key, &peer.allowed_ips);
+                    if let Some(key) = &peer.pre_shared_key {
+                        item["pre-shared-key"] = json!(key);
+                    }
+                    item
+                })
+                .collect::<Vec<_>>()
+        );
         proxy_names.push(name);
         proxies.push(node);
     }
@@ -922,26 +686,30 @@ mod tests {
 
     fn config(recipient: &str) -> VlanConfig {
         let identity = "00000000-0000-7000-8000-000000000001";
-        let network = |name: &str, slots: &str| VlanNetwork {
+        let network = |name: &str| VlanNetwork {
             id: format!("new:{name}"),
             enabled: true,
             network: name.into(),
             routes: vec!["10.20.0.0/24".into(), "10.30.0.0/24".into()],
             tunnels: vec![VlanTunnel {
                 id: format!("tunnel:{name}"),
-                name: "portal".into(),
-                source: VlanTunnelSource::EasytierGateway {
-                    server: "192.0.2.1".into(),
-                    port: 24,
-                    subnet: "10.30.0.0/24".into(),
-                    allowed_ips: vec!["10.20.0.0/24".into()],
-                    private_key: Some(STANDARD.encode([7; 32])),
-                    has_private_key: false,
-                    grants: vec![EasyTierTunnelGrant {
-                        supplicant_id: identity.into(),
-                        slots: slots.into(),
+                name: "wire".into(),
+                config: WireGuardClientConfig {
+                    addresses: vec!["10.42.0.2/24".into()],
+                    mtu: None,
+                    persistent_keepalive: Some(25),
+                    private_key: Some(STANDARD.encode([5; 32])),
+                    has_private_key: true,
+                    peers: vec![WireGuardPeer {
+                        server: "192.0.2.1".into(),
+                        port: 51820,
+                        public_key: STANDARD.encode([1; 32]),
+                        allowed_ips: vec!["10.20.0.0/24".into()],
+                        pre_shared_key: None,
+                        has_pre_shared_key: false,
                     }],
                 },
+                supplicant_ids: vec![identity.into()],
             }],
             accept_supplicants: vec![VlanGrant {
                 supplicant_id: identity.into(),
@@ -953,24 +721,24 @@ mod tests {
                 name: "owner".into(),
                 age_recipient: recipient.into(),
             }],
-            vlan_configs: vec![network("home", "2,4,10-100"), network("office", "20-30")],
+            vlan_configs: vec![network("home"), network("office")],
         }
     }
 
     fn render_test_subscription(
         content: &str,
-        stored: Option<&VlanConfig>,
-        recipients: &[VlanSupplicant],
+        stored: &VlanConfig,
         ua: &str,
         query: &str,
     ) -> Result<String, AppError> {
-        render_subscription(
+        prepare_subscription(
             content,
-            stored,
-            recipients,
+            &stored.vlan_configs,
+            &stored.supplicant_configs,
             parse_request(ua, query)?,
             false,
-        )
+        )?
+        .into_served()
     }
 
     fn decrypt_profile(identity: &age::x25519::Identity, encrypted: &str) -> Value {
@@ -985,10 +753,17 @@ mod tests {
     }
 
     #[test]
-    fn mixed_tunnels_filter_grants_and_emit_peers_without_changing_vlan_routes() {
+    fn tunnel_shares_one_configuration_with_multiple_authorized_supplicants() {
         let identity = age::x25519::Identity::generate();
         let mut stored = config(&identity.to_public().to_string());
-        let supplicant_id = stored.supplicant_configs[0].id.clone();
+        let owner_id = stored.supplicant_configs[0].id.clone();
+        let second = age::x25519::Identity::generate();
+        let second_id = "00000000-0000-7000-8000-000000000002".to_string();
+        stored.supplicant_configs.push(VlanSupplicant {
+            id: second_id.clone(),
+            name: "second".into(),
+            age_recipient: second.to_public().to_string(),
+        });
         let home = &mut stored.vlan_configs[0];
         home.routes = vec![
             "10.20.0.0/25".into(),
@@ -1007,24 +782,11 @@ mod tests {
                 has_pre_shared_key: true,
             })
             .collect();
-        let config_id = Uuid::parse_str("00000000-0000-7000-8000-000000000001").unwrap();
-        home.tunnels.push(VlanTunnel {
-            id: "wire".into(),
-            name: "wire".into(),
-            source: VlanTunnelSource::WireguardCompatible {
-                grants: vec![],
-                configs: vec![WireGuardClientConfig {
-                    id: config_id,
-                    addresses: vec!["10.42.0.2/24".into()],
-                    mtu: None,
-                    persistent_keepalive: Some(25),
-                    private_key: Some(STANDARD.encode([5; 32])),
-                    has_private_key: true,
-                    peers,
-                }],
-            },
+        home.tunnels[0].config.peers = peers;
+        home.tunnels[0].supplicant_ids.clear();
+        home.accept_supplicants.push(VlanGrant {
+            supplicant_id: second_id.clone(),
         });
-        // A tagged request DTO must round-trip without losing its source or rejecting its common fields.
         assert_eq!(
             serde_json::from_value::<VlanNetwork>(serde_json::to_value(&*home).unwrap()).unwrap(),
             *home
@@ -1036,11 +798,11 @@ mod tests {
             aggregate_routes(&home.routes).unwrap(),
             vec!["10.20.0.0/24", "10.30.0.0/24"]
         );
-        stored.validate().unwrap();
-        let request = "supplicant=owner&vlans=home";
+        home.validate().unwrap();
+        let request = "supplicants=owner&vlans=home";
         let unassigned = decrypt_profile(
             &identity,
-            &render_test_subscription("{}", Some(&stored), &[], "", request).unwrap(),
+            &render_test_subscription("{}", &stored, "", request).unwrap(),
         );
         assert_eq!(
             unassigned["proxy-groups"][0]["proxies"],
@@ -1049,32 +811,29 @@ mod tests {
 
         let home = &mut stored.vlan_configs[0];
         let mut assigned = home.clone().redact_keys();
-        let VlanTunnelSource::WireguardCompatible { grants, .. } = &mut assigned.tunnels[1].source
-        else {
-            unreachable!()
-        };
-        grants.push(WireGuardTunnelGrant {
-            supplicant_id,
-            config_id,
-        });
+        assigned.tunnels[0].supplicant_ids = vec![owner_id, second_id];
         assigned.preserve_keys(&home.tunnels).unwrap();
         *home = assigned;
-        for (suffix, expected) in [("", 1), (":3", 1), (":10", 2)] {
-            let encrypted = render_test_subscription(
-                "{}",
-                Some(&stored),
-                &[],
-                "",
-                &format!("supplicant=owner&vlans=home{suffix}"),
-            )
-            .unwrap();
+        let mut restricted = home.tunnels[0].clone();
+        restricted.id = "private".into();
+        restricted.name = "private".into();
+        restricted.supplicant_ids.pop();
+        restricted.config.private_key = Some(STANDARD.encode([6; 32]));
+        home.tunnels.push(restricted);
+        let explicitly_shared = "supplicants=second,owner&vlans=home";
+        for query in [
+            "",
+            "supplicants=*&vlans=*",
+            "supplicants=second,owner",
+            explicitly_shared,
+        ] {
+            let encrypted = render_test_subscription("{}", &stored, "", query).unwrap();
             let profile = decrypt_profile(&identity, &encrypted);
-            let proxies = profile["proxies"].as_array().unwrap();
-            assert_eq!(proxies.len(), expected);
-            let wireguard = proxies
-                .iter()
-                .find(|proxy| proxy["name"] == "VLAN-home-WIRE-WG")
-                .unwrap();
+            assert_eq!(decrypt_profile(&second, &encrypted), profile);
+            assert_eq!(profile["proxy-groups"].as_array().unwrap().len(), 1);
+            assert_eq!(profile["proxies"].as_array().unwrap().len(), 1);
+            let wireguard = &profile["proxies"][0];
+            assert_eq!(wireguard["name"], "VLAN-home-WIRE-WG");
             assert_eq!(wireguard["peers"].as_array().unwrap().len(), 2);
             assert_eq!(wireguard["ip"], "10.42.0.2");
             assert_eq!(wireguard["private-key"], STANDARD.encode([5; 32]));
@@ -1084,17 +843,26 @@ mod tests {
             );
             assert_eq!(profile["rules"].as_array().unwrap().len(), 3);
         }
+        let solo = render_test_subscription("{}", &stored, "", request).unwrap();
+        assert_eq!(
+            decrypt_profile(&identity, &solo)["proxies"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(render_test_subscription("{}", &stored, "", "vlans=office").is_err());
         stored.vlan_configs[0].routes.pop();
-        assert!(stored.validate().is_err());
+        assert!(stored.vlan_configs[0].validate().is_err());
     }
 
     #[test]
-    fn shared_identity_encrypts_multiple_vlans_with_independent_slot_permissions() {
+    fn shared_identity_encrypts_multiple_vlans_with_independent_tunnel_permissions() {
         let identity = age::x25519::Identity::generate();
         let stored = config(&identity.to_public().to_string());
         let content = "proxies: []\nrules: [\"MATCH,DIRECT\"]";
-        let request = "supplicant=owner&vlans=home:10,office:20";
-        let encrypted = render_test_subscription(content, Some(&stored), &[], "", request).unwrap();
+        let request = "supplicants=owner&vlans=home,office";
+        let encrypted = render_test_subscription(content, &stored, "", request).unwrap();
         let decryptor =
             age::Decryptor::new(age::armor::ArmoredReader::new(encrypted.as_bytes())).unwrap();
         let mut reader = decryptor
@@ -1104,31 +872,20 @@ mod tests {
         reader.read_to_string(&mut plaintext).unwrap();
         let profile: Value = serde_yaml::from_str(&plaintext).unwrap();
         assert_eq!(profile["proxies"].as_array().unwrap().len(), 2);
-        assert!(!plaintext.contains(&STANDARD.encode([7; 32])));
+        let mut stored = stored;
+        stored.vlan_configs[0].tunnels[0].supplicant_ids.clear();
         let empty = decrypt_profile(
             &identity,
-            &render_test_subscription(
-                content,
-                Some(&stored),
-                &[],
-                "",
-                "supplicant=owner&vlans=home:3",
-            )
-            .unwrap(),
+            &render_test_subscription(content, &stored, "", "supplicants=owner&vlans=home")
+                .unwrap(),
         );
         assert_eq!(
             empty["proxy-groups"][0]["proxies"],
             json!(["REJECT", "DIRECT"])
         );
         assert!(
-            render_test_subscription(
-                content,
-                Some(&stored),
-                &[],
-                "",
-                &request.replace("owner", "missing")
-            )
-            .is_err()
+            render_test_subscription(content, &stored, "", &request.replace("owner", "missing"))
+                .is_err()
         );
     }
 
@@ -1142,13 +899,13 @@ mod tests {
         // VLAN request: injected plaintext, encrypted only to the requesting supplicant.
         let prepared = prepare_subscription(
             content,
-            Some(&stored),
-            &[],
-            parse_request("", "supplicant=owner&vlans=home:10").unwrap(),
+            &stored.vlan_configs,
+            &stored.supplicant_configs,
+            parse_request("", "supplicants=owner&vlans=home").unwrap(),
             false,
         )
         .unwrap();
-        assert_eq!(prepared.recipients, vec![owner.clone()]);
+        assert_eq!(prepared.recipients(), std::slice::from_ref(&owner));
         let encrypted = prepared.encrypt().unwrap().unwrap();
         assert_eq!(
             decrypt_profile(&identity, &encrypted),
@@ -1156,45 +913,60 @@ mod tests {
         );
 
         // No request: content untouched, encrypted to every profile recipient.
-        let prepared =
-            prepare_subscription(content, None, std::slice::from_ref(&owner), None, false).unwrap();
+        let prepared = prepare_subscription(
+            content,
+            &[],
+            std::slice::from_ref(&owner),
+            SubscriptionRequest::default(),
+            false,
+        )
+        .unwrap();
         assert_eq!(prepared.content, content);
-        assert_eq!(prepared.recipients, vec![owner.clone()]);
+        assert_eq!(prepared.recipients(), std::slice::from_ref(&owner));
 
         // Unsafe-key compatibility serves plaintext, so there is nothing to encrypt.
         let ua = format!(
-            "confluence/supplicant=owner&_unsafe_supplicant_private={}",
+            "confluence/supplicants=owner&_unsafe_supplicant_private={}",
             age::secrecy::ExposeSecret::expose_secret(&identity.to_string())
         );
         let prepared = prepare_subscription(
             content,
-            Some(&stored),
+            &stored.vlan_configs,
             std::slice::from_ref(&owner),
             parse_request(&ua, "").unwrap(),
             true,
         )
         .unwrap();
-        assert!(prepared.recipients.is_empty());
+        assert!(prepared.recipients().is_empty());
         assert_eq!(prepared.encrypt().unwrap(), None);
-        assert_eq!(prepared.into_served().unwrap(), content);
+        assert_eq!(prepared.supplicants, std::slice::from_ref(&owner));
+        assert!(prepared.into_served().unwrap().contains("VLAN-home"));
     }
 
     #[test]
     fn request_sources_are_canonical_and_conflicts_fail_closed() {
-        let request = "supplicant=owner&vlans=home:10,office:20";
+        let request = "supplicants=owner,second&vlans=home,office";
         let ua = format!("Client/1 confluence/{request}");
-        assert!(parse_request(&ua, "vlans=office:20,home:10&supplicant=owner").is_ok());
-        assert!(parse_request(&ua, &request.replace("home:10", "home:11")).is_err());
+        assert!(parse_request(&ua, "vlans=office,home&supplicants=second,owner").is_ok());
+        assert!(parse_request(&ua, &request.replace("home", "elsewhere")).is_err());
+        assert!(
+            parse_request("Client/1 confluence/supplicants=owner", "vlans=home,office").is_ok()
+        );
         for invalid in [
-            "supplicant=owner&vlans=home:010",
-            "supplicant=owner&vlans=home:2,home:4",
-            "supplicant=owner&vlans=home:2&vlans=office:4",
             "supplicant=owner",
-            "vlans=home:10",
+            "supplicants=owner&vlans=home:010",
+            "supplicants=owner&vlans=home,home",
+            "supplicants=owner&vlans=home&vlans=office",
+            "supplicants=owner,owner",
+            "supplicants=*,owner",
+            "supplicants=owner,",
+            "vlans=",
         ] {
             assert!(parse_request("", invalid).is_err(), "{invalid}");
         }
-        assert!(parse_request("Client/1", "").unwrap().is_none());
+        let defaults = parse_request("Client/1", "").unwrap();
+        assert_eq!(defaults.vlans, Selection::All);
+        assert_eq!(defaults.supplicants, Selection::All);
     }
 
     #[test]
@@ -1225,41 +997,32 @@ mod tests {
         ] {
             assert!(!valid_name(invalid), "{invalid}");
         }
-        let request = parse_request("", "supplicant=owner.v2&vlans=home.lan:10,~edge:2")
-            .unwrap()
-            .unwrap();
-        assert_eq!(request.supplicant, "owner.v2");
+        let request = parse_request("", "supplicants=owner.v2&vlans=home.lan,~edge").unwrap();
+        assert_eq!(
+            request.supplicants,
+            Selection::Named(BTreeSet::from(["owner.v2".into()]))
+        );
         assert_eq!(
             request.vlans,
-            BTreeMap::from([("home.lan".into(), Some(10)), ("~edge".into(), Some(2))])
+            Selection::Named(BTreeSet::from(["home.lan".into(), "~edge".into()]))
         );
     }
 
     #[test]
-    fn global_identity_references_and_slot_expressions_are_validated() {
+    fn tunnel_grants_require_distinct_vlan_members_and_redacted_keys_are_preserved() {
         let identity = age::x25519::Identity::generate();
         let mut config = config(&identity.to_public().to_string());
-        config.validate().unwrap();
+        config.vlan_configs[0].validate().unwrap();
         let mut redacted = config.vlan_configs[0].clone().redact_keys();
         redacted.network = "renamed".into();
         redacted
             .preserve_keys(&config.vlan_configs[0].tunnels)
             .unwrap();
-        assert!(matches!(
-            &redacted.tunnels[0].source,
-            VlanTunnelSource::EasytierGateway {
-                private_key: Some(_),
-                ..
-            }
-        ));
+        assert!(redacted.tunnels[0].config.private_key.is_some());
+        let tunnel = &mut redacted.tunnels[0];
+        tunnel.supplicant_ids.push(tunnel.supplicant_ids[0].clone());
+        assert!(redacted.validate().is_err());
         config.vlan_configs[0].accept_supplicants[0].supplicant_id = "unknown".into();
-        assert!(config.validate().is_err());
-        assert_eq!(
-            parse_slots("2,4,10-12").unwrap(),
-            BTreeSet::from([2, 4, 10, 11, 12])
-        );
-        for invalid in ["", "1", "255", "10-2", "02", "2,,4"] {
-            assert!(parse_slots(invalid).is_err());
-        }
+        assert!(config.vlan_configs[0].validate().is_err());
     }
 }

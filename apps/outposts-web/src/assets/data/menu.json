@@ -22,12 +22,16 @@
 					"name": "menu.links.confluence",
 					"children": [
 						{
-							"name": "menu.links.dashboard",
-							"routerLink": "/confluence/dashboard"
+							"name": "menu.links.confluences",
+							"routerLink": "/confluence/confluences"
 						},
 						{
-							"name": "menu.links.vlan",
+							"name": "menu.links.vlans",
 							"routerLink": "/confluence/vlans"
+						},
+						{
+							"name": "menu.links.supplicants",
+							"routerLink": "/confluence/supplicants"
 						}
 					]
 				},

@@ -11,6 +11,7 @@ import {
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule, type NgForm } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { TranslocoModule } from "@jsverse/transloco";
 import { NgIcon, provideIcons } from "@ng-icons/core";
 import {
@@ -18,7 +19,6 @@ import {
   lucideCircleAlert,
   lucideFileDown,
   lucideInfo,
-  lucideNetwork,
   lucidePlus,
   lucideRefreshCw,
   lucideShieldCheck,
@@ -26,7 +26,6 @@ import {
   lucideX,
 } from "@ng-icons/lucide";
 import { finalize } from "rxjs";
-import { v7 as uuidv7 } from "uuid";
 import { AppActionComponent } from "../../../components/ui/app-action.component";
 import { HlmBadge } from "@/components/ui/badge";
 import { HlmButton } from "@/components/ui/button";
@@ -41,24 +40,16 @@ import { ConfluenceService } from "../confluence.service";
 import { CidrListInputComponent } from "./cidr-list-input.component";
 import { CidrDirective } from "./cidr.directive";
 import { VlanNameDirective } from "./vlan-name.directive";
-import { parseWireGuardClient, parseWireGuardImport } from "./wireguard-import";
-
-type Portal = Extract<VlanTunnel, { type: "easytier-gateway" }>;
-type WireGuardTunnel = Extract<VlanTunnel, { type: "wireguard-compatible" }>;
-type ImportTarget = Portal | WireGuardClientConfig;
+import { parseWireGuardClient } from "./wireguard-import";
 
 /** A destructive draft change waiting for an inline confirmation. */
-type PendingRemoval =
-  | { kind: "member"; id: string }
-  | { kind: "config"; tunnel: WireGuardTunnel; config: WireGuardClientConfig }
-  | { kind: "tunnel"; tunnel: VlanTunnel };
-
-const REVIEW_NOTICES = new Set(["reviewPortal", "reviewClient", "wildcard"]);
+type PendingRemoval = { kind: "member"; id: string } | { kind: "tunnel"; tunnel: VlanTunnel };
 
 @Component({
   selector: "app-vlan-editor",
   imports: [
     FormsModule,
+    RouterLink,
     NgTemplateOutlet,
     TranslocoModule,
     NgIcon,
@@ -80,7 +71,6 @@ const REVIEW_NOTICES = new Set(["reviewPortal", "reviewClient", "wildcard"]);
       lucideCircleAlert,
       lucideFileDown,
       lucideInfo,
-      lucideNetwork,
       lucidePlus,
       lucideRefreshCw,
       lucideShieldCheck,
@@ -104,8 +94,10 @@ export class VlanEditorComponent implements OnInit {
   /** Set once the user tried to save, so every blocking problem becomes visible. */
   readonly attempted = signal(false);
   /** The import panel that is open; notices stay attached to the tunnel they came from. */
-  readonly importing = signal<ImportTarget | null>(null);
-  readonly importNotice = signal<{ target: ImportTarget; key: string } | undefined>(undefined);
+  readonly importing = signal<WireGuardClientConfig | null>(null);
+  readonly importNotice = signal<{ target: WireGuardClientConfig; key: string } | undefined>(
+    undefined,
+  );
   readonly pendingRemoval = signal<PendingRemoval | null>(null);
 
   network: VlanNetwork = {
@@ -155,9 +147,7 @@ export class VlanEditorComponent implements OnInit {
   }
 
   memberGrantCount(id: string) {
-    return this.network.tunnels.filter((tunnel) =>
-      tunnel.grants.some((grant) => grant.supplicant_id === id),
-    ).length;
+    return this.network.tunnels.filter((tunnel) => this.hasGrant(tunnel, id)).length;
   }
 
   removeMember(id: string) {
@@ -165,37 +155,30 @@ export class VlanEditorComponent implements OnInit {
       (member) => member.supplicant_id !== id,
     );
     for (const tunnel of this.network.tunnels) {
-      const index = tunnel.grants.findIndex((grant) => grant.supplicant_id === id);
-      if (index >= 0) tunnel.grants.splice(index, 1);
+      tunnel.supplicant_ids = tunnel.supplicant_ids.filter((member) => member !== id);
     }
     this.pendingRemoval.set(null);
   }
 
   // Tunnels
 
-  addTunnel(type: VlanTunnel["type"]) {
-    const common = { id: "", name: "", grants: [] };
-    this.network.tunnels.push(
-      type === "easytier-gateway"
-        ? {
-            ...common,
-            type,
-            server: "",
-            port: 24,
-            subnet: "",
-            allowed_ips: [],
-            has_private_key: false,
-          }
-        : { ...common, type, configs: [] },
-    );
+  addTunnel() {
+    this.network.tunnels.push({
+      id: "",
+      name: "",
+      supplicant_ids: [],
+      config: {
+        addresses: [""],
+        mtu: null,
+        persistent_keepalive: null,
+        has_private_key: false,
+        peers: [],
+      },
+    });
   }
 
   requestRemoveTunnel(tunnel: VlanTunnel) {
-    if (
-      tunnel.id ||
-      tunnel.grants.length ||
-      (tunnel.type === "wireguard-compatible" && tunnel.configs.length)
-    ) {
+    if (tunnel.id || tunnel.supplicant_ids.length || tunnel.config.peers.length) {
       this.pendingRemoval.set({ kind: "tunnel", tunnel });
     } else {
       this.removeTunnel(tunnel);
@@ -208,46 +191,15 @@ export class VlanEditorComponent implements OnInit {
   }
 
   hasGrant(tunnel: VlanTunnel, id: string) {
-    return tunnel.grants.some((grant) => grant.supplicant_id === id);
+    return tunnel.supplicant_ids.includes(id);
   }
 
-  togglePortalGrant(tunnel: Portal, id: string) {
-    const index = tunnel.grants.findIndex((grant) => grant.supplicant_id === id);
-    if (index >= 0) {
-      tunnel.grants.splice(index, 1);
+  toggleTunnelGrant(tunnel: VlanTunnel, id: string) {
+    if (this.hasGrant(tunnel, id)) {
+      tunnel.supplicant_ids = tunnel.supplicant_ids.filter((member) => member !== id);
     } else if (this.isMember(id)) {
-      tunnel.grants.push({ supplicant_id: id, slots: "2-254" });
+      tunnel.supplicant_ids.push(id);
     }
-  }
-
-  addWireGuardConfig(tunnel: WireGuardTunnel) {
-    tunnel.configs.push({
-      id: uuidv7(),
-      addresses: [""],
-      mtu: null,
-      persistent_keepalive: null,
-      has_private_key: false,
-      peers: [],
-    });
-  }
-
-  wireGuardAssignee(tunnel: WireGuardTunnel, config: WireGuardClientConfig) {
-    return tunnel.grants.find((grant) => grant.config_id === config.id)?.supplicant_id ?? "";
-  }
-
-  assignWireGuardConfig(tunnel: WireGuardTunnel, config: WireGuardClientConfig, id: string) {
-    if (id === this.wireGuardAssignee(tunnel, config)) return;
-    if (id && (!this.isMember(id) || this.hasGrant(tunnel, id))) return;
-    tunnel.grants = tunnel.grants.filter((grant) => grant.config_id !== config.id);
-    if (id) {
-      tunnel.grants.push({ supplicant_id: id, config_id: config.id });
-    }
-  }
-
-  removeWireGuardConfig(tunnel: WireGuardTunnel, config: WireGuardClientConfig) {
-    tunnel.configs = tunnel.configs.filter((item) => item !== config);
-    tunnel.grants = tunnel.grants.filter((grant) => grant.config_id !== config.id);
-    this.pendingRemoval.set(null);
   }
 
   addPeer(config: WireGuardClientConfig) {
@@ -270,24 +222,9 @@ export class VlanEditorComponent implements OnInit {
 
   // WireGuard import
 
-  toggleImport(target: ImportTarget) {
+  toggleImport(target: WireGuardClientConfig) {
     this.importing.update((open) => (open === target ? null : target));
     this.importNotice.set(undefined);
-  }
-
-  importPortal(tunnel: Portal, config: string): boolean {
-    const result = parseWireGuardImport(config);
-    if (!result.ok) {
-      this.importNotice.set({ target: tunnel, key: result.error });
-      return false;
-    }
-    tunnel.server = result.server;
-    tunnel.port = result.port;
-    tunnel.subnet = result.suggestedSubnet || tunnel.subnet;
-    tunnel.allowed_ips = result.routes;
-    this.importNotice.set({ target: tunnel, key: result.server ? "reviewPortal" : "wildcard" });
-    this.importing.set(null);
-    return true;
   }
 
   importClient(config: WireGuardClientConfig, content: string): boolean {
@@ -302,10 +239,10 @@ export class VlanEditorComponent implements OnInit {
     return true;
   }
 
-  noticeFor(target: ImportTarget) {
+  noticeFor(target: WireGuardClientConfig) {
     const notice = this.importNotice();
     if (notice?.target !== target) return undefined;
-    return { key: notice.key, review: REVIEW_NOTICES.has(notice.key) };
+    return { key: notice.key, review: notice.key === "reviewClient" };
   }
 
   // Routes
@@ -313,13 +250,9 @@ export class VlanEditorComponent implements OnInit {
   recomputeRoutes() {
     this.recalculating.set(true);
     this.error.set(false);
-    const routes = this.network.tunnels.flatMap((tunnel) => {
-      if (tunnel.type === "wireguard-compatible") {
-        return tunnel.configs.flatMap((config) => config.peers.flatMap((peer) => peer.allowed_ips));
-      }
-      const subnet = tunnel.subnet.trim();
-      return subnet ? [...tunnel.allowed_ips, subnet] : tunnel.allowed_ips;
-    });
+    const routes = this.network.tunnels.flatMap((tunnel) =>
+      tunnel.config.peers.flatMap((peer) => peer.allowed_ips),
+    );
     this.service
       .aggregateVlanRoutes(routes)
       .pipe(
@@ -338,9 +271,7 @@ export class VlanEditorComponent implements OnInit {
 
   get incompleteWireGuard() {
     return this.network.tunnels.some(
-      (tunnel) =>
-        tunnel.type === "wireguard-compatible" &&
-        tunnel.configs.some((config) => !config.addresses.length || !config.peers.length),
+      ({ config }) => !config.addresses.length || !config.peers.length,
     );
   }
 

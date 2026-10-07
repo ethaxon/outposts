@@ -613,68 +613,102 @@ async fn verify_tunnel_migration(db: &sea_orm::DatabaseConnection) {
         INSERT INTO vlan_wireguard_peer (grant_id, position, server, port, public_key, pre_shared_key, allowed_ips)
         VALUES ('00000000-0000-7000-8000-000000000005', 0, '192.0.2.2', 51820, 'fixture-peer-key', 'fixture-psk', '{10.64.0.0/25}');
     "#).await.unwrap();
-    Migrator::up(db, None).await.unwrap();
-
-    use confluence::models::{vlan_tunnel_grant, vlan_wireguard_config, vlan_wireguard_peer};
-    let config_id = uuid::Uuid::parse_str("00000000-0000-7000-8000-000000000005").unwrap();
-    let migrated = vlan_wireguard_config::Entity::find_by_id(config_id)
-        .one(db)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(migrated.private_key, "fixture-client-key");
-    assert_eq!(migrated.addresses, ["10.64.0.2/32"]);
-    assert_eq!(migrated.persistent_keepalive, Some(25));
-    let grant = vlan_tunnel_grant::Entity::find_by_id(config_id)
-        .one(db)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(grant.config_id, Some(config_id));
-    assert_eq!(grant.tunnel_id, migrated.tunnel_id);
-    assert_eq!(
-        grant.supplicant_id.to_string(),
-        "00000000-0000-7000-8000-000000000002"
-    );
-    let peer = vlan_wireguard_peer::Entity::find()
-        .one(db)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(peer.config_id, config_id);
-    assert_eq!(peer.server, "192.0.2.2");
-    assert_eq!(peer.pre_shared_key.as_deref(), Some("fixture-psk"));
-
-    assert!(db.execute_unprepared(r#"
-        INSERT INTO vlan_tunnel_grant (creator, vlan_id, tunnel_id, kind, supplicant_id, slots)
-        VALUES ('other', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000003',
-            'easytier-gateway', '00000000-0000-7000-8000-000000000002', '2')
-    "#).await.is_err());
+    Migrator::up(db, Some(4)).await.unwrap();
     db.execute_unprepared(r#"
-        INSERT INTO vlan_tunnel (id, creator, vlan_id, name, kind, allowed_ips)
-        VALUES ('00000000-0000-7000-8000-000000000006', 'migration-test',
-            '00000000-0000-7000-8000-000000000001', 'other-wireguard', 'wireguard-compatible', '{}');
+        INSERT INTO vlan_supplicant (id, creator, name, age_recipient)
+        VALUES ('00000000-0000-7000-8000-000000000006', 'migration-test', 'second-user', 'fixture');
+        INSERT INTO vlan_grant (creator, vlan_id, supplicant_id)
+        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000006');
         INSERT INTO vlan_wireguard_config (id, tunnel_id, addresses, private_key)
         VALUES ('00000000-0000-7000-8000-000000000008', '00000000-0000-7000-8000-000000000004',
-            '{10.64.0.3/32}', 'fixture-unassigned-key');
-    "#).await.unwrap();
-    let cross_tunnel = db
-        .execute_unprepared(
-            r#"
+                '{10.64.0.3/32}', 'fixture-second-key'),
+               ('00000000-0000-7000-8000-000000000009', '00000000-0000-7000-8000-000000000004',
+                '{10.64.0.4/32}', 'fixture-unassigned-key');
         INSERT INTO vlan_tunnel_grant (creator, vlan_id, tunnel_id, kind, supplicant_id, config_id)
-        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001',
-            '00000000-0000-7000-8000-000000000006', 'wireguard-compatible',
-            '00000000-0000-7000-8000-000000000002', '00000000-0000-7000-8000-000000000008')
-    "#,
-        )
-        .await
-        .unwrap_err();
-    assert!(
-        cross_tunnel
-            .to_string()
-            .contains("vlan_tunnel_grant_tunnel_id_config_id_fkey"),
-        "{cross_tunnel}"
+        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000004',
+                'wireguard-compatible', '00000000-0000-7000-8000-000000000006', '00000000-0000-7000-8000-000000000008');
+        INSERT INTO vlan_wireguard_peer (config_id, position, server, port, public_key, allowed_ips)
+        VALUES ('00000000-0000-7000-8000-000000000008', 0, '192.0.2.3', 51820, 'second-peer-key', '{10.64.0.128/25}'),
+               ('00000000-0000-7000-8000-000000000009', 0, '192.0.2.4', 51820, 'third-peer-key', '{198.51.100.0/24}');
+    "#).await.unwrap();
+    Migrator::up(db, None).await.unwrap();
+
+    use confluence::models::{vlan_route, vlan_tunnel, vlan_tunnel_grant, vlan_wireguard_peer};
+    let tunnels = vlan_tunnel::Entity::find().all(db).await.unwrap();
+    assert_eq!(tunnels.len(), 3);
+    let original = tunnels
+        .iter()
+        .find(|tunnel| tunnel.name == "wireguard")
+        .unwrap();
+    assert_eq!(
+        original.id.to_string(),
+        "00000000-0000-7000-8000-000000000004"
     );
+    assert_eq!(original.private_key, "fixture-client-key");
+    assert_eq!(original.addresses, ["10.64.0.2/32"]);
+    assert_eq!(original.persistent_keepalive, Some(25));
+    let split = tunnels
+        .iter()
+        .find(|tunnel| tunnel.name == "wireguard-2")
+        .unwrap();
+    assert_eq!(split.private_key, "fixture-second-key");
+    let unassigned = tunnels
+        .iter()
+        .find(|tunnel| tunnel.name == "wireguard-3")
+        .unwrap();
+    assert_eq!(unassigned.private_key, "fixture-unassigned-key");
+    let grants = tunnels
+        .load_many(vlan_tunnel_grant::Entity, db)
+        .await
+        .unwrap();
+    let peers = tunnels
+        .load_many(vlan_wireguard_peer::Entity, db)
+        .await
+        .unwrap();
+    for (tunnel, (grants, peers)) in tunnels.iter().zip(grants.into_iter().zip(peers)) {
+        assert_eq!(peers.len(), 1);
+        if tunnel == original {
+            assert_eq!(
+                grants[0].supplicant_id.to_string(),
+                "00000000-0000-7000-8000-000000000002"
+            );
+            assert_eq!(peers[0].pre_shared_key.as_deref(), Some("fixture-psk"));
+        } else if tunnel == split {
+            assert_eq!(
+                grants[0].supplicant_id.to_string(),
+                "00000000-0000-7000-8000-000000000006"
+            );
+            assert_eq!(peers[0].public_key, "second-peer-key");
+        } else {
+            assert!(grants.is_empty());
+            assert_eq!(peers[0].public_key, "third-peer-key");
+        }
+    }
+    assert_eq!(vlan_route::Entity::find().all(db).await.unwrap().len(), 2);
+    assert_eq!(
+        confluence_vlan::Entity::find().all(db).await.unwrap().len(),
+        1
+    );
+    assert!(
+        db.execute_unprepared("SELECT * FROM vlan_wireguard_config")
+            .await
+            .is_err()
+    );
+    assert!(
+        db.execute_unprepared("SELECT slots FROM vlan_tunnel_grant")
+            .await
+            .is_err()
+    );
+    assert!(
+        db.execute_unprepared("SELECT kind FROM vlan_tunnel")
+            .await
+            .is_err()
+    );
+    assert!(db.execute_unprepared(r#"
+        INSERT INTO vlan_tunnel_grant (creator, vlan_id, tunnel_id, supplicant_id)
+        VALUES ('other', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000004',
+            '00000000-0000-7000-8000-000000000002')
+    "#).await.is_err());
     db.execute_unprepared("DELETE FROM vlan_grant WHERE creator = 'migration-test'")
         .await
         .unwrap();
@@ -685,22 +719,20 @@ async fn verify_tunnel_migration(db: &sea_orm::DatabaseConnection) {
             .unwrap()
             .is_empty()
     );
+    assert_eq!(vlan_tunnel::Entity::find().all(db).await.unwrap().len(), 3);
     assert_eq!(
-        vlan_wireguard_config::Entity::find_by_id(config_id)
-            .one(db)
+        vlan_wireguard_peer::Entity::find()
+            .all(db)
             .await
-            .unwrap(),
-        Some(migrated),
-    );
-    assert_eq!(
-        vlan_wireguard_peer::Entity::find().one(db).await.unwrap(),
-        Some(peer)
+            .unwrap()
+            .len(),
+        3
     );
     db.execute_unprepared("DELETE FROM vlan_network WHERE name = 'migration-vlan'")
         .await
         .unwrap();
     assert!(
-        vlan_wireguard_config::Entity::find()
+        vlan_tunnel::Entity::find()
             .all(db)
             .await
             .unwrap()
@@ -728,9 +760,9 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
     use confluence::{
         auth::CurrentUser,
         config::{AppConfig, AuthConfig},
-        models::vlan_wireguard_config,
+        models::vlan_tunnel,
         services::AppState,
-        vlan::{VlanGrant, VlanNetwork, VlanTunnelSource, WireGuardTunnelGrant},
+        vlan::{VlanGrant, VlanNetwork},
         vlan_services::{create_network, list_catalog, update_network},
     };
 
@@ -749,7 +781,6 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
         None,
         None,
     ));
-    let config_id = uuid::Uuid::parse_str("00000000-0000-7000-8000-000000000007").unwrap();
     let private_key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
     let input: VlanNetwork = serde_json::from_value(serde_json::json!({
         "id": "",
@@ -760,10 +791,8 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
         "tunnels": [{
             "id": "",
             "name": "vpn",
-            "type": "wireguard-compatible",
-            "grants": [],
-            "configs": [{
-                "id": config_id,
+            "supplicant_ids": [],
+            "config": {
                 "addresses": ["192.0.2.2/32"],
                 "private_key": private_key,
                 "peers": [{
@@ -772,7 +801,7 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
                     "public_key": private_key,
                     "allowed_ips": ["198.51.100.0/24"]
                 }]
-            }]
+            }
         }]
     }))
     .unwrap();
@@ -782,21 +811,17 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
             .await
             .unwrap();
     let id = saved.id.parse().unwrap();
-    let VlanTunnelSource::WireguardCompatible { configs, grants } = &mut saved.tunnels[0].source
-    else {
-        panic!("Expected WireGuard tunnel");
-    };
-    assert!(grants.is_empty());
-    assert_eq!(configs[0].id, config_id);
-    assert!(configs[0].has_private_key);
-    assert!(configs[0].private_key.is_none());
+    let tunnel = &mut saved.tunnels[0];
+    let tunnel_id: uuid::Uuid = tunnel.id.parse().unwrap();
+    assert!(tunnel.supplicant_ids.is_empty());
+    assert!(tunnel.config.has_private_key);
+    assert!(tunnel.config.private_key.is_none());
 
-    let supplicant_id = "00000000-0000-7000-8000-000000000002".to_string();
-    grants.push(WireGuardTunnelGrant {
-        supplicant_id: supplicant_id.clone(),
-        config_id,
-    });
-    saved.accept_supplicants.push(VlanGrant { supplicant_id });
+    for suffix in ["2", "6"] {
+        let supplicant_id = format!("00000000-0000-7000-8000-00000000000{suffix}");
+        tunnel.supplicant_ids.push(supplicant_id.clone());
+        saved.accept_supplicants.push(VlanGrant { supplicant_id });
+    }
     let Json(assigned) = update_network(
         State(state.clone()),
         Extension(user.clone()),
@@ -809,8 +834,9 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
         .await
         .unwrap();
     assert_eq!(catalog.vlan_configs, std::slice::from_ref(&assigned));
+    assert_eq!(assigned.tunnels[0].supplicant_ids.len(), 2);
     assert_eq!(
-        vlan_wireguard_config::Entity::find_by_id(config_id)
+        vlan_tunnel::Entity::find_by_id(tunnel_id)
             .one(db)
             .await
             .unwrap()
@@ -821,11 +847,7 @@ async fn verify_config_management(db: &sea_orm::DatabaseConnection) {
 
     let mut revoked = assigned;
     revoked.accept_supplicants.clear();
-    let VlanTunnelSource::WireguardCompatible { grants, .. } = &mut revoked.tunnels[0].source
-    else {
-        unreachable!()
-    };
-    grants.clear();
+    revoked.tunnels[0].supplicant_ids.clear();
     let Json(saved) = update_network(
         State(state),
         Extension(user),
@@ -853,15 +875,22 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     use confluence::{
         auth::CurrentUser,
         config::{AppConfig, AuthConfig},
-        dto::{ProfileCreationDto, ProfileUpdateDto, WorkspaceVlansUpdateDto},
+        dto::{
+            ConfluenceVlansUpdateDto, ProfileCreationDto, ProfilePreviewRequestDto,
+            ProfileUpdateDto,
+        },
         services::{
             AppState, create_one_confluence, create_one_profile, delete_one_confluence,
             find_many_confluences, find_one_confluence, find_one_profile_as_subscription_by_token,
-            update_one_profile,
+            preview_one_profile, update_one_profile,
         },
-        vlan::{VlanGrant, VlanNetwork, VlanSupplicant},
+        vlan::{
+            VlanGrant, VlanNetwork, VlanSupplicant, VlanTunnel, WireGuardClientConfig,
+            WireGuardPeer,
+        },
         vlan_services::{
-            create_network, create_supplicant, delete_supplicant, update_workspace_vlans,
+            create_network, create_supplicant, delete_supplicant, list_supplicants,
+            update_confluence_vlans,
         },
     };
 
@@ -955,6 +984,48 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     )
     .await
     .unwrap();
+    let key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_owned();
+    let tunnel = |name: &str, supplicant_ids| VlanTunnel {
+        id: String::new(),
+        name: name.into(),
+        supplicant_ids,
+        config: WireGuardClientConfig {
+            addresses: vec!["192.0.2.3/32".into()],
+            mtu: None,
+            persistent_keepalive: None,
+            private_key: Some(key.clone()),
+            has_private_key: false,
+            peers: vec![WireGuardPeer {
+                server: "192.0.2.5".into(),
+                port: 51820,
+                public_key: key.clone(),
+                allowed_ips: vec!["198.51.100.0/24".into()],
+                pre_shared_key: None,
+                has_pre_shared_key: false,
+            }],
+        },
+    };
+    let both = vec![alice_id.to_string(), bob_id.to_string()];
+    let (_, Json(shared)) = create_network(
+        State(state.clone()),
+        Extension(user.clone()),
+        Json(VlanNetwork {
+            id: String::new(),
+            enabled: true,
+            network: "lab".into(),
+            routes: vec!["198.51.100.0/24".into()],
+            tunnels: vec![
+                tunnel("common", both.clone()),
+                tunnel("private", vec![alice_id.to_string()]),
+            ],
+            accept_supplicants: both
+                .into_iter()
+                .map(|supplicant_id| VlanGrant { supplicant_id })
+                .collect(),
+        }),
+    )
+    .await
+    .unwrap();
     let Json(profile) = create_one_profile(
         State(state.clone()),
         Extension(user.clone()),
@@ -1005,19 +1076,82 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     assert_eq!(decrypt(&ciphertext, bob).as_deref(), Some(yaml));
     assert!(decrypt(&ciphertext, eve).is_none());
 
-    let Json(linked_vlans) = update_workspace_vlans(
+    let Json(linked_vlans) = update_confluence_vlans(
         State(state.clone()),
         Extension(user.clone()),
         Path(workspace.id),
-        Json(WorkspaceVlansUpdateDto {
-            vlan_ids: vec![vlan.id.parse().unwrap()],
+        Json(ConfluenceVlansUpdateDto {
+            vlan_ids: vec![vlan.id.parse().unwrap(), shared.id.parse().unwrap()],
         }),
     )
     .await
     .unwrap();
-    assert_eq!(linked_vlans, [vlan.id.parse::<uuid::Uuid>().unwrap()]);
+    assert_eq!(linked_vlans.len(), 2);
+    let Json(supplicants) = list_supplicants(State(state.clone()), Extension(user.clone()))
+        .await
+        .unwrap();
+    assert_eq!(
+        supplicants
+            .iter()
+            .map(|row| (
+                row.supplicant.name.as_str(),
+                row.vlan_count,
+                row.profile_count
+            ))
+            .collect::<Vec<_>>(),
+        [("alice", 2, 1), ("bob", 1, 1), ("eve", 1, 0)]
+    );
+    let (_, default_ciphertext) = fetch("").await.unwrap();
+    let default_yaml = decrypt(&default_ciphertext, alice).unwrap();
+    assert_eq!(
+        decrypt(&default_ciphertext, bob).as_deref(),
+        Some(default_yaml.as_str())
+    );
+    assert!(default_yaml.contains("VLAN-lab-COMMON-WG"));
+    assert!(!default_yaml.contains("VLAN-lab-PRIVATE-WG"));
+    assert!(!default_yaml.contains("VLAN-office"));
+    assert!(decrypt(&default_ciphertext, eve).is_none());
 
-    let (_, vlan_ciphertext) = fetch("?supplicant=alice&vlans=office").await.unwrap();
+    let shared_query = "?supplicants=bob,alice&vlans=lab";
+    let (_, shared_ciphertext) = fetch(shared_query).await.unwrap();
+    assert_eq!(
+        decrypt(&shared_ciphertext, alice).as_deref(),
+        Some(default_yaml.as_str())
+    );
+    assert_eq!(
+        decrypt(&shared_ciphertext, bob).as_deref(),
+        Some(default_yaml.as_str())
+    );
+    assert!(fetch("?supplicants=alice,bob&vlans=office").await.is_err());
+    assert!(fetch("?supplicant=alice&vlans=office").await.is_err());
+    let (_, solo_ciphertext) = fetch("?supplicants=alice").await.unwrap();
+    let solo_yaml = decrypt(&solo_ciphertext, alice).unwrap();
+    assert!(solo_yaml.contains("VLAN-office"));
+    assert!(solo_yaml.contains("VLAN-lab-PRIVATE-WG"));
+    assert!(decrypt(&solo_ciphertext, bob).is_none());
+
+    let Json(preview) = preview_one_profile(
+        Path(profile.id),
+        State(state.clone()),
+        Extension(user.clone()),
+        Json(ProfilePreviewRequestDto {
+            url: format!("https://example.test/subscription{shared_query}"),
+            headers: Default::default(),
+            body: None,
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(preview.supplicants, ["alice", "bob"]);
+    assert_eq!(preview.recipients, ["alice", "bob"]);
+    assert_eq!(preview.vlans, ["lab"]);
+    assert_eq!(preview.plaintext, default_yaml);
+    assert_eq!(
+        decrypt(preview.encrypted.as_deref().unwrap(), bob).unwrap(),
+        preview.plaintext
+    );
+
+    let (_, vlan_ciphertext) = fetch("?supplicants=alice&vlans=office").await.unwrap();
     assert!(
         decrypt(&vlan_ciphertext, alice)
             .unwrap()
@@ -1025,18 +1159,18 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     );
     assert!(decrypt(&vlan_ciphertext, bob).is_none());
     assert!(
-        fetch("?supplicant=eve&vlans=office")
+        fetch("?supplicants=eve&vlans=office")
             .await
             .unwrap_err()
             .to_string()
             .contains("this Profile")
     );
     assert!(
-        fetch("?supplicant=bob&vlans=office")
+        fetch("?supplicants=bob&vlans=office")
             .await
             .unwrap_err()
             .to_string()
-            .contains("Unknown supplicant")
+            .contains("accepted by this VLAN")
     );
     assert!(
         delete_supplicant(State(state.clone()), Extension(user.clone()), Path(*bob_id))
@@ -1064,10 +1198,13 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     let bob_key = bob.to_string();
     let eve_key = eve.to_string();
     let age_request = |name: &str, scope: &str, key: &str| {
-        format!("TestClient/1 confluence/supplicant={name}{scope}&_unsafe_supplicant_private={key}")
+        format!(
+            "TestClient/1 confluence/supplicants={name}{scope}&_unsafe_supplicant_private={key}"
+        )
     };
     let profile_ua = age_request("alice", "", alice_key.expose_secret());
     let vlan_ua = age_request("alice", "&vlans=office", alice_key.expose_secret());
+    let multi_ua = age_request("alice,bob", "", alice_key.expose_secret());
     assert!(fetch_with_ua("", &vlan_ua).await.is_err());
     let Json(enabled) = update(
         None,
@@ -1078,16 +1215,24 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     .unwrap();
     assert!(enabled.allow_unsafe_age_private_key);
     assert_eq!(enabled.age_supplicant_ids, expected);
+    assert!(
+        fetch_with_ua("", &multi_ua)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("exactly one")
+    );
+
     let (headers, plaintext) = fetch_with_ua("", &profile_ua).await.unwrap();
     assert_eq!(headers[header::CACHE_CONTROL], "private, no-store");
     assert!(headers.get(header::ETAG).is_none());
     let plaintext: serde_json::Value = serde_yaml::from_str(&plaintext).unwrap();
     assert_eq!(
         plaintext["x-test-user-agent"],
-        "TestClient/1 confluence/supplicant=alice"
+        "TestClient/1 confluence/supplicants=alice"
     );
 
-    let (headers, plaintext) = fetch_with_ua("?supplicant=alice&vlans=office", &vlan_ua)
+    let (headers, plaintext) = fetch_with_ua("?supplicants=alice&vlans=office", &vlan_ua)
         .await
         .unwrap();
     assert_eq!(headers[header::CACHE_CONTROL], "private, no-store");
@@ -1095,10 +1240,10 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     assert_eq!(plaintext["proxy-groups"][0]["name"], "VLAN-office");
     assert_eq!(
         plaintext["x-test-user-agent"],
-        "TestClient/1 confluence/supplicant=alice&vlans=office"
+        "TestClient/1 confluence/supplicants=alice&vlans=office"
     );
     assert!(
-        fetch_with_ua("?supplicant=alice&vlans=unknown", &vlan_ua)
+        fetch_with_ua("?supplicants=alice&vlans=unknown", &vlan_ua)
             .await
             .is_err()
     );
@@ -1107,7 +1252,7 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
         assert!(fetch_with_ua("", &ua).await.is_err());
     }
     let query = format!(
-        "?supplicant=alice&vlans=office&%5Funsafe_supplicant_private={}",
+        "?supplicants=alice&vlans=office&%5Funsafe_supplicant_private={}",
         alice_key.expose_secret()
     );
     let rejected = fetch(&query).await.unwrap_err().to_string();
@@ -1119,10 +1264,9 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
         .unwrap();
     assert!(cleared.age_supplicant_ids.is_empty());
     assert_eq!(fetch("").await.unwrap().1, yaml);
-    let (_, vlan_ciphertext) = fetch("?supplicant=eve&vlans=office").await.unwrap();
-    assert!(decrypt(&vlan_ciphertext, eve).is_some());
-    let (_, vlan_plaintext) = fetch_with_ua("", &vlan_ua).await.unwrap();
-    assert!(vlan_plaintext.contains("VLAN-office"));
+    assert!(fetch("?supplicants=eve&vlans=office").await.is_err());
+    assert!(fetch("?vlans=lab").await.is_err());
+    assert!(fetch_with_ua("", &vlan_ua).await.is_err());
     assert!(fetch_with_ua("", &profile_ua).await.is_err());
     let Json(disabled) = update(None, Some(false), None).await.unwrap();
     assert!(!disabled.allow_unsafe_age_private_key);
@@ -1135,11 +1279,13 @@ async fn verify_profile_encryption(db: &sea_orm::DatabaseConnection) {
     )
     .await
     .unwrap();
-    confluence::vlan_services::delete_network(
-        State(state),
-        Extension(user),
-        Path(vlan.id.parse().unwrap()),
-    )
-    .await
-    .unwrap();
+    for network in [vlan, shared] {
+        confluence::vlan_services::delete_network(
+            State(state.clone()),
+            Extension(user.clone()),
+            Path(network.id.parse().unwrap()),
+        )
+        .await
+        .unwrap();
+    }
 }

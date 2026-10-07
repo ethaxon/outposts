@@ -12,7 +12,7 @@
         type="button"
         class="cursor-pointer py-0.5 pl-1.5 pr-1"
         [disabled]="disabled()"
-        [attr.aria-label]="'confluence.workspace.vlan.cidr.edit' | transloco: { cidr: value }"
+        [attr.aria-label]="'confluence.vlans.cidr.edit' | transloco: { cidr: value }"
         (click)="edit(i); $event.stopPropagation()"
       >
         {{ value }}
@@ -21,7 +21,7 @@
         type="button"
         class="flex cursor-pointer items-center self-stretch rounded-r-md px-1 opacity-60 hover:bg-destructive/15 hover:opacity-100"
         [disabled]="disabled()"
-        [attr.aria-label]="'confluence.workspace.vlan.cidr.remove' | transloco: { cidr: value }"
+        [attr.aria-label]="'confluence.vlans.cidr.remove' | transloco: { cidr: value }"
         (click)="remove(i); $event.stopPropagation()"
       >
         <ng-icon name="lucideX" size="0.75rem" aria-hidden="true" />
@@ -52,10 +52,10 @@
     [class.text-muted-foreground]="n.kind !== 'invalid'"
     [attr.role]="n.kind === 'invalid' ? 'alert' : 'status'"
   >
-    {{ "confluence.workspace.vlan.cidr." + n.kind | transloco: n }}
+    {{ "confluence.vlans.cidr." + n.kind | transloco: n }}
   </p>
 } @else {
   <p class="mt-1 text-xs text-muted-foreground">
-    {{ "confluence.workspace.vlan.cidr.hint" | transloco }}
+    {{ "confluence.vlans.cidr.hint" | transloco }}
   </p>
 }

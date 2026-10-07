@@ -196,13 +196,7 @@
   color: var(--foreground);
 }
 
-.vlan-tunnel-picker {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-}
-
-// Matches the dashed "+" cards used for empty lists elsewhere in the workspace.
+// Matches the dashed "+" cards used for empty lists elsewhere on the Confluence page.
 .vlan-create {
   display: flex;
   min-height: 7.5rem;
@@ -229,13 +223,6 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-}
-
-.vlan-slot-row {
-  display: grid;
-  align-items: center;
-  gap: 0.75rem;
-  grid-template-columns: minmax(6rem, 10rem) minmax(0, 1fr);
 }
 
 .vlan-grant {

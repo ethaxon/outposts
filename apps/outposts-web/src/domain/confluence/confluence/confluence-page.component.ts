@@ -7,8 +7,30 @@ import {
   ChangeDetectionStrategy,
 } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
-import { FormBuilder, type FormControl, type FormGroup, Validators } from "@angular/forms";
-import { ActivatedRoute } from "@angular/router";
+import { CommonModule } from "@angular/common";
+import {
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  type FormControl,
+  type FormGroup,
+  Validators,
+} from "@angular/forms";
+import { ActivatedRoute, RouterLink } from "@angular/router";
+import { TranslocoModule } from "@jsverse/transloco";
+import { NgIcon } from "@ng-icons/core";
+import { MonacoEditorModule } from "ngx-monaco-editor-v2";
+import { HlmBadge } from "@/components/ui/badge";
+import { HlmBreadcrumbImports } from "@/components/ui/breadcrumb";
+import { HlmButton } from "@/components/ui/button";
+import { HlmCheckboxImports } from "@/components/ui/checkbox";
+import { HlmInputImports } from "@/components/ui/input";
+import { HlmProgress, HlmProgressIndicator } from "@/components/ui/progress";
+import { HlmSelectImports } from "@/components/ui/select";
+import { HlmSkeleton } from "@/components/ui/skeleton";
+import { AppActionComponent } from "../../../components/ui/app-action.component";
+import { AppCardComponent } from "../../../components/ui/app-card.component";
+import { AppDialogComponent } from "../../../components/ui/app-dialog.component";
 import { RxwebValidators } from "@rxweb/reactive-form-validators";
 import { format } from "date-fns";
 import { isEqual } from "es-toolkit";
@@ -46,6 +68,7 @@ import type { SubscribeSourceUpdateDto } from "../bindings/SubscribeSourceUpdate
 import type { ProxyServerNameserverPolicySource } from "../bindings/ProxyServerNameserverPolicySource";
 import { ConfluenceService } from "../confluence.service";
 import { hourPlusLevelCronExprValidator } from "../validators/cron-expr.validators";
+import { VlanCatalogComponent } from "../vlans/vlan-catalog.component";
 
 const DEFAULT_PROFILE_TRANSFORM_SCRIPT = `export default function transform(ctx: ProfileTransformContext): ClashMetaConfig {
   return ctx.profile;
@@ -66,13 +89,35 @@ type ProfilePreviewState = {
 };
 
 @Component({
-  standalone: false,
-  selector: "app-confluence-workspace",
-  templateUrl: "./workspace.component.html",
+  selector: "app-confluence-page",
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterLink,
+    TranslocoModule,
+    NgIcon,
+    MonacoEditorModule,
+    HlmBadge,
+    HlmButton,
+    ...HlmBreadcrumbImports,
+    ...HlmCheckboxImports,
+    ...HlmInputImports,
+    HlmSkeleton,
+    HlmProgress,
+    HlmProgressIndicator,
+    ...HlmSelectImports,
+    AppActionComponent,
+    AppCardComponent,
+    AppDialogComponent,
+    VlanCatalogComponent,
+  ],
+  templateUrl: "./confluence-page.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: "./workspace.component.scss",
+  styleUrl: "./confluence-page.component.scss",
 })
-export class WorkspaceComponent implements OnInit {
+/** `/confluence/confluence/:id`: one Confluence with its template, sources, VLANs and Profiles. */
+export class ConfluencePageComponent implements OnInit {
   protected readonly confluenceService = inject(ConfluenceService);
   protected readonly route = inject(ActivatedRoute);
   protected readonly appConfigService = inject(AppConfigService);
@@ -138,9 +183,9 @@ export class WorkspaceComponent implements OnInit {
       padding: { top: 10, bottom: 10 },
     };
   saveVlanReferences(vlanIds: ConfluenceDto["vlan_ids"]) {
-    const workspace = this.confluence$.getValue();
-    if (workspace) {
-      this.confluence$.next({ ...workspace, vlan_ids: vlanIds });
+    const confluence = this.confluence$.getValue();
+    if (confluence) {
+      this.confluence$.next({ ...confluence, vlan_ids: vlanIds });
       this.toastSuccess("common.toast.saved");
     }
   }
@@ -148,7 +193,7 @@ export class WorkspaceComponent implements OnInit {
   tmpl = "";
   profiles: ProfileDto[] = [];
   readonly subscribeSources = toSignal(
-    this.confluence$.pipe(map((workspace) => workspace?.subscribe_sources ?? [])),
+    this.confluence$.pipe(map((confluence) => confluence?.subscribe_sources ?? [])),
     { initialValue: [] },
   );
   policySourceOptions: {
@@ -156,27 +201,27 @@ export class WorkspaceComponent implements OnInit {
     value: ProxyServerNameserverPolicySource;
   }[] = [
     {
-      label: "confluence.workspace.nameserverPolicySource.auto",
+      label: "confluence.confluence.nameserverPolicySource.auto",
       value: "auto",
     },
     {
-      label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver_policy",
+      label: "confluence.confluence.nameserverPolicySource.proxy_server_nameserver_policy",
       value: "proxy_server_nameserver_policy",
     },
     {
-      label: "confluence.workspace.nameserverPolicySource.nameserver_policy",
+      label: "confluence.confluence.nameserverPolicySource.nameserver_policy",
       value: "nameserver_policy",
     },
     {
-      label: "confluence.workspace.nameserverPolicySource.proxy_server_nameserver",
+      label: "confluence.confluence.nameserverPolicySource.proxy_server_nameserver",
       value: "proxy_server_nameserver",
     },
     {
-      label: "confluence.workspace.nameserverPolicySource.nameserver",
+      label: "confluence.confluence.nameserverPolicySource.nameserver",
       value: "nameserver",
     },
     {
-      label: "confluence.workspace.nameserverPolicySource.none",
+      label: "confluence.confluence.nameserverPolicySource.none",
       value: "none",
     },
   ];
@@ -185,23 +230,23 @@ export class WorkspaceComponent implements OnInit {
     value: SubscribeSourceTrafficResetPolicy;
   }[] = [
     {
-      label: "confluence.workspace.trafficResetPolicy.default",
+      label: "confluence.confluence.trafficResetPolicy.default",
       value: "default",
     },
     {
-      label: "confluence.workspace.trafficResetPolicy.monthly",
+      label: "confluence.confluence.trafficResetPolicy.monthly",
       value: "monthly",
     },
     {
-      label: "confluence.workspace.trafficResetPolicy.quarterly",
+      label: "confluence.confluence.trafficResetPolicy.quarterly",
       value: "quarterly",
     },
     {
-      label: "confluence.workspace.trafficResetPolicy.yearly",
+      label: "confluence.confluence.trafficResetPolicy.yearly",
       value: "yearly",
     },
     {
-      label: "confluence.workspace.trafficResetPolicy.one_time",
+      label: "confluence.confluence.trafficResetPolicy.one_time",
       value: "one_time",
     },
   ];
@@ -270,12 +315,8 @@ export class WorkspaceComponent implements OnInit {
     }>;
   };
 
-  confluenceCrumbLabel = this.i18nService.translateSignal(
-    "confluence.workspace.breadcrumb.confluence",
-  );
-  workspaceCrumbLabel = this.i18nService.translateSignal(
-    "confluence.workspace.breadcrumb.workspace",
-  );
+  confluenceCrumbLabel = this.i18nService.translateSignal("confluence.breadcrumb.confluence");
+  confluencesCrumbLabel = this.i18nService.translateSignal("confluence.breadcrumb.confluences");
 
   ngOnInit() {
     this.confluenceId$
@@ -445,7 +486,7 @@ export class WorkspaceComponent implements OnInit {
 
   resetTmpl() {
     this.tmpl = this.confluence$.getValue()?.template ?? "";
-    this.toastSuccess("confluence.workspace.toasts.reset");
+    this.toastSuccess("confluence.confluence.toasts.reset");
   }
 
   openCreateSubscribeSourceDialog() {
@@ -615,11 +656,11 @@ export class WorkspaceComponent implements OnInit {
       .withSuspense(this.confluenceService.syncSubscribeSource(id))
       .pipe(takeUntilDestroyed(this.destoryRef))
       .subscribe((source) => {
-        const workspace = this.confluence$.value;
-        if (workspace?.id === source.confluence_id) {
+        const confluence = this.confluence$.value;
+        if (confluence?.id === source.confluence_id) {
           this.confluence$.next({
-            ...workspace,
-            subscribe_sources: workspace.subscribe_sources.map((item) =>
+            ...confluence,
+            subscribe_sources: confluence.subscribe_sources.map((item) =>
               item.id === source.id ? source : item,
             ),
           });
@@ -632,7 +673,7 @@ export class WorkspaceComponent implements OnInit {
     if (failed) {
       this.overlayService.toast({
         severity: "warn",
-        summary: this.i18nService.translate("confluence.workspace.syncError.refreshFailed"),
+        summary: this.i18nService.translate("confluence.confluence.syncError.refreshFailed"),
       });
     } else {
       this.toastSuccess("common.toast.synced");
@@ -659,7 +700,7 @@ export class WorkspaceComponent implements OnInit {
       )
       .subscribe((c) => {
         this.confluence$.next(c);
-        this.toastSuccess("confluence.workspace.toasts.muxed");
+        this.toastSuccess("confluence.confluence.toasts.muxed");
       });
   }
 
@@ -688,7 +729,7 @@ export class WorkspaceComponent implements OnInit {
   }
 
   trafficResetPolicyLabelKey(value: SubscribeSourceTrafficResetPolicy): string {
-    return `confluence.workspace.trafficResetPolicy.${value}`;
+    return `confluence.confluence.trafficResetPolicy.${value}`;
   }
 
   usedTraffic(
@@ -766,13 +807,13 @@ export class WorkspaceComponent implements OnInit {
     if (!draft) return;
     this.profileSupplicants.set(undefined);
     this.confluenceService
-      .getVlanCatalog()
+      .getSupplicants()
       .pipe(takeUntilDestroyed(this.destoryRef))
       .subscribe({
-        next: (catalog) => {
+        next: (rows) => {
           if (this.profileUpdate === draft)
             this.profileSupplicants.set(
-              catalog.supplicant_configs.toSorted((a, b) => a.name.localeCompare(b.name)),
+              rows.map(({ supplicant }) => supplicant).sort((a, b) => a.name.localeCompare(b.name)),
             );
         },
         error: () => {
@@ -916,7 +957,7 @@ export class WorkspaceComponent implements OnInit {
     if (!headers || Array.isArray(headers) || typeof headers !== "object") {
       throw new Error(
         this.i18nService.translate(
-          "confluence.workspace.profileTransformPreview.headersObjectOnly",
+          "confluence.confluence.profileTransformPreview.headersObjectOnly",
         ),
       );
     }

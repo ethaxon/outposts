@@ -11,5 +11,4 @@ pub use super::vlan_route::Entity as VlanRoute;
 pub use super::vlan_supplicant::Entity as VlanSupplicant;
 pub use super::vlan_tunnel::Entity as VlanTunnel;
 pub use super::vlan_tunnel_grant::Entity as VlanTunnelGrant;
-pub use super::vlan_wireguard_config::Entity as VlanWireguardConfig;
 pub use super::vlan_wireguard_peer::Entity as VlanWireguardPeer;

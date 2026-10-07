@@ -15,7 +15,3 @@
   --breakpoint-xl: 1200px;
   --breakpoint-2xl: 1920px;
 }
-
-.bg-surface-auto-50 {
-  background-color: var(--muted);
-}

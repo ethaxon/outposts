@@ -17,7 +17,7 @@ use crate::profile_script::{
 };
 pub use crate::subscribe_source_sync::sync_one_subscribe_source_with_url;
 use crate::vlan::{
-    PreparedSubscription, SubscriptionRequest, VlanConfig, VlanSupplicant, parse_request,
+    PreparedSubscription, SubscriptionRequest, VlanNetwork, VlanSupplicant, parse_request,
     prepare_subscription, redact_subscription_user_agent,
 };
 use crate::{
@@ -147,7 +147,7 @@ pub async fn find_one_confluence(
 
     let (pms, sms) = find_certain_confluence_profiles_and_subscribe_sources(db, id).await?;
 
-    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_confluences(db, std::slice::from_ref(&cm))
         .await?
         .pop()
         .unwrap_or_default();
@@ -175,7 +175,7 @@ pub async fn find_many_confluences(
                     .await?,
             )
         },
-        confluence_vlan::Entity::load_ids_for_workspaces(db, &cms),
+        confluence_vlan::Entity::load_ids_for_confluences(db, &cms),
     )?;
 
     let profiles = pms.iter().flatten().cloned().collect::<Vec<_>>();
@@ -248,7 +248,7 @@ pub async fn update_one_confluence(
 
     let (pms, sms) = find_certain_confluence_profiles_and_subscribe_sources(db, id).await?;
 
-    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_confluences(db, std::slice::from_ref(&cm))
         .await?
         .pop()
         .unwrap_or_default();
@@ -314,7 +314,7 @@ pub async fn sync_one_confluence(
     )
     .await?;
 
-    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_confluences(db, std::slice::from_ref(&cm))
         .await?
         .pop()
         .unwrap_or_default();
@@ -409,7 +409,7 @@ pub async fn mux_one_confluence(
 
     let (cm, sms, pms) = mux_one_confluence_impl(db, cm, sms, pms).await?;
 
-    let vlan_ids = confluence_vlan::Entity::load_ids_for_workspaces(db, std::slice::from_ref(&cm))
+    let vlan_ids = confluence_vlan::Entity::load_ids_for_confluences(db, std::slice::from_ref(&cm))
         .await?
         .pop()
         .unwrap_or_default();
@@ -461,7 +461,7 @@ pub async fn find_one_profile_as_subscription_by_token(
         let cm = cms.pop().ok_or_else(|| AppError::DbNotFound {
             message: format!("cannot find profile token = {}", token),
         })?;
-        let vlan_config = cm.load_vlan_subscription(&tx).await?;
+        let linked_vlans = cm.load_vlan_subscription(&tx).await?;
         let profile_supplicants = pm
             .find_related(vlan_supplicant::Entity)
             .all(&tx)
@@ -522,11 +522,8 @@ pub async fn find_one_profile_as_subscription_by_token(
         }
 
         if transform_script_transpiled.is_some()
-            || vlan_config.is_some()
+            || !linked_vlans.is_empty()
             || !profile_supplicants.is_empty()
-            || subscription_request
-                .as_ref()
-                .is_some_and(|request| request.uses_unsafe_key())
         {
             // Supplicant-specific credentials and randomized ciphertext must bypass shared caches.
             headers.insert(
@@ -540,7 +537,7 @@ pub async fn find_one_profile_as_subscription_by_token(
             &cm.mux_content,
             transform_script_transpiled.as_deref(),
             build_profile_script_request(&request_headers, &uri, &body),
-            vlan_config.as_ref(),
+            &linked_vlans,
             &profile_supplicants,
             subscription_request,
             pm.allow_unsafe_age_private_key,
@@ -554,16 +551,15 @@ pub async fn find_one_profile_as_subscription_by_token(
     }
 }
 
-/// The transform → VLAN → recipient pipeline shared by the public subscription
-/// endpoint and the owner preview, stopping before encryption so each caller
-/// decides what to expose. Keeping one implementation is what makes the preview faithful.
+/// The public endpoint and owner preview share transforms and authorization,
+/// stopping before encryption so each caller can render the appropriate output.
 fn prepare_profile_subscription(
     mux_content: &str,
     transform_script_transpiled: Option<&str>,
     mut script_request: ProfileScriptRequest,
-    vlan_config: Option<&VlanConfig>,
+    linked_vlans: &[VlanNetwork],
     profile_supplicants: &[VlanSupplicant],
-    subscription_request: Option<SubscriptionRequest>,
+    subscription_request: SubscriptionRequest,
     allow_unsafe_age_private_key: bool,
 ) -> Result<PreparedSubscription, AppError> {
     let content = if let Some(script) = transform_script_transpiled {
@@ -577,7 +573,7 @@ fn prepare_profile_subscription(
     };
     prepare_subscription(
         &content,
-        vlan_config,
+        linked_vlans,
         profile_supplicants,
         subscription_request,
         allow_unsafe_age_private_key,
@@ -587,7 +583,7 @@ fn prepare_profile_subscription(
 /// Renders a profile for a simulated request, showing plaintext and served output.
 ///
 /// Owner-only by construction: the profile is resolved by id within the caller's
-/// workspaces, never by resource token, so token holders cannot use it to obtain
+/// Confluences, never by resource token, so token holders cannot use it to obtain
 /// plaintext or sidestep encryption. Read-only: a missing transpiled script is
 /// compiled in memory, not persisted.
 pub async fn preview_one_profile(
@@ -609,14 +605,6 @@ pub async fn preview_one_profile(
         .map(String::as_str)
         .unwrap_or_default();
     let subscription_request = parse_request(user_agent, url.query().unwrap_or_default())?;
-    let supplicant = subscription_request
-        .as_ref()
-        .map(|request| request.supplicant().to_owned());
-    let vlans = subscription_request
-        .as_ref()
-        .map(SubscriptionRequest::vlan_keys)
-        .unwrap_or_default();
-
     // Same snapshot semantics as the public endpoint.
     let tx = state
         .conn
@@ -633,7 +621,7 @@ pub async fn preview_one_profile(
         .await?
         .ok_or_else(not_found)?;
     let cm = cm.ok_or_else(not_found)?;
-    let vlan_config = cm.load_vlan_subscription(&tx).await?;
+    let linked_vlans = cm.load_vlan_subscription(&tx).await?;
     let profile_supplicants = pm
         .find_related(vlan_supplicant::Entity)
         .all(&tx)
@@ -661,7 +649,7 @@ pub async fn preview_one_profile(
             url: preview.url,
             body: preview.body.unwrap_or_default(),
         },
-        vlan_config.as_ref(),
+        &linked_vlans,
         &profile_supplicants,
         subscription_request,
         pm.allow_unsafe_age_private_key,
@@ -669,14 +657,18 @@ pub async fn preview_one_profile(
     let encrypted = prepared.encrypt()?;
     Ok(Json(ProfilePreviewDto {
         recipients: prepared
-            .recipients
+            .recipients()
             .iter()
             .map(|recipient| recipient.name.clone())
             .collect(),
         plaintext: prepared.content,
         encrypted,
-        supplicant,
-        vlans,
+        supplicants: prepared
+            .supplicants
+            .into_iter()
+            .map(|supplicant| supplicant.name)
+            .collect(),
+        vlans: prepared.vlans,
     }))
 }
 

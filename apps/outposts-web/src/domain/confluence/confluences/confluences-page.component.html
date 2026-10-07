@@ -1,0 +1,211 @@
+<nav hlmBreadcrumb [attr.aria-label]="'common.navigation.breadcrumb' | transloco">
+  <ol hlmBreadcrumbList>
+    <li hlmBreadcrumbItem>
+      <a hlmBreadcrumbLink [link]="['/']" [attr.aria-label]="'common.navigation.home' | transloco">
+        <ng-icon name="lucideHouse" aria-hidden="true" />
+      </a>
+    </li>
+    <li hlmBreadcrumbSeparator></li>
+    <li hlmBreadcrumbItem>
+      <a hlmBreadcrumbLink [link]="['/confluence']">{{
+        "confluence.breadcrumb.confluence" | transloco
+      }}</a>
+    </li>
+    <li hlmBreadcrumbSeparator></li>
+    <li hlmBreadcrumbItem>
+      <span hlmBreadcrumbPage>{{ "confluence.confluences.title" | transloco }}</span>
+    </li>
+  </ol>
+</nav>
+
+<section class="mt-2 mb-4 min-w-0 rounded-lg border bg-card p-4 sm:p-6">
+  <header class="px-2">
+    <h1 class="text-2xl font-bold">{{ "confluence.confluences.title" | transloco }}</h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      {{ "confluence.confluences.description" | transloco }}
+    </p>
+  </header>
+
+  <div class="app-section-bar">
+    <div class="app-section-bar-title">{{ "confluence.confluences.all" | transloco }}</div>
+    <div class="app-section-bar-actions">
+      <app-action
+        size="small"
+        icon="lucideRefreshCw"
+        [label]="'confluence.confluences.refresh' | transloco"
+        [outlined]="true"
+        [loading]="action() === 'refresh'"
+        [disabled]="busy()"
+        (click)="refresh()"
+      />
+    </div>
+  </div>
+
+  @if (!rows() && error() === "loadError") {
+    <div class="entity-state" role="alert">
+      <ng-icon name="lucideCloudOff" class="text-3xl text-muted-foreground" aria-hidden="true" />
+      <p>{{ "confluence.confluences.loadError" | transloco }}</p>
+      <app-action
+        size="small"
+        icon="lucideRefreshCw"
+        [outlined]="true"
+        [label]="'confluence.confluences.retry' | transloco"
+        [loading]="action() === 'refresh'"
+        (click)="refresh()"
+      />
+    </div>
+  } @else {
+    @if (rows() && error(); as errorKey) {
+      <p class="entity-alert" role="alert">
+        <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+        {{ "confluence.confluences." + errorKey | transloco }}
+      </p>
+    }
+
+    <div
+      class="entity-card-grid"
+      [attr.aria-busy]="!rows()"
+      [attr.aria-label]="!rows() ? ('confluence.confluences.loading' | transloco) : null"
+    >
+      <!-- Always present (inert while loading), so it doubles as the empty state. -->
+      <app-card
+        class="entity-card entity-card-create h-full"
+        role="button"
+        [class.entity-card-pending]="!rows() || busy()"
+        [attr.tabindex]="rows() ? 0 : -1"
+        [attr.aria-disabled]="!rows() || busy()"
+        [attr.aria-busy]="action() === 'create'"
+        (click)="rows() && addConfluence()"
+        (keydown.enter)="rows() && addConfluence()"
+      >
+        <div>{{ "confluence.confluences.add" | transloco }}</div>
+        <div class="entity-card-actions">
+          <ng-icon
+            [name]="action() === 'create' ? 'lucideLoaderCircle' : 'lucidePlus'"
+            class="text-lg"
+            [class.animate-spin]="action() === 'create'"
+            aria-hidden="true"
+          />
+        </div>
+      </app-card>
+
+      @if (confluences(); as items) {
+        @for (item of items; track item.id) {
+          @let active = isActive(item);
+          @let name = item.name || ("confluence.confluences.untitled" | transloco);
+          <app-card class="entity-card h-full">
+            <div class="entity-card-head">
+              <ng-icon name="lucideLayers" class="entity-card-icon" aria-hidden="true" />
+              <a
+                class="entity-card-title font-sans hover:underline"
+                [routerLink]="['/confluence/confluence', item.id]"
+                [title]="name"
+                >{{ name }}</a
+              >
+              <span hlmBadge variant="secondary" [class.entity-badge-on]="active">{{
+                (active
+                  ? "confluence.confluences.status.active"
+                  : "confluence.confluences.status.inactive"
+                ) | transloco
+              }}</span>
+            </div>
+
+            <dl class="entity-card-meta">
+              <div>
+                <dt>{{ "confluence.confluences.creator" | transloco }}</dt>
+                <dd class="min-w-0 truncate" [title]="item.creator">{{ item.creator }}</dd>
+              </div>
+              <div>
+                <dt>{{ "confluence.confluences.subscribeSources" | transloco }}</dt>
+                <dd>{{ item.subscribe_sources.length }}</dd>
+              </div>
+              <div>
+                <dt>{{ "confluence.confluences.profiles" | transloco }}</dt>
+                <dd>{{ item.profiles.length }}</dd>
+              </div>
+              <div>
+                <dt>{{ "confluence.confluences.vlans" | transloco }}</dt>
+                <dd>{{ item.vlan_ids.length }}</dd>
+              </div>
+            </dl>
+
+            <div class="entity-card-footer">
+              @if (pendingDeletion() === item.id) {
+                <p class="entity-card-confirm">
+                  {{ "confluence.confluences.deleteHint" | transloco: { name } }}
+                </p>
+                <div class="entity-card-actions">
+                  <app-action
+                    size="small"
+                    icon="lucideTrash2"
+                    severity="danger"
+                    [label]="'common.actions.delete' | transloco"
+                    [loading]="action() === 'delete'"
+                    [disabled]="busy()"
+                    (click)="removeConfluence(item.id)"
+                  />
+                  <app-action
+                    size="small"
+                    [text]="true"
+                    [label]="'common.actions.cancel' | transloco"
+                    [disabled]="busy()"
+                    (click)="pendingDeletion.set(undefined)"
+                  />
+                </div>
+              } @else {
+                <div class="entity-card-actions">
+                  <a
+                    hlmBtn
+                    size="icon-sm"
+                    variant="ghost"
+                    [routerLink]="['/confluence/confluence', item.id]"
+                    [attr.aria-label]="'confluence.confluences.open' | transloco"
+                    [title]="'confluence.confluences.open' | transloco"
+                  >
+                    <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+                  </a>
+                  <button
+                    hlmBtn
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    [attr.aria-label]="'common.actions.delete' | transloco"
+                    [disabled]="busy()"
+                    (click)="pendingDeletion.set(item.id)"
+                  >
+                    <ng-icon name="lucideTrash2" aria-hidden="true" />
+                  </button>
+                </div>
+              }
+            </div>
+          </app-card>
+        }
+      } @else {
+        <!-- Same anatomy as a Confluence card so nothing shifts when data arrives. -->
+        @for (index of skeletons; track index) {
+          <app-card class="entity-card h-full" aria-hidden="true">
+            <div class="entity-card-head">
+              <div hlmSkeleton class="size-4 shrink-0"></div>
+              <div class="flex-1">
+                <div hlmSkeleton class="h-4 w-3/5"></div>
+              </div>
+              <div hlmSkeleton class="h-5 w-14 rounded-full"></div>
+            </div>
+            <div class="entity-card-meta">
+              @for (row of skeletonRows; track $index) {
+                <div>
+                  <div hlmSkeleton class="h-3" [style.width]="row"></div>
+                  <div hlmSkeleton class="h-3 w-6"></div>
+                </div>
+              }
+            </div>
+            <div class="entity-card-footer entity-card-actions">
+              <div hlmSkeleton class="size-7"></div>
+              <div hlmSkeleton class="size-7"></div>
+            </div>
+          </app-card>
+        }
+      }
+    </div>
+  }
+</section>

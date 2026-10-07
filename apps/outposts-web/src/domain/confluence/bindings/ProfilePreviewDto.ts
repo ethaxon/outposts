@@ -17,11 +17,11 @@ export type ProfilePreviewDto = {
    */
   recipients: Array<string>;
   /**
-   * Supplicant named by the VLAN request, if any.
+   * Supplicant names selected for this subscription.
    */
-  supplicant: string | null;
+  supplicants: Array<string>;
   /**
-   * VLAN keys named by the request.
+   * VLANs included after filtering for the selected supplicants.
    */
   vlans: Array<string>;
 };

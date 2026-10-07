@@ -3,8 +3,19 @@ use crate::models;
 use crate::models::subscribe_source::SubscribeSourceSyncError;
 use crate::scalars::{UuidV4, UuidV7};
 use crate::traffic_reset::SubscribeSourceTrafficResetPolicy;
+use crate::vlan::VlanSupplicant;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+pub struct SupplicantSummaryDto {
+    pub supplicant: VlanSupplicant,
+    #[ts(type = "number")]
+    pub vlan_count: usize,
+    #[ts(type = "number")]
+    pub profile_count: usize,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
@@ -205,7 +216,7 @@ pub struct ProfileCreationDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export)]
 pub struct ProfilePreviewRequestDto {
-    /// Absolute subscription URL; its query carries the VLAN request like the real one.
+    /// Absolute subscription URL, including any VLAN and supplicant selectors.
     pub url: String,
     #[ts(type = "Record<string, string>")]
     pub headers: std::collections::BTreeMap<String, String>,
@@ -224,9 +235,9 @@ pub struct ProfilePreviewDto {
     pub encrypted: Option<String>,
     /// Supplicant names the served body is encrypted to.
     pub recipients: Vec<String>,
-    /// Supplicant named by the VLAN request, if any.
-    pub supplicant: Option<String>,
-    /// VLAN keys named by the request.
+    /// Supplicant names selected for this subscription.
+    pub supplicants: Vec<String>,
+    /// VLANs included after filtering for the selected supplicants.
     pub vlans: Vec<String>,
 }
 
@@ -284,7 +295,7 @@ pub struct ConfluenceUpdateDto {
 #[derive(Deserialize, TS)]
 #[ts(export)]
 #[serde(deny_unknown_fields)]
-pub struct WorkspaceVlansUpdateDto {
+pub struct ConfluenceVlansUpdateDto {
     #[ts(as = "Vec<UuidV7>")]
     pub vlan_ids: Vec<uuid::Uuid>,
 }

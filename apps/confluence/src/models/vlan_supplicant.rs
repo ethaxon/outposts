@@ -1,7 +1,8 @@
 use sea_orm::entity::prelude::*;
-use sea_orm::{ActiveValue::Set, QueryOrder, QuerySelect, TransactionTrait};
+use sea_orm::{ActiveValue::Set, LoaderTrait, QueryOrder, QuerySelect, Select, TransactionTrait};
 
 use super::{profile_supplicant, vlan_grant};
+use crate::dto::SupplicantSummaryDto;
 use crate::error::AppError;
 use crate::vlan::VlanSupplicant;
 
@@ -16,6 +17,8 @@ pub struct Model {
     pub age_recipient: String,
     #[sea_orm(has_many)]
     pub grants: HasMany<super::vlan_grant::Entity>,
+    #[sea_orm(has_many)]
+    pub profile_links: HasMany<profile_supplicant::Entity>,
     #[sea_orm(has_many, via = "vlan_grant")]
     pub networks: HasMany<super::vlan_network::Entity>,
 }
@@ -31,17 +34,39 @@ impl From<Model> for VlanSupplicant {
 }
 
 impl Entity {
+    fn owned_in_name_order(creator: &str) -> Select<Self> {
+        Self::find()
+            .filter(Column::Creator.eq(creator))
+            .order_by_asc(Column::Name)
+    }
+
     pub(crate) async fn list_owned<C: ConnectionTrait>(
         db: &C,
         creator: &str,
     ) -> Result<Vec<VlanSupplicant>, DbErr> {
-        Ok(Self::find()
-            .filter(Column::Creator.eq(creator))
-            .order_by_asc(Column::Name)
+        Ok(Self::owned_in_name_order(creator)
             .all(db)
             .await?
             .into_iter()
             .map(Into::into)
+            .collect())
+    }
+
+    pub(crate) async fn list_owned_with_usage(
+        db: &impl ConnectionTrait,
+        creator: &str,
+    ) -> Result<Vec<SupplicantSummaryDto>, DbErr> {
+        let rows = Self::owned_in_name_order(creator).all(db).await?;
+        let (grants, links) = tokio::try_join!(
+            rows.load_many(vlan_grant::Entity, db),
+            rows.load_many(profile_supplicant::Entity, db),
+        )?;
+        Ok(itertools::izip!(rows, grants, links)
+            .map(|(row, grants, links)| SupplicantSummaryDto {
+                supplicant: row.into(),
+                vlan_count: grants.len(),
+                profile_count: links.len(),
+            })
             .collect())
     }
 

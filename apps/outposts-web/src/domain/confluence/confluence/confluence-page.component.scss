@@ -50,29 +50,29 @@
   }
 }
 
-.workspace-card-grid {
+.confluence-card-grid {
   display: grid;
   gap: 1.5rem;
   align-items: stretch;
   margin-top: 1.5rem;
 }
 
-.workspace-subscribe-source-grid {
+.confluence-subscribe-source-grid {
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
 }
 
-.workspace-profile-grid {
+.confluence-profile-grid {
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
 }
 
-.workspace-metadata {
+.confluence-metadata {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.75rem;
   margin-top: 1.25rem;
 }
 
-.workspace-metadata-item {
+.confluence-metadata-item {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -265,16 +265,16 @@
   border-radius: 0.5rem;
 }
 
-.workspace-monaco-shell {
+.confluence-monaco-shell {
   position: relative;
   overflow: visible;
 }
 
-.workspace-monaco-shell-stable {
+.confluence-monaco-shell-stable {
   overflow: hidden;
 }
 
-.workspace-monaco-shell ngx-monaco-editor,
+.confluence-monaco-shell ngx-monaco-editor,
 .profile-script-editor-shell ngx-monaco-editor,
 .profile-transform-preview-editor-shell ngx-monaco-editor {
   display: block;
@@ -436,7 +436,7 @@
     background: var(--muted);
   }
 
-  .workspace-metadata-item {
+  .confluence-metadata-item {
     border-color: var(--foreground);
     background: var(--card);
 

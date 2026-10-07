@@ -16,7 +16,7 @@ describe("hourPlusLevelCronExprValidator", () => {
       ),
     ).toMatchObject({
       parseCronExprError: expect.anything(),
-      messageKey: "confluence.workspace.validation.cron.invalidFormat",
+      messageKey: "confluence.confluence.validation.cron.invalidFormat",
     });
   });
 });

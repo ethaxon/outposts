@@ -1217,7 +1217,6 @@ dependencies = [
  "dotenvy",
  "fancy-regex",
  "futures",
- "hkdf 0.13.0",
  "ipnet",
  "itertools 0.15.0",
  "jsonwebtoken 10.4.0",
@@ -1234,7 +1233,6 @@ dependencies = [
  "serde-enum-str",
  "serde_json",
  "serde_yaml",
- "sha2 0.11.1",
  "snafu",
  "swc_core",
  "tokio",
@@ -1246,7 +1244,6 @@ dependencies = [
  "ts-rs",
  "url",
  "uuid",
- "x25519-dalek 3.0.0",
 ]
 
 [[package]]
@@ -7778,7 +7775,6 @@ checksum = "e7e8131a03190127fb2263afc72b322ecadae46b6ff8c6f399ff5d02f5559af6"
 dependencies = [
  "curve25519-dalek 5.0.0",
  "rand_core 0.10.1",
- "zeroize",
 ]
 
 [[package]]

@@ -63,28 +63,9 @@ function parseRoutes(value: string) {
   return [...routes];
 }
 
-export function parseWireGuardImport(config: string): ImportResult<{
-  server: string;
-  port: number;
-  routes: string[];
-  suggestedSubnet: string;
-}> {
-  const result = readSections(config);
-  if (!result || result.peers.length !== 1) return { ok: false, error: "format" };
-  const peer = result.peers[0];
-  const endpoint = parseEndpoint(peer.get("endpoint") ?? "");
-  if (!endpoint) return { ok: false, error: "endpoint" };
-  const routes = parseRoutes(peer.get("allowedips") ?? "");
-  if (!routes) return { ok: false, error: "allowedIps" };
-
-  const client = parseCidr(result.interfaceFields.get("address") ?? "", { family: 4, prefix: 32 });
-  const subnet = client.ok ? parseCidr(client.cidr.split("/")[0], { family: 4, prefix: 24 }) : null;
-  return { ok: true, ...endpoint, routes, suggestedSubnet: subnet?.ok ? subnet.cidr : "" };
-}
-
 export function parseWireGuardClient(
   config: string,
-): ImportResult<{ settings: Omit<WireGuardClientConfig, "id"> }> {
+): ImportResult<{ settings: WireGuardClientConfig }> {
   const result = readSections(config);
   if (!result) return { ok: false, error: "format" };
   const { interfaceFields, peers } = result;

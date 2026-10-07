@@ -1,0 +1,231 @@
+<section>
+  <div class="app-section-bar">
+    <div class="app-section-bar-title">
+      {{ (confluenceId() ? "confluence.vlans.title" : "confluence.vlans.all") | transloco }}
+    </div>
+    <div class="app-section-bar-actions">
+      @if (confluenceId() && dirty()) {
+        <span class="text-xs font-normal text-muted-foreground" role="status">{{
+          "confluence.vlans.unsavedLinks" | transloco
+        }}</span>
+      }
+      <app-action
+        size="small"
+        icon="lucideRefreshCw"
+        [label]="'confluence.vlans.refresh' | transloco"
+        [outlined]="true"
+        [loading]="action() === 'refresh'"
+        [disabled]="busy()"
+        (click)="!busy() && refresh()"
+      />
+      @if (confluenceId()) {
+        <app-action
+          size="small"
+          icon="lucideCheck"
+          [label]="'common.actions.save' | transloco"
+          [outlined]="!dirty()"
+          [loading]="action() === 'references'"
+          [disabled]="!catalog() || !dirty() || busy()"
+          (click)="catalog() && dirty() && !busy() && saveReferences()"
+        />
+      }
+    </div>
+  </div>
+
+  @if (error() && catalog() && !editor()) {
+    <p class="entity-alert" role="alert">
+      <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+      {{ "confluence.vlans." + error() | transloco }}
+    </p>
+  }
+
+  @if (!catalog() && error() === "loadError") {
+    <div class="entity-state" role="alert">
+      <ng-icon name="lucideCloudOff" class="text-3xl text-muted-foreground" aria-hidden="true" />
+      <p>{{ "confluence.vlans.loadError" | transloco }}</p>
+      <app-action
+        size="small"
+        icon="lucideRefreshCw"
+        [outlined]="true"
+        [label]="'confluence.vlans.retry' | transloco"
+        [loading]="action() === 'refresh'"
+        (click)="!busy() && refresh()"
+      />
+    </div>
+  } @else {
+    <div
+      class="entity-card-grid"
+      [attr.aria-busy]="!catalog()"
+      [attr.aria-label]="!catalog() ? ('confluence.vlans.loading' | transloco) : null"
+    >
+      <app-card
+        class="entity-card entity-card-create h-full"
+        role="button"
+        [class.entity-card-pending]="!catalog()"
+        [attr.tabindex]="catalog() ? 0 : -1"
+        [attr.aria-disabled]="!catalog()"
+        (click)="catalog() && !busy() && editNetwork()"
+        (keydown.enter)="catalog() && !busy() && editNetwork()"
+      >
+        <div>{{ "confluence.vlans.addNetwork" | transloco }}</div>
+        <div class="entity-card-actions">
+          <ng-icon name="lucidePlus" class="text-lg" aria-hidden="true" />
+        </div>
+      </app-card>
+
+      @if (catalog()) {
+        @for (network of networks(); track network.id) {
+          @let linked = !!confluenceId() && selected().has(network.id);
+          <app-card
+            class="entity-card h-full relative"
+            [class.entity-card-selected]="linked"
+            [class.cursor-pointer]="confluenceId()"
+            (click)="toggleSelection(network.id)"
+          >
+            <div class="entity-card-head">
+              @if (confluenceId()) {
+                <hlm-checkbox
+                  [checked]="linked"
+                  [disabled]="busy()"
+                  [attr.aria-label]="
+                    'confluence.vlans.linkNetwork' | transloco: { name: network.network }
+                  "
+                  (checkedChange)="select(network.id, $event)"
+                  (click)="$event.stopPropagation()"
+                />
+              }
+              <span class="entity-card-title">{{ network.network }}</span>
+              <span hlmBadge variant="secondary" [class.entity-badge-on]="network.enabled">{{
+                (network.enabled
+                  ? "confluence.vlans.statusEnabled"
+                  : "confluence.vlans.statusDisabled"
+                ) | transloco
+              }}</span>
+            </div>
+
+            <dl class="entity-card-meta">
+              <div>
+                <dt>{{ "confluence.vlans.members" | transloco }}</dt>
+                <dd>{{ network.accept_supplicants.length }}</dd>
+              </div>
+              <div>
+                <dt>{{ "confluence.vlans.tunnels" | transloco }}</dt>
+                <dd>{{ network.tunnels.length }}</dd>
+              </div>
+              <div>
+                <dt>{{ "confluence.vlans.routes" | transloco }}</dt>
+                <dd>{{ network.routes.length }}</dd>
+              </div>
+            </dl>
+
+            <!-- Actions must not toggle the Confluence link on the surrounding card. -->
+            <div
+              class="entity-card-footer"
+              (click)="$event.stopPropagation()"
+              (keydown)="$event.stopPropagation()"
+            >
+              @if (pendingDeletion() === network.id) {
+                <p class="entity-card-confirm">
+                  {{ "confluence.vlans.deleteNetworkHint" | transloco }}
+                </p>
+                <div class="entity-card-actions">
+                  <app-action
+                    size="small"
+                    severity="danger"
+                    icon="lucideTrash2"
+                    [label]="'common.actions.delete' | transloco"
+                    [loading]="action() === 'delete'"
+                    [disabled]="busy()"
+                    (click)="!busy() && deleteNetwork(network.id)"
+                  />
+                  <app-action
+                    size="small"
+                    [text]="true"
+                    [label]="'common.actions.cancel' | transloco"
+                    (click)="pendingDeletion.set(undefined)"
+                  />
+                </div>
+              } @else {
+                <div class="entity-card-actions">
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="'common.actions.edit' | transloco"
+                    [disabled]="busy()"
+                    (click)="editNetwork(network)"
+                  >
+                    <ng-icon name="lucideFilePenLine" aria-hidden="true" />
+                  </button>
+                  @if (!confluenceId()) {
+                    <button
+                      type="button"
+                      hlmBtn
+                      variant="ghost"
+                      size="icon-sm"
+                      [attr.aria-label]="'common.actions.delete' | transloco"
+                      [disabled]="busy()"
+                      (click)="pendingDeletion.set(network.id)"
+                    >
+                      <ng-icon name="lucideTrash2" aria-hidden="true" />
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </app-card>
+        }
+      } @else {
+        <!-- Same anatomy as a VLAN card so nothing shifts when data arrives. -->
+        @for (index of skeletons; track index) {
+          <app-card class="entity-card h-full" aria-hidden="true">
+            <div class="entity-card-head">
+              @if (confluenceId()) {
+                <app-skeleton size="1rem" />
+              }
+              <app-skeleton class="flex-1" width="70%" height="1rem" />
+              <app-skeleton shape="circle" width="3.5rem" height="1.25rem" />
+            </div>
+            <div class="entity-card-meta">
+              @for (row of skeletonRows; track row) {
+                <div>
+                  <app-skeleton [width]="row" height="0.75rem" />
+                  <app-skeleton width="1rem" height="0.75rem" />
+                </div>
+              }
+            </div>
+            <!-- Icon buttons: edit, plus delete outside a Confluence. -->
+            <div class="entity-card-footer entity-card-actions">
+              <app-skeleton size="1.75rem" />
+              @if (!confluenceId()) {
+                <app-skeleton size="1.75rem" />
+              }
+            </div>
+          </app-card>
+        }
+      }
+    </div>
+
+    @if (editor(); as edit) {
+      <app-dialog
+        [header]="
+          edit.item
+            ? ('confluence.vlans.editNetwork' | transloco: { name: edit.item.network })
+            : ('confluence.vlans.addNetwork' | transloco)
+        "
+        [visible]="true"
+        [style]="{ width: '56rem' }"
+        styleClass="sm:max-w-4xl"
+        (visibleChange)="!$event && closeEditor()"
+      >
+        <app-vlan-editor
+          [initial]="edit.item"
+          [identities]="supplicants()"
+          (saved)="networkSaved($event)"
+          (cancelled)="closeEditor()"
+        />
+      </app-dialog>
+    }
+  }
+</section>
