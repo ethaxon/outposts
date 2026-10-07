@@ -8,7 +8,7 @@ use confluence::auth::config_projection::get_oidc_config;
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use confluence::config::{AppConfig, AuthConfig, assert_dev_auth_allowed, parse_scopes};
 use confluence::error::AppError;
-use confluence::migrations;
+use confluence::migrations::{Migrator, MigratorTrait};
 use confluence::services::{
     AppState, create_one_confluence, create_one_profile, create_one_subscribe_source,
     delete_one_confluence, delete_one_profile, delete_one_subscribe_source, find_many_confluences,
@@ -23,7 +23,6 @@ use confluence::vlan_services::{
 };
 use sea_orm::sea_query::{Alias, ExprTrait, Func, Query};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database};
-use sea_orm_migration::MigratorTrait;
 use securitydept_core::oauth_resource_server::{
     OAuthResourceServerConfig, OAuthResourceServerVerifier,
 };
@@ -90,9 +89,7 @@ async fn main() -> Result<(), AppError> {
     let auth_type = env::var("AUTH_TYPE").expect("AUTH_TYPE is not set in env");
     let listen = env::var("CONFLUENCE_LISTEN").unwrap_or_else(|_| String::from("0.0.0.0:4001"));
 
-    {
-        migrations::Migrator::up(&conn, None).await?;
-    }
+    Migrator::up(&conn, None).await?;
 
     let (auth, oidc_verifier, substrate_runtime) = match &auth_type as &str {
         "DEV" => {

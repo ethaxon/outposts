@@ -60,20 +60,18 @@ pub enum SubscribeSource {
 
 #[derive(DeriveIden)]
 pub enum VlanTable {
+    #[sea_orm(iden = "confluence_vlan")]
+    ConfluenceVlan,
     #[sea_orm(iden = "vlan_network")]
     Network,
     #[sea_orm(iden = "vlan_grant")]
     Grant,
-    #[sea_orm(iden = "vlan_gateway")]
-    Gateway,
     #[sea_orm(iden = "vlan_route")]
     Route,
     #[sea_orm(iden = "vlan_tunnel")]
     Tunnel,
     #[sea_orm(iden = "vlan_tunnel_grant")]
     TunnelGrant,
-    #[sea_orm(iden = "vlan_wireguard_config")]
-    WireguardConfig,
     #[sea_orm(iden = "vlan_wireguard_peer")]
     WireguardPeer,
     #[sea_orm(iden = "vlan_supplicant")]
@@ -84,20 +82,18 @@ pub enum VlanTable {
 pub enum VlanColumn {
     Id,
     Creator,
+    ConfluenceId,
     VlanId,
     SupplicantId,
     TunnelId,
-    ConfigId,
-    GrantId,
     Cidr,
     Name,
-    Kind,
+    Enabled,
+    AgeRecipient,
     Server,
     Port,
-    Subnet,
     PrivateKey,
     AllowedIps,
-    Slots,
     Addresses,
     Mtu,
     PersistentKeepalive,

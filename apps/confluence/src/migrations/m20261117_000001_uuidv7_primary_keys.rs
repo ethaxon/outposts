@@ -182,9 +182,56 @@ impl MigrationTrait for Migration {
         }
         transaction.commit().await
     }
-    async fn down(&self, _: &SchemaManager) -> Result<(), DbErr> {
-        Err(DbErr::Migration(
-            "Restore the pre-migration database backup to recover integer primary keys".into(),
-        ))
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let transaction = manager.get_connection().begin().await?;
+        transaction
+            .execute_unprepared(
+                "LOCK TABLE confluence, profile, subscribe_source IN ACCESS EXCLUSIVE MODE",
+            )
+            .await?;
+
+        // Keeping the UUID columns until relinking is complete preserves every relationship.
+        for table in ["confluence", "profile", "subscribe_source"] {
+            transaction
+                .execute_unprepared(&format!(
+                    "ALTER TABLE {table} RENAME COLUMN id TO id_v7;
+                     ALTER TABLE {table} ADD COLUMN id SERIAL;"
+                ))
+                .await?;
+        }
+        for table in ["profile", "subscribe_source"] {
+            // The foreign-key backfill must preserve the historical updated_at values.
+            transaction
+                .execute_unprepared(&format!(
+                    "ALTER TABLE {table} DISABLE TRIGGER update_{table}_updated_at_column_trigger;
+                     ALTER TABLE {table} RENAME COLUMN confluence_id TO confluence_id_v7;
+                     ALTER TABLE {table} ADD COLUMN confluence_id INTEGER;
+                     UPDATE {table} AS child SET confluence_id = confluence.id
+                     FROM confluence WHERE child.confluence_id_v7 = confluence.id_v7;
+                     ALTER TABLE {table} ALTER COLUMN confluence_id SET NOT NULL,
+                         DROP COLUMN confluence_id_v7;
+                     ALTER TABLE {table} ENABLE TRIGGER update_{table}_updated_at_column_trigger;"
+                ))
+                .await?;
+        }
+        for table in ["confluence", "profile", "subscribe_source"] {
+            transaction
+                .execute_unprepared(&format!(
+                    "ALTER TABLE {table} DROP COLUMN id_v7;
+                     ALTER TABLE {table} ADD PRIMARY KEY (id);"
+                ))
+                .await?;
+        }
+        for table in ["profile", "subscribe_source"] {
+            transaction
+                .execute_unprepared(&format!(
+                    "ALTER TABLE {table} ADD CONSTRAINT {table}_confluence_id_fk
+                     FOREIGN KEY (confluence_id) REFERENCES confluence (id)
+                     ON DELETE CASCADE ON UPDATE CASCADE;"
+                ))
+                .await?;
+        }
+        transaction.commit().await
     }
 }

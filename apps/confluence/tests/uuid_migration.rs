@@ -1,4 +1,4 @@
-use confluence::migrations::{Migrator, MigratorTrait};
+use confluence::migrations::{Migrator, MigratorTrait, SchemaManager};
 use confluence::models::{
     confluence as workspace, confluence_vlan, profile, subscribe_source as source, vlan_grant,
     vlan_network, vlan_supplicant,
@@ -152,8 +152,9 @@ async fn migrate_integer_records_preserving_tokens_timestamps_and_relations() {
     db.execute_unprepared("DROP VIEW legacy_workspace_ids")
         .await
         .unwrap();
-    Migrator::up(&db, Some(2)).await.unwrap();
-    verify_tunnel_migration(&db).await;
+    Migrator::up(&db, Some(1)).await.unwrap();
+    Migrator::up(&db, None).await.unwrap();
+    verify_wireguard_schema(&db).await;
     let timestamps = Expr::col((Alias::new("c"), workspace::Column::CreatedAt))
         .eq(epoch())
         .and(Expr::col((Alias::new("c"), workspace::Column::UpdatedAt)).eq(epoch()))
@@ -218,6 +219,7 @@ async fn migrate_integer_records_preserving_tokens_timestamps_and_relations() {
             .last_sync_error
             .is_none()
     );
+    verify_migration_rollback(&db, token).await;
     db.execute(
         &Query::insert()
             .into_table(workspace::Entity)
@@ -276,6 +278,96 @@ async fn migrate_integer_records_preserving_tokens_timestamps_and_relations() {
     }
     verify_vlan_relationships(&db).await;
     verify_subscription_source_refresh(&db).await;
+}
+
+async fn verify_migration_rollback(db: &sea_orm::DatabaseConnection, token: &str) {
+    Migrator::down(db, Some(1)).await.unwrap();
+    let schema = SchemaManager::new(db);
+    for table in [
+        "profile_supplicant",
+        "confluence_vlan",
+        "vlan_network",
+        "vlan_supplicant",
+        "vlan_grant",
+        "vlan_route",
+        "vlan_tunnel",
+        "vlan_tunnel_grant",
+        "vlan_wireguard_peer",
+    ] {
+        assert!(!schema.has_table(table).await.unwrap(), "{table}");
+    }
+    for (table, column) in [
+        ("profile", "allow_unsafe_age_private_key"),
+        ("subscribe_source", "last_sync_error"),
+    ] {
+        assert!(
+            !schema.has_column(table, column).await.unwrap(),
+            "{table}.{column}"
+        );
+    }
+    assert_eq!(Migrator::get_pending_migrations(db).await.unwrap().len(), 1);
+
+    // An external reference must block the UUID rollback without a partial rewrite.
+    db.execute_unprepared("CREATE VIEW current_workspace_ids AS SELECT id FROM confluence")
+        .await
+        .unwrap();
+    let error = Migrator::down(db, Some(1)).await.unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("because other objects depend on it"),
+        "{error}"
+    );
+    db.execute_unprepared("DROP VIEW current_workspace_ids")
+        .await
+        .unwrap();
+
+    Migrator::down(db, Some(1)).await.unwrap();
+    let rows = db
+        .query_all_raw(sea_orm::Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            r#"
+            SELECT c.id AS workspace_id, p.id AS profile_id, s.id AS source_id, p.resource_token,
+                (
+                    c.created_at = timestamp '1970-01-01' AND c.updated_at = c.created_at
+                    AND p.created_at = c.created_at AND p.updated_at = c.created_at
+                    AND s.created_at = c.created_at AND s.updated_at = c.created_at
+                ) AS timestamps_preserved
+            FROM confluence c
+            JOIN profile p ON p.confluence_id = c.id
+            JOIN subscribe_source s ON s.confluence_id = c.id
+            WHERE c.name = 'legacy workspace' AND s.name = 'legacy source'
+            "#,
+        ))
+        .await
+        .unwrap();
+    let [row] = rows.as_slice() else {
+        panic!("Integer rollback must preserve the original relations");
+    };
+    for id in ["workspace_id", "profile_id", "source_id"] {
+        assert!(row.try_get::<i32>("", id).unwrap() > 0);
+    }
+    assert_eq!(row.try_get::<String>("", "resource_token").unwrap(), token);
+    assert!(row.try_get::<bool>("", "timestamps_preserved").unwrap());
+    assert_eq!(Migrator::get_pending_migrations(db).await.unwrap().len(), 2);
+
+    // Default inserts on all three tables must allocate IDs beyond the backfill.
+    db.execute_unprepared(
+        r#"
+        INSERT INTO confluence (creator, name, template, mux_content)
+        VALUES ('migration-test', 'sequence probe', '', '');
+        INSERT INTO profile (confluence_id, resource_token)
+        SELECT id, 'temporary-token' FROM confluence WHERE name = 'sequence probe';
+        INSERT INTO subscribe_source (confluence_id, url, name, content)
+        SELECT id, 'https://example.com/probe', 'sequence probe', ''
+        FROM confluence WHERE name = 'sequence probe';
+        DELETE FROM confluence WHERE name = 'sequence probe';
+        "#,
+    )
+    .await
+    .unwrap();
+
+    Migrator::up(db, None).await.unwrap();
 }
 
 async fn verify_subscription_source_refresh(db: &sea_orm::DatabaseConnection) {
@@ -551,164 +643,120 @@ async fn verify_vlan_relationships(db: &sea_orm::DatabaseConnection) {
     );
 }
 
-async fn verify_tunnel_migration(db: &sea_orm::DatabaseConnection) {
-    db.execute_unprepared(r#"
+async fn verify_wireguard_schema(db: &sea_orm::DatabaseConnection) {
+    use confluence::models::{vlan_route, vlan_tunnel, vlan_tunnel_grant, vlan_wireguard_peer};
+
+    const VLAN_ID: uuid::Uuid = uuid::uuid!("00000000-0000-7000-8000-000000000001");
+    const FIRST_MEMBER: uuid::Uuid = uuid::uuid!("00000000-0000-7000-8000-000000000002");
+    const SECOND_MEMBER: uuid::Uuid = uuid::uuid!("00000000-0000-7000-8000-000000000006");
+    db.execute_unprepared(
+        r#"
         INSERT INTO vlan_network (id, creator, name, enabled)
         VALUES ('00000000-0000-7000-8000-000000000001', 'migration-test', 'migration-vlan', true);
         INSERT INTO vlan_supplicant (id, creator, name, age_recipient)
-        VALUES ('00000000-0000-7000-8000-000000000002', 'migration-test', 'migration-user', 'fixture');
+        VALUES ('00000000-0000-7000-8000-000000000002', 'migration-test', 'first-member', 'fixture'),
+               ('00000000-0000-7000-8000-000000000006', 'migration-test', 'second-member', 'fixture');
         INSERT INTO confluence_vlan (creator, confluence_id, vlan_id)
         SELECT creator, id, '00000000-0000-7000-8000-000000000001' FROM confluence WHERE name = 'legacy workspace';
-        INSERT INTO vlan_grant (creator, vlan_id, supplicant_id, slots)
-        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000002', '2,4-8');
+        INSERT INTO vlan_grant (creator, vlan_id, supplicant_id)
+        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000002'),
+               ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000006');
         INSERT INTO vlan_route (vlan_id, cidr)
         VALUES ('00000000-0000-7000-8000-000000000001', '198.51.100.0/24');
-        INSERT INTO vlan_gateway (id, vlan_id, name, server, port, subnet, private_key)
-        VALUES ('00000000-0000-7000-8000-000000000003', '00000000-0000-7000-8000-000000000001', 'portal',
-                '192.0.2.1', 24, '10.64.0.0/24', 'fixture-portal-key');
-    "#).await.unwrap();
-    Migrator::up(db, Some(1)).await.unwrap();
-
-    let migrated = db
-        .query_one_raw(sea_orm::Statement::from_string(
-            sea_orm::DbBackend::Postgres,
-            r#"
-        SELECT t.id::text, t.name, t.private_key, g.slots, t.allowed_ips,
-            (SELECT count(*) FROM vlan_route r WHERE r.vlan_id = t.vlan_id) AS routes,
-            (SELECT count(*) FROM confluence_vlan l WHERE l.vlan_id = t.vlan_id) AS links
-        FROM vlan_tunnel t JOIN vlan_tunnel_grant g ON g.tunnel_id = t.id
-        WHERE t.kind = 'easytier-gateway'
         "#,
-        ))
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(
-        migrated.try_get::<String>("", "id").unwrap(),
-        "00000000-0000-7000-8000-000000000003"
-    );
-    assert_eq!(migrated.try_get::<String>("", "name").unwrap(), "portal");
-    assert_eq!(
-        migrated.try_get::<String>("", "private_key").unwrap(),
-        "fixture-portal-key"
-    );
-    assert_eq!(migrated.try_get::<String>("", "slots").unwrap(), "2,4-8");
-    let routes = migrated.try_get::<Vec<String>>("", "allowed_ips").unwrap();
-    assert_eq!(routes, ["10.64.0.0/24", "198.51.100.0/24"]);
-    for field in ["routes", "links"] {
-        assert_eq!(
-            migrated.try_get::<i64>("", field).unwrap(),
-            if field == "routes" { 2 } else { 1 }
-        );
-    }
+    )
+    .await
+    .unwrap();
 
-    db.execute_unprepared(r#"
-        INSERT INTO vlan_tunnel (id, creator, vlan_id, name, kind, allowed_ips)
-        VALUES ('00000000-0000-7000-8000-000000000004', 'migration-test',
-            '00000000-0000-7000-8000-000000000001', 'wireguard', 'wireguard-compatible', '{}');
-        INSERT INTO vlan_tunnel_grant (id, creator, vlan_id, tunnel_id, kind, supplicant_id, addresses, persistent_keepalive, private_key)
-        VALUES ('00000000-0000-7000-8000-000000000005', 'migration-test', '00000000-0000-7000-8000-000000000001',
-            '00000000-0000-7000-8000-000000000004', 'wireguard-compatible',
-            '00000000-0000-7000-8000-000000000002', '{10.64.0.2/32}', 25, 'fixture-client-key');
-        INSERT INTO vlan_wireguard_peer (grant_id, position, server, port, public_key, pre_shared_key, allowed_ips)
-        VALUES ('00000000-0000-7000-8000-000000000005', 0, '192.0.2.2', 51820, 'fixture-peer-key', 'fixture-psk', '{10.64.0.0/25}');
-    "#).await.unwrap();
-    Migrator::up(db, Some(4)).await.unwrap();
-    db.execute_unprepared(r#"
-        INSERT INTO vlan_supplicant (id, creator, name, age_recipient)
-        VALUES ('00000000-0000-7000-8000-000000000006', 'migration-test', 'second-user', 'fixture');
-        INSERT INTO vlan_grant (creator, vlan_id, supplicant_id)
-        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000006');
-        INSERT INTO vlan_wireguard_config (id, tunnel_id, addresses, private_key)
-        VALUES ('00000000-0000-7000-8000-000000000008', '00000000-0000-7000-8000-000000000004',
-                '{10.64.0.3/32}', 'fixture-second-key'),
-               ('00000000-0000-7000-8000-000000000009', '00000000-0000-7000-8000-000000000004',
-                '{10.64.0.4/32}', 'fixture-unassigned-key');
-        INSERT INTO vlan_tunnel_grant (creator, vlan_id, tunnel_id, kind, supplicant_id, config_id)
-        VALUES ('migration-test', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000004',
-                'wireguard-compatible', '00000000-0000-7000-8000-000000000006', '00000000-0000-7000-8000-000000000008');
-        INSERT INTO vlan_wireguard_peer (config_id, position, server, port, public_key, allowed_ips)
-        VALUES ('00000000-0000-7000-8000-000000000008', 0, '192.0.2.3', 51820, 'second-peer-key', '{10.64.0.128/25}'),
-               ('00000000-0000-7000-8000-000000000009', 0, '192.0.2.4', 51820, 'third-peer-key', '{198.51.100.0/24}');
-    "#).await.unwrap();
-    Migrator::up(db, None).await.unwrap();
-
-    use confluence::models::{vlan_route, vlan_tunnel, vlan_tunnel_grant, vlan_wireguard_peer};
-    let tunnels = vlan_tunnel::Entity::find().all(db).await.unwrap();
-    assert_eq!(tunnels.len(), 3);
-    let original = tunnels
-        .iter()
-        .find(|tunnel| tunnel.name == "wireguard")
-        .unwrap();
-    assert_eq!(
-        original.id.to_string(),
-        "00000000-0000-7000-8000-000000000004"
-    );
-    assert_eq!(original.private_key, "fixture-client-key");
-    assert_eq!(original.addresses, ["10.64.0.2/32"]);
-    assert_eq!(original.persistent_keepalive, Some(25));
-    let split = tunnels
-        .iter()
-        .find(|tunnel| tunnel.name == "wireguard-2")
-        .unwrap();
-    assert_eq!(split.private_key, "fixture-second-key");
-    let unassigned = tunnels
-        .iter()
-        .find(|tunnel| tunnel.name == "wireguard-3")
-        .unwrap();
-    assert_eq!(unassigned.private_key, "fixture-unassigned-key");
-    let grants = tunnels
-        .load_many(vlan_tunnel_grant::Entity, db)
-        .await
-        .unwrap();
-    let peers = tunnels
-        .load_many(vlan_wireguard_peer::Entity, db)
-        .await
-        .unwrap();
-    for (tunnel, (grants, peers)) in tunnels.iter().zip(grants.into_iter().zip(peers)) {
-        assert_eq!(peers.len(), 1);
-        if tunnel == original {
-            assert_eq!(
-                grants[0].supplicant_id.to_string(),
-                "00000000-0000-7000-8000-000000000002"
-            );
-            assert_eq!(peers[0].pre_shared_key.as_deref(), Some("fixture-psk"));
-        } else if tunnel == split {
-            assert_eq!(
-                grants[0].supplicant_id.to_string(),
-                "00000000-0000-7000-8000-000000000006"
-            );
-            assert_eq!(peers[0].public_key, "second-peer-key");
-        } else {
-            assert!(grants.is_empty());
-            assert_eq!(peers[0].public_key, "third-peer-key");
-        }
+    let tunnel = vlan_tunnel::ActiveModel {
+        creator: Set("migration-test".into()),
+        vlan_id: Set(VLAN_ID),
+        name: Set("wireguard".into()),
+        addresses: Set(vec!["10.64.0.2/32".into()]),
+        persistent_keepalive: Set(Some(25)),
+        private_key: Set("fixture-client-key".into()),
+        ..Default::default()
     }
-    assert_eq!(vlan_route::Entity::find().all(db).await.unwrap().len(), 2);
+    .insert(db)
+    .await
+    .unwrap();
+    assert_eq!(tunnel.id.get_version_num(), 7);
+
+    let grant = |creator: &str, supplicant_id| vlan_tunnel_grant::ActiveModel {
+        creator: Set(creator.into()),
+        vlan_id: Set(VLAN_ID),
+        tunnel_id: Set(tunnel.id),
+        supplicant_id: Set(supplicant_id),
+        ..Default::default()
+    };
+    grant("migration-test", FIRST_MEMBER)
+        .insert(db)
+        .await
+        .unwrap();
+    assert!(grant("other", SECOND_MEMBER).insert(db).await.is_err());
+    grant("migration-test", SECOND_MEMBER)
+        .insert(db)
+        .await
+        .unwrap();
+    assert!(
+        grant("migration-test", FIRST_MEMBER)
+            .insert(db)
+            .await
+            .is_err()
+    );
+    let peer = |allowed_ips| vlan_wireguard_peer::ActiveModel {
+        tunnel_id: Set(tunnel.id),
+        position: Set(0),
+        server: Set("192.0.2.2".into()),
+        port: Set(51820),
+        public_key: Set("fixture-peer-key".into()),
+        pre_shared_key: Set(Some("fixture-psk".into())),
+        allowed_ips: Set(allowed_ips),
+        ..Default::default()
+    };
+    assert!(peer(vec![]).insert(db).await.is_err());
+    let peer = peer(vec!["198.51.100.0/24".into()])
+        .insert(db)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        vlan_tunnel::Entity::find().all(db).await.unwrap(),
+        std::slice::from_ref(&tunnel)
+    );
+    assert_eq!(
+        vlan_wireguard_peer::Entity::find().all(db).await.unwrap(),
+        [peer]
+    );
+    assert_eq!(
+        vlan_tunnel_grant::Entity::find()
+            .all(db)
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(vlan_route::Entity::find().all(db).await.unwrap().len(), 1);
     assert_eq!(
         confluence_vlan::Entity::find().all(db).await.unwrap().len(),
         1
     );
-    assert!(
-        db.execute_unprepared("SELECT * FROM vlan_wireguard_config")
-            .await
-            .is_err()
-    );
-    assert!(
-        db.execute_unprepared("SELECT slots FROM vlan_tunnel_grant")
-            .await
-            .is_err()
-    );
-    assert!(
-        db.execute_unprepared("SELECT kind FROM vlan_tunnel")
-            .await
-            .is_err()
-    );
-    assert!(db.execute_unprepared(r#"
-        INSERT INTO vlan_tunnel_grant (creator, vlan_id, tunnel_id, supplicant_id)
-        VALUES ('other', '00000000-0000-7000-8000-000000000001', '00000000-0000-7000-8000-000000000004',
-            '00000000-0000-7000-8000-000000000002')
-    "#).await.is_err());
+    for table in ["vlan_gateway", "vlan_wireguard_config", "vlan_tunnel_next"] {
+        assert!(!SchemaManager::new(db).has_table(table).await.unwrap());
+    }
+    for (table, column) in [
+        ("vlan_grant", "slots"),
+        ("vlan_tunnel_grant", "slots"),
+        ("vlan_tunnel", "kind"),
+    ] {
+        assert!(
+            !SchemaManager::new(db)
+                .has_column(table, column)
+                .await
+                .unwrap()
+        );
+    }
+
     db.execute_unprepared("DELETE FROM vlan_grant WHERE creator = 'migration-test'")
         .await
         .unwrap();
@@ -719,15 +767,7 @@ async fn verify_tunnel_migration(db: &sea_orm::DatabaseConnection) {
             .unwrap()
             .is_empty()
     );
-    assert_eq!(vlan_tunnel::Entity::find().all(db).await.unwrap().len(), 3);
-    assert_eq!(
-        vlan_wireguard_peer::Entity::find()
-            .all(db)
-            .await
-            .unwrap()
-            .len(),
-        3
-    );
+    assert_eq!(vlan_tunnel::Entity::find().all(db).await.unwrap(), [tunnel]);
     db.execute_unprepared("DELETE FROM vlan_network WHERE name = 'migration-vlan'")
         .await
         .unwrap();

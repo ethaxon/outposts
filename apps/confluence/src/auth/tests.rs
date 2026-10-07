@@ -5,8 +5,8 @@ use crate::error::AppError;
 use crate::services::AppState;
 
 use axum::{Json, Router, routing::get};
-use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use sea_orm::{DatabaseBackend, MockDatabase};
+use securitydept_core::jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use securitydept_core::oauth_resource_server::{
     OAuthResourceServerConfig, OAuthResourceServerVerifier,
 };

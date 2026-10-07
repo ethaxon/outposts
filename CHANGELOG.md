@@ -1,13 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 - **Supplicants** — added a dedicated Confluence management page with Profile and VLAN reference counts. The Profile editor links to it and loads recipients through the independent supplicant API.
 - **Profile subscriptions** — use `vlans` and `supplicants` selectors, each defaulting to `*`. Multi-recipient subscriptions include only VLANs and tunnels authorized for every selected supplicant. Replaced the singular `supplicant` parameter and updated Profile previews to show the resolved selection.
 - **VLAN tunnels** — each WireGuard tunnel now owns one client configuration and can grant any number of VLAN members access to it. Removed EasyTier Portal tunnels and slot suffixes from VLAN subscription requests.
-- **Database upgrade** — splits multi-configuration WireGuard tunnels while preserving each configuration, peer list and grant. Removes stored EasyTier Portal tunnels and slot grants, and preserves VLAN memberships, routes and workspace links.
+- **Database upgrade** — combines the seven migrations after the UUIDv7 migration. New installations and databases at or before UUIDv7 create the final WireGuard, Profile recipient, and subscription sync error schema directly. Databases that applied the original seven migrations require a one-time migration record update before starting 0.5.0. The combined migration rolls back to the UUIDv7 schema. Rolling back UUIDv7 allocates new integer IDs and preserves relationships and subscription tokens.
 - **Confluence pages** — the list moved from `/confluence/dashboard` to `/confluence/confluences` and each Confluence from `/confluence/workspace/{id}` to `/confluence/confluence/{id}`; the old paths redirect. The list now uses the same card grid as the VLAN and Supplicants pages and asks for confirmation before deleting a Confluence. The Confluences, VLAN and Supplicants pages share one layout: page header, a section bar with the refresh action, then the card grid. UI text says "Confluence" instead of "workspace", and the VLAN-link endpoint body is now `ConfluenceVlansUpdateDto`.
 - **API routes** — management routes now use plural resources: `/api/confluences`, `/api/subscribe_sources`, `/api/profiles`, `/api/vlans` and `/api/supplicants`. Per-item actions move to sub-routes (`POST /api/confluences/{id}/sync`, `/{id}/mux`, `/api/subscribe_sources/{id}/sync`), and the cron update is `PUT /api/confluences/{id}/cron`. Supplicants are managed only under `/api/supplicants`; the duplicate `/api/vlan/supplicants` routes are removed. Subscription URLs (`/api/profile_token/{token}`) are unchanged. Deploy the backend and frontend together.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.5.0`.
 
 ## 0.4.8
 

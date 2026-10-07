@@ -94,7 +94,9 @@ Profile 卡片上的 **测试配置转换** 会在服务端按订阅 URL 的同�
 
 要求 PostgreSQL 18+。业务主键使用原生 `uuid` 列，通过数据库 `uuidv7()` 默认值生成。历史记录及外键统一迁移，保留原有时间戳和订阅 `resource_token`。管理 API 标识及路由使用 UUID 字符串。ts-rs 将这些 Rust `Uuid` 字段映射为具名 TypeScript scalar `UUIDV7 = string`，提供可见的语义名称并兼容字符串类型。订阅凭据使用独立的随机 UUIDv4 token，导出为 TypeScript scalar `UUIDV4 = string`。
 
-升级前停止 Confluence 并保留可恢复的数据库备份。迁移保留 VLAN 成员、路由及 Confluence 引用。每份已有 WireGuard 配置成为独立隧道，保留 Peer 和原有授权。原隧道的首份配置保留其 ID 和名称，其余配置使用唯一名称。迁移会删除 EasyTier Portal 隧道及 slot 授权。更新已有订阅 URL 与 User-Agent，在 VLAN 名称后移除 slot 后缀。迁移后启动匹配版本的后端和前端。回退时恢复备份和上一版应用。
+升级前停止 Confluence 并保留可恢复的数据库备份。对于处于 UUIDv7 迁移或更早版本的数据库，Confluence 0.5 直接创建最终的 WireGuard 和 Profile 表结构。如果数据库已执行原来的七条迁移，启动 0.5 前需在 `seaql_migrations` 中将这七条记录替换为 `m20261121_000001_confluence_vlan_and_profile`，并保留原末条迁移的时间戳。如果数据库只执行了原序列的一部分，请先使用上一构建完成迁移，再更新迁移记录。订阅 URL 和 User-Agent 中的 VLAN 名称应移除 slot 后缀。迁移后启动匹配版本的后端和前端。
+
+回滚合并迁移会恢复到 UUIDv7 表结构，并删除 VLAN 和 WireGuard 数据、Profile 接收者关联及 age 兼容性设置，以及已保存的订阅同步错误。继续回滚 UUIDv7 会重新分配整数 ID，并保留外键关系、时间戳和订阅 token。恢复已删除的数据或原整数 ID，需要使用对应的数据库备份和应用构建。
 
 ---
 
