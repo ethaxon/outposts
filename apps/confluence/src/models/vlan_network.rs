@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue::Set, LoaderTrait, QueryOrder, QuerySelect, TransactionTrait};
 
-use super::{vlan_gateway, vlan_grant, vlan_route};
+use super::{vlan_grant, vlan_route, vlan_tunnel};
 use crate::error::AppError;
 use crate::vlan::VlanNetwork;
 
@@ -23,7 +23,7 @@ pub struct Model {
     #[sea_orm(has_many, via = "vlan_grant")]
     pub supplicants: HasMany<super::vlan_supplicant::Entity>,
     #[sea_orm(has_many)]
-    pub gateways: HasMany<super::vlan_gateway::Entity>,
+    pub tunnels: HasMany<super::vlan_tunnel::Entity>,
     #[sea_orm(has_many)]
     pub routes: HasMany<super::vlan_route::Entity>,
 }
@@ -49,11 +49,8 @@ impl Entity {
         db: &C,
         rows: Vec<Model>,
     ) -> Result<Vec<VlanNetwork>, AppError> {
-        let (gateways, routes, grants) = tokio::try_join!(
-            rows.load_many(
-                vlan_gateway::Entity::find().order_by_asc(vlan_gateway::Column::Id),
-                db
-            ),
+        let tunnels = vlan_tunnel::Entity::load_for_networks(db, &rows).await?;
+        let (routes, grants) = tokio::try_join!(
             rows.load_many(
                 vlan_route::Entity::find().order_by_asc(vlan_route::Column::Id),
                 db
@@ -63,12 +60,12 @@ impl Entity {
                 db
             ),
         )?;
-        Ok(itertools::izip!(rows, gateways, routes, grants)
-            .map(|(row, gateways, routes, grants)| VlanNetwork {
+        Ok(itertools::izip!(rows, tunnels, routes, grants)
+            .map(|(row, tunnels, routes, grants)| VlanNetwork {
                 id: row.id.to_string(),
                 network: row.name,
                 enabled: row.enabled,
-                gateways: gateways.into_iter().map(Into::into).collect(),
+                tunnels,
                 routes: routes
                     .into_iter()
                     .map(|route| route.cidr.to_string())
@@ -98,13 +95,10 @@ impl Entity {
             None
         };
         let previous = if let Some(row) = &row {
-            vlan_gateway::Entity::find()
-                .filter(vlan_gateway::Column::VlanId.eq(row.id))
-                .all(&tx)
+            vlan_tunnel::Entity::load_for_networks(&tx, std::slice::from_ref(row))
                 .await?
-                .into_iter()
-                .map(Into::into)
-                .collect()
+                .pop()
+                .unwrap_or_default()
         } else {
             Vec::new()
         };
@@ -129,9 +123,9 @@ impl Entity {
             .await
             .map_err(AppError::vlan_write)?
         };
-        vlan_gateway::Entity::replace_for_vlan(&tx, network.id, &input.gateways).await?;
         vlan_route::Entity::replace_for_vlan(&tx, network.id, &input.routes).await?;
         vlan_grant::Entity::replace_for_vlan(&tx, creator, network.id, grants).await?;
+        vlan_tunnel::Entity::replace_for_vlan(&tx, creator, network.id, &input.tunnels).await?;
         let saved = Self::load_details(&tx, vec![network])
             .await?
             .pop()

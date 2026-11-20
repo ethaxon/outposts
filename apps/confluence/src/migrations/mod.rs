@@ -17,6 +17,7 @@ mod m20260430_000003_subscribe_source_traffic_next_reset_at;
 
 mod m20261117_000001_uuidv7_primary_keys;
 mod m20261117_000002_confluence_vlan;
+mod m20261120_000001_vlan_tunnels;
 
 pub struct Migrator;
 
@@ -39,6 +40,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260430_000003_subscribe_source_traffic_next_reset_at::Migration),
             Box::new(m20261117_000001_uuidv7_primary_keys::Migration),
             Box::new(m20261117_000002_confluence_vlan::Migration),
+            Box::new(m20261120_000001_vlan_tunnels::Migration),
         ]
     }
 }

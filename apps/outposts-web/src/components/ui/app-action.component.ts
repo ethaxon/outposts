@@ -1,14 +1,24 @@
 import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
 import { NgIcon } from "@ng-icons/core";
 import { HlmButton } from "@/components/ui/button";
+import { HlmSpinner } from "@/components/ui/spinner";
 
 @Component({
   selector: "app-action",
   standalone: true,
-  imports: [HlmButton, NgIcon],
+  imports: [HlmButton, NgIcon, HlmSpinner],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<button type="button" hlmBtn [variant]="variant" [size]="buttonSize">
-    @if (icon) {
+  template: `<button
+    [type]="type"
+    hlmBtn
+    [variant]="variant"
+    [size]="buttonSize"
+    [disabled]="disabled || loading"
+    [attr.aria-busy]="loading || null"
+  >
+    @if (loading) {
+      <hlm-spinner aria-hidden="true" />
+    } @else if (icon) {
       <ng-icon [name]="icon" aria-hidden="true" />
     }
     <span>{{ label }}</span>
@@ -23,6 +33,11 @@ export class AppActionComponent {
   @Input() size: "small" | "large" | "" = "";
   @Input() text = false;
   @Input() raised = false;
+  /** Callers still guard their (click) handlers; a disabled button may not swallow host clicks. */
+  @Input() disabled = false;
+  /** Replaces the icon with a spinner and blocks repeat clicks while work is in flight. */
+  @Input() loading = false;
+  @Input() type: "button" | "submit" = "button";
 
   get variant(): "default" | "outline" | "secondary" | "destructive" | "ghost" {
     if (this.outlined) return "outline";

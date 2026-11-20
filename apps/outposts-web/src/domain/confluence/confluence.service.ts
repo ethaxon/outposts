@@ -69,6 +69,10 @@ export class ConfluenceService {
     return this.httpClient.get<VlanConfig>(`${this.apiEndpoint}/vlan`);
   }
 
+  aggregateVlanRoutes(routes: string[]) {
+    return this.httpClient.post<string[]>(`${this.apiEndpoint}/vlan/routes/aggregate`, routes);
+  }
+
   saveVlan(network: VlanNetwork) {
     const url = `${this.apiEndpoint}/vlan`;
     return network.id

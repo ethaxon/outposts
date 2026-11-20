@@ -14,8 +14,14 @@ use crate::{
     error::AppError,
     models::{confluence_vlan, vlan_network, vlan_supplicant},
     services::AppState,
-    vlan::{VlanConfig, VlanNetwork, VlanSupplicant},
+    vlan::{VlanConfig, VlanNetwork, VlanSupplicant, aggregate_routes},
 };
+
+pub async fn aggregate_vlan_routes(
+    Json(routes): Json<Vec<String>>,
+) -> Result<Json<Vec<String>>, AppError> {
+    Ok(Json(aggregate_routes(&routes)?))
+}
 
 pub async fn list_catalog(
     State(state): State<Arc<AppState>>,

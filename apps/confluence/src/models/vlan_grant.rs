@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue::Set, DatabaseTransaction};
@@ -16,7 +16,6 @@ pub struct Model {
     pub creator: String,
     pub vlan_id: Uuid,
     pub supplicant_id: Uuid,
-    pub slots: String,
     #[sea_orm(
         belongs_to,
         from = "(creator, vlan_id)",
@@ -37,7 +36,6 @@ impl From<Model> for VlanGrant {
     fn from(row: Model) -> Self {
         Self {
             supplicant_id: row.supplicant_id.to_string(),
-            slots: row.slots,
         }
     }
 }
@@ -47,21 +45,21 @@ impl Entity {
         tx: &DatabaseTransaction,
         creator: &str,
         assignments: &[VlanGrant],
-    ) -> Result<HashMap<Uuid, String>, AppError> {
-        let mut grants = HashMap::new();
+    ) -> Result<HashSet<Uuid>, AppError> {
+        let mut grants = HashSet::new();
         for grant in assignments {
             let id = grant
                 .supplicant_id
                 .parse::<Uuid>()
                 .map_err(|_| AppError::bad_request("Invalid supplicant ID"))?;
-            if grants.insert(id, grant.slots.clone()).is_some() {
+            if !grants.insert(id) {
                 return Err(AppError::bad_request("Duplicate VLAN supplicant grant"));
             }
         }
         if !grants.is_empty() {
             let owned = vlan_supplicant::Entity::find()
                 .filter(vlan_supplicant::Column::Creator.eq(creator))
-                .filter(vlan_supplicant::Column::Id.is_in(grants.keys().copied()))
+                .filter(vlan_supplicant::Column::Id.is_in(grants.iter().copied()))
                 .count(tx)
                 .await?;
             if owned != grants.len() as u64 {
@@ -78,25 +76,18 @@ impl Entity {
         tx: &DatabaseTransaction,
         creator: &str,
         id: Uuid,
-        mut grants: HashMap<Uuid, String>,
+        mut grants: HashSet<Uuid>,
     ) -> Result<(), AppError> {
         for row in Self::find().filter(Column::VlanId.eq(id)).all(tx).await? {
-            if let Some(slots) = grants.remove(&row.supplicant_id) {
-                if row.slots != slots {
-                    let mut active: ActiveModel = row.into();
-                    active.slots = Set(slots);
-                    active.update(tx).await.map_err(AppError::vlan_write)?;
-                }
-            } else {
+            if !grants.remove(&row.supplicant_id) {
                 Self::delete_by_id(row.id).exec(tx).await?;
             }
         }
-        for (supplicant_id, slots) in grants {
+        for supplicant_id in grants {
             ActiveModel {
                 creator: Set(creator.to_owned()),
                 vlan_id: Set(id),
                 supplicant_id: Set(supplicant_id),
-                slots: Set(slots),
                 ..Default::default()
             }
             .insert(tx)

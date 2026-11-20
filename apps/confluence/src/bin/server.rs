@@ -18,8 +18,8 @@ use confluence::services::{
 };
 use confluence::tasks::init_backend_jobs;
 use confluence::vlan_services::{
-    create_network, create_supplicant, delete_network, delete_supplicant, list_catalog,
-    update_network, update_supplicant, update_workspace_vlans,
+    aggregate_vlan_routes, create_network, create_supplicant, delete_network, delete_supplicant,
+    list_catalog, update_network, update_supplicant, update_workspace_vlans,
 };
 use sea_orm::sea_query::{Alias, ExprTrait, Func, Query};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database};
@@ -206,6 +206,7 @@ fn handle_confluence(state: Arc<AppState>) -> Router {
 
     let vlan_api = Router::<Arc<AppState>>::new()
         .route("/", get(list_catalog).post(create_network))
+        .route("/routes/aggregate", post(aggregate_vlan_routes))
         .route("/{id}", put(update_network).delete(delete_network))
         .route("/supplicants", post(create_supplicant))
         .route(

@@ -1,148 +1,773 @@
-<form #form="ngForm" (ngSubmit)="save()" class="flex flex-col gap-4">
-  <label class="flex items-center gap-2">
-    <input type="checkbox" name="enabled" [(ngModel)]="network.enabled" />
-    {{ "confluence.workspace.vlan.enabled" | transloco }}
-  </label>
-  <label class="flex flex-col gap-1">
-    {{ "confluence.workspace.vlan.network" | transloco }}
-    <input
-      hlmInput
-      name="network"
-      [(ngModel)]="network.network"
-      required
-      pattern="[a-z0-9_-]{1,64}"
-    />
-  </label>
-  <!-- Not a wrapping <label>: it would forward clicks to the first chip button. -->
-  <div class="flex flex-col gap-1">
-    <label for="vlan-routes">{{ "confluence.workspace.vlan.routes" | transloco }}</label>
+<form #form="ngForm" class="vlan-form" novalidate (ngSubmit)="submit(form)">
+  <!-- General -->
+  <section class="vlan-section">
+    <label class="vlan-field">
+      <span>{{ "confluence.workspace.vlan.network" | transloco }}</span>
+      <input
+        hlmInput
+        appVlanName
+        #networkName="ngModel"
+        class="font-mono"
+        name="network"
+        placeholder="office"
+        [(ngModel)]="network.network"
+        required
+      />
+      <span
+        class="vlan-hint"
+        [class.vlan-hint-error]="networkName.invalid && (networkName.dirty || networkName.touched)"
+        >{{ "confluence.workspace.vlan.nameRule" | transloco }}</span
+      >
+    </label>
+
+    <div class="vlan-toggle">
+      <hlm-switch inputId="vlan-enabled" name="enabled" [(ngModel)]="network.enabled" />
+      <label for="vlan-enabled" class="vlan-toggle-label">
+        <span>{{ "confluence.workspace.vlan.enabled" | transloco }}</span>
+        <span class="vlan-hint">{{ "confluence.workspace.vlan.enabledHint" | transloco }}</span>
+      </label>
+    </div>
+
+    <p class="vlan-callout">
+      <ng-icon name="lucideInfo" aria-hidden="true" />
+      <span>{{ "confluence.workspace.vlan.hint" | transloco }}</span>
+    </p>
+  </section>
+
+  <!-- Members -->
+  <section class="vlan-section">
+    <header class="vlan-section-header">
+      <div>
+        <h3 class="vlan-section-title">
+          {{ "confluence.workspace.vlan.members" | transloco }}
+          <span hlmBadge variant="secondary">{{ network.accept_supplicants.length }}</span>
+        </h3>
+        <p class="vlan-hint">{{ "confluence.workspace.vlan.membersHint" | transloco }}</p>
+      </div>
+    </header>
+
+    @if (supplicants.length) {
+      <div
+        class="vlan-chips"
+        role="group"
+        [attr.aria-label]="'confluence.workspace.vlan.members' | transloco"
+      >
+        @for (identity of supplicants; track identity.id) {
+          <button
+            type="button"
+            class="vlan-chip"
+            [attr.aria-pressed]="isMember(identity.id)"
+            (click)="toggleMember(identity.id)"
+          >
+            <ng-icon
+              [name]="isMember(identity.id) ? 'lucideCheck' : 'lucidePlus'"
+              aria-hidden="true"
+            />
+            <span class="font-mono">{{ identity.name }}</span>
+            @if (memberGrantCount(identity.id); as count) {
+              <span
+                class="vlan-chip-count"
+                [title]="'confluence.workspace.vlan.tunnelCount' | transloco: { count }"
+                >{{ count }}</span
+              >
+            }
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="vlan-empty">{{ "confluence.workspace.vlan.noSupplicants" | transloco }}</p>
+    }
+
+    @if (pendingRemoval(); as removal) {
+      @if (removal.kind === "member") {
+        <div class="vlan-confirm" role="alert">
+          <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+          <span>{{
+            "confluence.workspace.vlan.removeMemberHint"
+              | transloco: { name: labelMember(removal.id), count: memberGrantCount(removal.id) }
+          }}</span>
+          <button
+            hlmBtn
+            type="button"
+            size="sm"
+            variant="destructive"
+            (click)="removeMember(removal.id)"
+          >
+            {{ "common.actions.delete" | transloco }}
+          </button>
+          <button hlmBtn type="button" size="sm" variant="ghost" (click)="pendingRemoval.set(null)">
+            {{ "common.actions.cancel" | transloco }}
+          </button>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- Tunnels -->
+  <section class="vlan-section">
+    <header class="vlan-section-header">
+      <div>
+        <h3 class="vlan-section-title">
+          {{ "confluence.workspace.vlan.tunnels" | transloco }}
+          <span hlmBadge variant="secondary">{{ network.tunnels.length }}</span>
+        </h3>
+        <p class="vlan-hint">{{ "confluence.workspace.vlan.tunnelsHint" | transloco }}</p>
+      </div>
+    </header>
+
+    @for (tunnel of network.tunnels; track tunnel; let i = $index) {
+      @let portal = tunnel.type === "easytier-gateway";
+      <article class="vlan-tunnel">
+        <header class="vlan-tunnel-header">
+          <span class="vlan-tunnel-icon" aria-hidden="true">
+            <ng-icon [name]="portal ? 'lucideNetwork' : 'lucideShieldCheck'" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <div class="truncate font-medium font-mono">
+              {{ tunnel.name || ("confluence.workspace.vlan.unnamed" | transloco) }}
+            </div>
+            <div class="vlan-hint">
+              {{ "confluence.workspace.vlan." + tunnel.type | transloco }}
+            </div>
+          </div>
+          @if (tunnel.type === "easytier-gateway") {
+            <button hlmBtn type="button" size="sm" variant="ghost" (click)="toggleImport(tunnel)">
+              <ng-icon name="lucideFileDown" aria-hidden="true" />
+              <span class="max-sm:sr-only">{{
+                "confluence.workspace.vlan.wireGuardImport.title" | transloco
+              }}</span>
+            </button>
+          }
+          <button
+            hlmBtn
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            [attr.aria-label]="'common.actions.delete' | transloco"
+            (click)="requestRemoveTunnel(tunnel)"
+          >
+            <ng-icon name="lucideTrash2" aria-hidden="true" />
+          </button>
+        </header>
+
+        @if (isPending({ kind: "tunnel", tunnel })) {
+          <div class="vlan-confirm" role="alert">
+            <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+            <span>{{
+              "confluence.workspace.vlan.removeTunnelHint"
+                | transloco: { count: tunnel.grants.length }
+            }}</span>
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              variant="destructive"
+              (click)="removeTunnel(tunnel)"
+            >
+              {{ "common.actions.delete" | transloco }}
+            </button>
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              variant="ghost"
+              (click)="pendingRemoval.set(null)"
+            >
+              {{ "common.actions.cancel" | transloco }}
+            </button>
+          </div>
+        }
+
+        @if (tunnel.type === "easytier-gateway") {
+          <ng-container
+            *ngTemplateOutlet="importPanel; context: { target: tunnel, portal: true }"
+          />
+        }
+
+        <div class="vlan-grid">
+          <label class="vlan-field">
+            <span>{{ "confluence.workspace.vlan.name" | transloco }}</span>
+            <input
+              hlmInput
+              appVlanName
+              #tunnelName="ngModel"
+              class="font-mono"
+              [name]="'tunnelName' + i"
+              [(ngModel)]="tunnel.name"
+              required
+            />
+            @if (tunnelName.invalid && (tunnelName.touched || tunnelName.dirty)) {
+              <span class="vlan-hint vlan-hint-error">{{
+                "confluence.workspace.vlan.nameRule" | transloco
+              }}</span>
+            }
+          </label>
+
+          @if (tunnel.type === "easytier-gateway") {
+            <div class="vlan-endpoint">
+              <label class="vlan-field">
+                <span>{{ "confluence.workspace.vlan.server" | transloco }}</span>
+                <input
+                  hlmInput
+                  [name]="'server' + i"
+                  placeholder="portal.example.com"
+                  [(ngModel)]="tunnel.server"
+                  required
+                />
+              </label>
+              <label class="vlan-field">
+                <span>{{ "confluence.workspace.vlan.port" | transloco }}</span>
+                <input
+                  hlmInput
+                  type="number"
+                  min="1"
+                  max="65535"
+                  [name]="'port' + i"
+                  [(ngModel)]="tunnel.port"
+                  required
+                />
+              </label>
+            </div>
+            <label class="vlan-field">
+              <span>{{ "confluence.workspace.vlan.subnet" | transloco }}</span>
+              <input
+                hlmInput
+                appCidr
+                #subnet="ngModel"
+                class="font-mono"
+                placeholder="10.30.0.0/24"
+                autocomplete="off"
+                spellcheck="false"
+                [cidrFamily]="4"
+                [cidrPrefix]="24"
+                [name]="'subnet' + i"
+                [(ngModel)]="tunnel.subnet"
+                required
+              />
+              @if (subnet.errors?.["cidr"] && subnet.touched) {
+                <span class="vlan-hint vlan-hint-error">{{
+                  "confluence.workspace.vlan.cidr.subnetInvalid" | transloco
+                }}</span>
+              }
+            </label>
+            <label class="vlan-field">
+              <span>{{ "confluence.workspace.vlan.privateKey" | transloco }}</span>
+              <input
+                hlmInput
+                type="password"
+                autocomplete="new-password"
+                class="font-mono"
+                [name]="'key' + i"
+                [placeholder]="
+                  tunnel.has_private_key ? ('confluence.workspace.vlan.keepKey' | transloco) : ''
+                "
+                [(ngModel)]="tunnel.private_key"
+                [required]="!tunnel.has_private_key"
+              />
+            </label>
+            <div class="vlan-field vlan-grid-full">
+              <label [for]="'portal-cidrs-' + i">{{
+                "confluence.workspace.vlan.allowedIps" | transloco
+              }}</label>
+              <app-cidr-list-input
+                [inputId]="'portal-cidrs-' + i"
+                [name]="'portalRoutes' + i"
+                [placeholder]="'confluence.workspace.vlan.cidr.placeholder' | transloco"
+                [(ngModel)]="tunnel.allowed_ips"
+              />
+            </div>
+          }
+        </div>
+
+        <!-- Access -->
+        <div class="vlan-subsection">
+          <div class="vlan-subsection-title">
+            {{ "confluence.workspace.vlan.access" | transloco }}
+          </div>
+          @if (members.length) {
+            <div
+              class="vlan-chips"
+              role="group"
+              [attr.aria-label]="'confluence.workspace.vlan.access' | transloco"
+            >
+              @for (identity of members; track identity.id) {
+                <button
+                  type="button"
+                  class="vlan-chip"
+                  [attr.aria-pressed]="hasGrant(tunnel, identity.id)"
+                  (click)="toggleGrant(tunnel, identity.id)"
+                >
+                  <ng-icon
+                    [name]="hasGrant(tunnel, identity.id) ? 'lucideCheck' : 'lucidePlus'"
+                    aria-hidden="true"
+                  />
+                  <span class="font-mono">{{ identity.name }}</span>
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="vlan-empty">{{ "confluence.workspace.vlan.accessEmpty" | transloco }}</p>
+          }
+
+          @if (pendingRemoval(); as removal) {
+            @if (removal.kind === "grant" && removal.tunnel === tunnel) {
+              <div class="vlan-confirm" role="alert">
+                <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+                <span>{{
+                  "confluence.workspace.vlan.removeGrantHint"
+                    | transloco: { name: labelMember(removal.id) }
+                }}</span>
+                <button
+                  hlmBtn
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  (click)="removeGrant(tunnel, removal.id)"
+                >
+                  {{ "common.actions.delete" | transloco }}
+                </button>
+                <button
+                  hlmBtn
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  (click)="pendingRemoval.set(null)"
+                >
+                  {{ "common.actions.cancel" | transloco }}
+                </button>
+              </div>
+            }
+          }
+
+          @if (tunnel.type === "easytier-gateway") {
+            @for (grant of tunnel.grants; track grant.supplicant_id; let j = $index) {
+              <label class="vlan-slot-row">
+                <span class="truncate font-mono text-sm">{{
+                  labelMember(grant.supplicant_id)
+                }}</span>
+                <input
+                  hlmInput
+                  class="font-mono"
+                  placeholder="2,4,10-100"
+                  [attr.aria-label]="'confluence.workspace.vlan.slots' | transloco"
+                  [name]="'slots' + i + '-' + j"
+                  [(ngModel)]="grant.slots"
+                  required
+                />
+              </label>
+            }
+            @if (tunnel.grants.length) {
+              <p class="vlan-hint">{{ "confluence.workspace.vlan.slots" | transloco }}</p>
+            }
+          } @else {
+            @for (grant of tunnel.grants; track grant.supplicant_id; let j = $index) {
+              @let prefix = "wire-" + i + "-" + j;
+              @let incomplete = !grant.addresses.length || !grant.peers.length;
+              <div class="vlan-grant" [class.vlan-grant-incomplete]="attempted() && incomplete">
+                <header class="vlan-grant-header">
+                  <span class="truncate font-medium font-mono">{{
+                    labelMember(grant.supplicant_id)
+                  }}</span>
+                  <span class="vlan-hint">{{
+                    "confluence.workspace.vlan.peerCount" | transloco: { count: grant.peers.length }
+                  }}</span>
+                  <button
+                    hlmBtn
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    class="ms-auto"
+                    (click)="toggleImport(grant)"
+                  >
+                    <ng-icon name="lucideFileDown" aria-hidden="true" />
+                    <span class="max-sm:sr-only">{{
+                      "confluence.workspace.vlan.wireGuardImport.title" | transloco
+                    }}</span>
+                  </button>
+                </header>
+                <ng-container
+                  *ngTemplateOutlet="importPanel; context: { target: grant, portal: false }"
+                />
+
+                <div class="vlan-grid">
+                  <label class="vlan-field vlan-grid-full">
+                    <span>{{ "confluence.workspace.vlan.clientKey" | transloco }}</span>
+                    <input
+                      hlmInput
+                      type="password"
+                      autocomplete="new-password"
+                      class="font-mono"
+                      [name]="prefix + '-key'"
+                      [placeholder]="
+                        grant.has_private_key
+                          ? ('confluence.workspace.vlan.keepKey' | transloco)
+                          : ''
+                      "
+                      [(ngModel)]="grant.private_key"
+                      [required]="!grant.has_private_key"
+                    />
+                  </label>
+                  <div class="vlan-field vlan-grid-full">
+                    <span>{{ "confluence.workspace.vlan.clientAddress" | transloco }}</span>
+                    <div class="vlan-address-list">
+                      @for (address of grant.addresses; track $index; let k = $index) {
+                        <div class="vlan-address">
+                          <input
+                            hlmInput
+                            appCidr
+                            class="font-mono"
+                            placeholder="192.0.2.2/32"
+                            autocomplete="off"
+                            spellcheck="false"
+                            [cidrHost]="true"
+                            [attr.aria-label]="
+                              'confluence.workspace.vlan.clientAddress' | transloco
+                            "
+                            [name]="prefix + '-addr-' + k"
+                            [(ngModel)]="grant.addresses[k]"
+                            required
+                          />
+                          <button
+                            hlmBtn
+                            type="button"
+                            size="icon-sm"
+                            variant="ghost"
+                            [attr.aria-label]="'common.actions.delete' | transloco"
+                            (click)="grant.addresses.splice(k, 1)"
+                          >
+                            <ng-icon name="lucideX" aria-hidden="true" />
+                          </button>
+                        </div>
+                      }
+                      @if (grant.addresses.length < 2) {
+                        <button
+                          hlmBtn
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          class="self-start"
+                          (click)="grant.addresses.push('')"
+                        >
+                          <ng-icon name="lucidePlus" aria-hidden="true" />
+                          {{ "confluence.workspace.vlan.addAddress" | transloco }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <label class="vlan-field">
+                    <span>{{ "confluence.workspace.vlan.mtu" | transloco }}</span>
+                    <input
+                      hlmInput
+                      type="number"
+                      min="1"
+                      max="65535"
+                      placeholder="1420"
+                      [name]="prefix + '-mtu'"
+                      [(ngModel)]="grant.mtu"
+                    />
+                  </label>
+                  <label class="vlan-field">
+                    <span>{{ "confluence.workspace.vlan.keepalive" | transloco }}</span>
+                    <input
+                      hlmInput
+                      type="number"
+                      min="0"
+                      max="65535"
+                      placeholder="25"
+                      [name]="prefix + '-keepalive'"
+                      [(ngModel)]="grant.persistent_keepalive"
+                    />
+                  </label>
+                </div>
+
+                <div class="vlan-subsection-title">
+                  {{ "confluence.workspace.vlan.peers" | transloco }}
+                </div>
+                @for (peer of grant.peers; track peer; let k = $index) {
+                  @let peerPrefix = prefix + "-peer-" + k;
+                  <div class="vlan-peer">
+                    <button
+                      hlmBtn
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      class="vlan-peer-remove"
+                      [attr.aria-label]="'common.actions.delete' | transloco"
+                      (click)="grant.peers.splice(k, 1)"
+                    >
+                      <ng-icon name="lucideX" aria-hidden="true" />
+                    </button>
+                    <div class="vlan-grid">
+                      <div class="vlan-endpoint vlan-grid-full">
+                        <label class="vlan-field">
+                          <span>{{ "confluence.workspace.vlan.server" | transloco }}</span>
+                          <input
+                            hlmInput
+                            placeholder="vpn.example.com"
+                            [name]="peerPrefix + '-host'"
+                            [(ngModel)]="peer.server"
+                            required
+                          />
+                        </label>
+                        <label class="vlan-field">
+                          <span>{{ "confluence.workspace.vlan.port" | transloco }}</span>
+                          <input
+                            hlmInput
+                            type="number"
+                            min="1"
+                            max="65535"
+                            [name]="peerPrefix + '-port'"
+                            [(ngModel)]="peer.port"
+                            required
+                          />
+                        </label>
+                      </div>
+                      <label class="vlan-field">
+                        <span>{{ "confluence.workspace.vlan.publicKey" | transloco }}</span>
+                        <input
+                          hlmInput
+                          class="font-mono"
+                          autocomplete="off"
+                          spellcheck="false"
+                          [name]="peerPrefix + '-pub'"
+                          [(ngModel)]="peer.public_key"
+                          required
+                        />
+                      </label>
+                      <label class="vlan-field">
+                        <span class="flex items-center justify-between gap-2">
+                          {{ "confluence.workspace.vlan.presharedKey" | transloco }}
+                          @if (peer.has_pre_shared_key) {
+                            <button
+                              type="button"
+                              class="vlan-link-button"
+                              (click)="peer.pre_shared_key = ''; peer.has_pre_shared_key = false"
+                            >
+                              {{ "confluence.workspace.vlan.clearKey" | transloco }}
+                            </button>
+                          }
+                        </span>
+                        <input
+                          hlmInput
+                          type="password"
+                          autocomplete="new-password"
+                          class="font-mono"
+                          [placeholder]="
+                            peer.has_pre_shared_key
+                              ? ('confluence.workspace.vlan.keepKey' | transloco)
+                              : ''
+                          "
+                          [name]="peerPrefix + '-psk'"
+                          [(ngModel)]="peer.pre_shared_key"
+                        />
+                      </label>
+                      <div class="vlan-field vlan-grid-full">
+                        <label [for]="peerPrefix + '-cidrs'">{{
+                          "confluence.workspace.vlan.allowedIps" | transloco
+                        }}</label>
+                        <app-cidr-list-input
+                          [inputId]="peerPrefix + '-cidrs'"
+                          [name]="peerPrefix + '-routes'"
+                          [placeholder]="'confluence.workspace.vlan.cidr.placeholder' | transloco"
+                          [(ngModel)]="peer.allowed_ips"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="vlan-empty">{{ "confluence.workspace.vlan.peersEmpty" | transloco }}</p>
+                }
+                <button
+                  hlmBtn
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  class="self-start"
+                  (click)="addPeer(grant)"
+                >
+                  <ng-icon name="lucidePlus" aria-hidden="true" />
+                  {{ "confluence.workspace.vlan.addPeer" | transloco }}
+                </button>
+              </div>
+            }
+          }
+        </div>
+      </article>
+    }
+
+    @if (network.tunnels.length) {
+      <div class="flex flex-wrap gap-2">
+        <button
+          hlmBtn
+          type="button"
+          size="sm"
+          variant="outline"
+          (click)="addTunnel('easytier-gateway')"
+        >
+          <ng-icon name="lucidePlus" aria-hidden="true" />
+          {{ "confluence.workspace.vlan.addPortal" | transloco }}
+        </button>
+        <button
+          hlmBtn
+          type="button"
+          size="sm"
+          variant="outline"
+          (click)="addTunnel('wireguard-compatible')"
+        >
+          <ng-icon name="lucidePlus" aria-hidden="true" />
+          {{ "confluence.workspace.vlan.addWireGuard" | transloco }}
+        </button>
+      </div>
+    } @else {
+      <!-- Empty state doubles as the type picker, so a new VLAN never shows a blank area. -->
+      <div class="vlan-tunnel-picker">
+        <button type="button" class="vlan-create" (click)="addTunnel('easytier-gateway')">
+          <ng-icon name="lucideNetwork" class="text-xl" aria-hidden="true" />
+          <span class="font-medium">{{ "confluence.workspace.vlan.addPortal" | transloco }}</span>
+          <span class="vlan-hint">{{
+            "confluence.workspace.vlan.portalDescription" | transloco
+          }}</span>
+        </button>
+        <button type="button" class="vlan-create" (click)="addTunnel('wireguard-compatible')">
+          <ng-icon name="lucideShieldCheck" class="text-xl" aria-hidden="true" />
+          <span class="font-medium">{{
+            "confluence.workspace.vlan.addWireGuard" | transloco
+          }}</span>
+          <span class="vlan-hint">{{
+            "confluence.workspace.vlan.wireGuardDescription" | transloco
+          }}</span>
+        </button>
+      </div>
+    }
+  </section>
+
+  <!-- Routes -->
+  <section class="vlan-section">
+    <header class="vlan-section-header">
+      <div>
+        <h3 class="vlan-section-title">
+          <label for="vlan-routes">{{ "confluence.workspace.vlan.routes" | transloco }}</label>
+          <span hlmBadge variant="secondary">{{ network.routes.length }}</span>
+        </h3>
+        <p class="vlan-hint">{{ "confluence.workspace.vlan.routesHint" | transloco }}</p>
+      </div>
+      <button
+        hlmBtn
+        type="button"
+        size="sm"
+        variant="outline"
+        [disabled]="recalculating() || busy() || !network.tunnels.length"
+        (click)="recomputeRoutes()"
+      >
+        @if (recalculating()) {
+          <hlm-spinner aria-hidden="true" />
+        } @else {
+          <ng-icon name="lucideRefreshCw" aria-hidden="true" />
+        }
+        {{ "confluence.workspace.vlan.recomputeRoutes" | transloco }}
+      </button>
+    </header>
     <app-cidr-list-input
       inputId="vlan-routes"
       name="routes"
       [(ngModel)]="network.routes"
       [placeholder]="'confluence.workspace.vlan.cidr.placeholder' | transloco"
     />
-  </div>
-  <fieldset class="flex flex-col gap-3">
-    <legend class="mb-2 font-semibold">
-      {{ "confluence.workspace.vlan.gateways" | transloco }}
-    </legend>
-    @for (gateway of network.gateways; track $index; let i = $index) {
-      <div class="grid grid-cols-2 gap-3 rounded border p-3">
-        <label class="flex flex-col gap-1"
-          >{{ "confluence.workspace.vlan.name" | transloco }}
-          <input hlmInput [name]="'gatewayName' + i" [(ngModel)]="gateway.name" required />
-        </label>
-        <label class="flex flex-col gap-1"
-          >{{ "confluence.workspace.vlan.server" | transloco }}
-          <input hlmInput [name]="'server' + i" [(ngModel)]="gateway.server" required />
-        </label>
-        <label class="flex flex-col gap-1"
-          >{{ "confluence.workspace.vlan.port" | transloco }}
-          <input
-            hlmInput
-            type="number"
-            [name]="'port' + i"
-            [(ngModel)]="gateway.port"
-            min="1"
-            max="65535"
-            required
-          />
-        </label>
-        <label class="flex flex-col gap-1"
-          >{{ "confluence.workspace.vlan.subnet" | transloco }}
-          <input
-            hlmInput
-            appCidr
-            #subnet="ngModel"
-            [cidrFamily]="4"
-            [cidrPrefix]="24"
-            [name]="'subnet' + i"
-            [(ngModel)]="gateway.subnet"
-            required
-            placeholder="10.30.0.0/24"
-            autocomplete="off"
-            spellcheck="false"
-            class="font-mono"
-          />
-          @if (subnet.errors?.["cidr"] && subnet.touched) {
-            <span class="text-xs text-destructive" role="alert">{{
-              "confluence.workspace.vlan.cidr.subnetInvalid" | transloco
-            }}</span>
-          }
-        </label>
-        <label class="col-span-2 flex flex-col gap-1"
-          >{{ "confluence.workspace.vlan.privateKey" | transloco }}
-          <input
-            hlmInput
-            type="password"
-            autocomplete="new-password"
-            [name]="'key' + i"
-            [(ngModel)]="gateway.private_key"
-            [required]="!gateway.has_private_key"
-          />
-          @if (gateway.has_private_key) {
-            <span class="text-sm text-muted-foreground">{{
-              "confluence.workspace.vlan.keepKey" | transloco
-            }}</span>
-          }
-        </label>
-        <button hlmBtn variant="outline" type="button" (click)="network.gateways.splice(i, 1)">
-          {{ "common.actions.delete" | transloco }}
+  </section>
+
+  <footer class="vlan-footer">
+    <div class="min-w-0 flex-1">
+      @if (error()) {
+        <p class="vlan-footer-message vlan-hint-error" role="alert">
+          <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+          {{ "confluence.workspace.vlan.saveError" | transloco }}
+        </p>
+      } @else if (attempted() && blocker(form); as reason) {
+        <p class="vlan-footer-message vlan-hint-error" role="alert">
+          <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+          {{ "confluence.workspace.vlan.blockers." + reason | transloco }}
+        </p>
+      }
+    </div>
+    <app-action
+      size="small"
+      icon="lucideX"
+      [outlined]="true"
+      [label]="'common.actions.cancel' | transloco"
+      (click)="cancelled.emit()"
+    />
+    <app-action
+      size="small"
+      type="submit"
+      icon="lucideCheck"
+      [label]="'common.actions.save' | transloco"
+      [loading]="busy()"
+      [disabled]="recalculating()"
+    />
+  </footer>
+</form>
+
+<ng-template #importPanel let-target="target" let-portal="portal">
+  @let notice = noticeFor(target);
+  @if (importing() === target) {
+    <div class="vlan-import">
+      <label class="vlan-field">
+        <span>{{ "confluence.workspace.vlan.wireGuardImport.config" | transloco }}</span>
+        <textarea
+          #text
+          class="vlan-textarea"
+          rows="7"
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="off"
+          placeholder="[Interface]&#10;PrivateKey = …&#10;&#10;[Peer]&#10;Endpoint = …"
+          (input)="importNotice.set(undefined)"
+        ></textarea>
+      </label>
+      <p class="vlan-hint">
+        {{
+          (portal
+            ? "confluence.workspace.vlan.wireGuardImport.portalHint"
+            : "confluence.workspace.vlan.wireGuardImport.clientHint"
+          ) | transloco
+        }}
+      </p>
+      @if (notice && !notice.review) {
+        <p class="vlan-hint vlan-hint-error" role="alert">
+          {{ "confluence.workspace.vlan.wireGuardImport." + notice.key | transloco }}
+        </p>
+      }
+      <div class="flex justify-end gap-2">
+        <button hlmBtn type="button" size="sm" variant="ghost" (click)="toggleImport(target)">
+          {{ "common.actions.cancel" | transloco }}
         </button>
-      </div>
-    }
-    <button hlmBtn variant="outline" type="button" (click)="addGateway()">
-      {{ "confluence.workspace.vlan.addGateway" | transloco }}
-    </button>
-  </fieldset>
-  <fieldset class="flex flex-col gap-3">
-    <legend>{{ "confluence.workspace.vlan.grants" | transloco }}</legend>
-    @for (grant of network.accept_supplicants; track $index; let i = $index) {
-      <div class="flex gap-2">
-        <label
-          >{{ "confluence.workspace.vlan.supplicants" | transloco }}
-          <select [name]="'grantUser' + i" [(ngModel)]="grant.supplicant_id" required>
-            @for (identity of supplicants; track identity.id) {
-              <option [value]="identity.id">{{ identity.name }}</option>
-            }
-          </select>
-        </label>
-        <label
-          >{{ "confluence.workspace.vlan.slots" | transloco }}
-          <input
-            hlmInput
-            [name]="'grantSlots' + i"
-            [(ngModel)]="grant.slots"
-            required
-            placeholder="2,4,10-100"
-          />
-        </label>
         <button
           hlmBtn
-          variant="outline"
           type="button"
-          (click)="network.accept_supplicants.splice(i, 1)"
+          size="sm"
+          [disabled]="!text.value.trim()"
+          (click)="portal ? importPortal(target, text.value) : importClient(target, text.value)"
         >
-          {{ "common.actions.delete" | transloco }}
+          {{ "confluence.workspace.vlan.wireGuardImport.apply" | transloco }}
         </button>
       </div>
-    }
-    <button
-      hlmBtn
-      variant="outline"
-      type="button"
-      (click)="addGrant()"
-      [disabled]="!supplicants.length"
-    >
-      {{ "confluence.workspace.vlan.addGrant" | transloco }}
-    </button>
-  </fieldset>
-  <p class="text-sm text-muted-foreground">{{ "confluence.workspace.vlan.hint" | transloco }}</p>
-  @if (error()) {
-    <p role="alert">{{ "confluence.workspace.vlan.saveError" | transloco }}</p>
+    </div>
+  } @else if (notice?.review) {
+    <p class="vlan-callout" role="status">
+      <ng-icon name="lucideInfo" aria-hidden="true" />
+      <span class="flex-1">{{
+        "confluence.workspace.vlan.wireGuardImport." + notice?.key | transloco
+      }}</span>
+      <button
+        hlmBtn
+        type="button"
+        size="icon-sm"
+        variant="ghost"
+        [attr.aria-label]="'common.actions.close' | transloco"
+        (click)="importNotice.set(undefined)"
+      >
+        <ng-icon name="lucideX" aria-hidden="true" />
+      </button>
+    </p>
   }
-  <button hlmBtn type="submit" [disabled]="form.invalid || busy()">
-    {{ "common.actions.save" | transloco }}
-  </button>
-</form>
+</ng-template>

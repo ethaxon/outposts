@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.6
+
+- **VLAN tunnels** — replaced VLAN-level EasyTier gateways with named tunnels. Each VLAN keeps destination CIDRs and a member list, and each tunnel grants a subset of those members. EasyTier Portal tunnels keep the IPv4 /24 pool, server key, and per-grant slot ranges. WireGuard tunnels store one client configuration per grant, including an imported Interface and its Peers.
+- **Subscriptions** — a request without a slot selects authorized WireGuard tunnels, and a slot also selects EasyTier tunnels whose grants allow it. Each tunnel is one Mihomo proxy, VLAN routes share one selection group, and an authorized VLAN with no matching tunnel still returns its rules with REJECT ahead of DIRECT.
+- **Database upgrade** — the tunnel migration preserves VLAN memberships, workspace links, and EasyTier gateway identities, copies existing slot grants onto each EasyTier tunnel, and writes implicit Portal subnet routes. Stop Confluence and take a restorable backup before upgrading; roll back by restoring that backup with the previous application version.
+- **Release** — bumped the root package, web application, host sidecar, dev proxy, and Confluence crate to `0.4.6`.
+
 ## 0.4.5
 
 - **VLAN editor** — replaced the destination CIDR textarea with a tag-style list that validates and canonicalizes IPv4/IPv6 networks as they are added, and rejects forms the backend would not accept. Gateway subnets are constrained to IPv4 /24 and rewritten to network form on blur.

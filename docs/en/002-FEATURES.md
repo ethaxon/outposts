@@ -16,19 +16,22 @@ The API is served below `/api`; the web client uses `/api/auth/config` only to
 obtain public OIDC client configuration. It is excluded from Bearer-token
 interception.
 
-## EasyTier VLAN subscriptions
+## VLAN subscriptions
 
-In the left sidebar, open **Apps → Confluence → EasyTier VLAN** to manage VLANs and supplicants. Each VLAN has its own gateways, routes and supplicant grants, with slot ranges such as `2,4,10-100`. In a workspace, select existing VLAN cards and save the references. A VLAN can serve multiple workspaces with the same creator. Changes to a shared VLAN take effect in all linked workspaces. Deleting a workspace removes its references. Deleting a VLAN removes its references from all workspaces. Remove the grants before deleting a supplicant.
+Open **Apps → Confluence → VLAN**. A workspace can link multiple VLANs. Each VLAN defines destination CIDRs and an allowed supplicant list. Each tunnel grants access to a subset of that list. Removing a VLAN member also removes that member's tunnel grants and credentials.
 
-Use `confluence/supplicant=example-user&vlans=example-network:10,another-network:20` in the subscription UA, or `?supplicant=example-user&vlans=example-network:10,another-network:20` in its URL. Both sources must describe the same request when present. Duplicate networks, missing identities, disabled networks and unauthorized slots reject the entire request. Rust injects the selected nodes and routes after custom transforms, then encrypts the complete configuration to the shared supplicant's age X25519 recipient. Configure the matching age private key in the client. Responses bypass shared caches.
+- **EasyTier Portal** uses an IPv4 /24 pool, the Portal server key and pre-registered subscription-slot-N clients. Slot ranges belong to each tunnel grant. The client export can fill the endpoint, suggested pool and AllowedIPs. Enter the server key separately.
+- **WireGuard** assigns a client configuration to each tunnel grant. Import one [Interface] and one or more [Peer] sections. Supported fields are Address, PrivateKey, MTU, Endpoint, PublicKey, PresharedKey, AllowedIPs and PersistentKeepalive. All peers use the same keepalive. Devices using the same supplicant share one client credential for the tunnel.
 
-Portals use canonical IPv4 `/24` pools and pre-registered `subscription-slot-N` clients. Keys follow EasyTier's native HKDF-SHA256 derivation. Concurrent devices within one Portal need distinct slots. Distribution permissions apply to subscription credentials; Portal network and ACL settings control network reachability. Gateway private keys reside in the database, are hidden in management responses, and are retained by blank edits matching existing VLAN and gateway identities.
+Each tunnel's AllowedIPs must fit within the VLAN CIDRs. **Recompute VLAN CIDRs from tunnels** replaces the route draft with the normalized union of the configured AllowedIPs and EasyTier Portal subnets. Each tunnel appears as one selectable Mihomo proxy. WireGuard chooses among its own peers. All VLAN routes point to the same selection group, and a selected tunnel may reach only part of the VLAN. Management responses show whether secrets are set and omit their values.
+
+Use `?supplicant=example-user&vlans=office,lab:10` in the subscription URL, or append `confluence/supplicant=example-user&vlans=office,lab:10` to the User-Agent. Both sources must agree when present. Requests without a slot select authorized WireGuard tunnels. Providing a slot also selects EasyTier tunnels whose grants permit it. VLAN membership is required. An authorized VLAN with no matching tunnel still returns its rules and a group with REJECT first and DIRECT available. The subscription is encrypted to the supplicant's age recipient after profile transforms and bypasses shared caches.
 
 ### Database migration
 
 PostgreSQL 18+ is required. Business primary keys use native `uuid` columns with database-generated `uuidv7()` defaults. Existing records and foreign keys are migrated together while preserving timestamps and subscription `resource_token` values. Management API IDs and routes use UUID strings. ts-rs exports these Rust `Uuid` fields through the named TypeScript scalar `UUIDV7 = string`; the alias provides a visible semantic name with structural string compatibility. Subscription credentials use independent random UUIDv4 tokens, exported as the TypeScript scalar `UUIDV4 = string`.
 
-For rollout, stop Confluence, retain a restorable database backup, apply the primary-key migration followed by the VLAN tables migration, then start the matching backend and frontend. Old integer management URLs expire. Restore the backup together with the old application version to reverse the primary-key migration. Register Portal slots, configure VLANs and supplicant grants, link the VLANs to the relevant workspaces, remove legacy VLAN injection from scripts, and update client UA/URL and age settings. Browser script previews cover custom transforms; fetch a subscription to validate native VLAN processing.
+Stop Confluence and take a restorable backup before applying the migrations. The tunnel migration preserves VLAN memberships, workspace links and EasyTier gateway identities. It copies existing slot grants to each EasyTier tunnel and materializes implicit Portal subnet routes. Start matching backend and frontend versions after migration. Roll back by restoring the backup and the previous application version.
 
 ## Authentication
 

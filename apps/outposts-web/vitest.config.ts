@@ -8,25 +8,11 @@ export default defineConfig({
   root: rootDir,
   resolve: {
     alias: [
+      // Mirrors tsconfig.app.json's `@/components/ui/*` mapping; dotted names
+      // (e.g. `app-action.component`) are plain files and fall through to `@`.
       {
-        find: "@/components/ui/button",
-        replacement: resolve(rootDir, "src/components/ui/button/src/index.ts"),
-      },
-      {
-        find: "@/components/ui/input",
-        replacement: resolve(rootDir, "src/components/ui/input/src/index.ts"),
-      },
-      {
-        find: "@/components/ui/sonner",
-        replacement: resolve(rootDir, "src/components/ui/sonner/src/index.ts"),
-      },
-      {
-        find: "@/components/ui/spinner",
-        replacement: resolve(rootDir, "src/components/ui/spinner/src/index.ts"),
-      },
-      {
-        find: "@/components/ui/utils",
-        replacement: resolve(rootDir, "src/components/ui/utils/src/index.ts"),
+        find: /^@\/components\/ui\/([a-z-]+)$/,
+        replacement: resolve(rootDir, "src/components/ui/$1/src/index.ts"),
       },
       { find: "@", replacement: resolve(rootDir, "src") },
     ],

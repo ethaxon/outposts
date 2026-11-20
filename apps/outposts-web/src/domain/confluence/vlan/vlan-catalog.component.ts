@@ -2,40 +2,54 @@ import {
   Component,
   DestroyRef,
   computed,
-  effect,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
   type OnInit,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { FormsModule } from "@angular/forms";
+import { FormsModule, type NgForm } from "@angular/forms";
 import { TranslocoModule } from "@jsverse/transloco";
-import { finalize, type Observable } from "rxjs";
 import { NgIcon, provideIcons } from "@ng-icons/core";
 import {
   lucideCheck,
+  lucideCircleAlert,
+  lucideCloudOff,
   lucideFilePenLine,
+  lucideKeyRound,
+  lucideNetwork,
   lucidePlus,
   lucideRefreshCw,
+  lucideShieldCheck,
   lucideTrash2,
+  lucideX,
 } from "@ng-icons/lucide";
+import { finalize, type Observable } from "rxjs";
 import { AppActionComponent } from "../../../components/ui/app-action.component";
 import { AppCardComponent } from "../../../components/ui/app-card.component";
 import { AppDialogComponent } from "../../../components/ui/app-dialog.component";
+import { AppSkeletonComponent } from "../../../components/ui/app-skeleton.component";
+import { HlmBadge } from "@/components/ui/badge";
 import { HlmButton } from "@/components/ui/button";
+import { HlmCheckboxImports } from "@/components/ui/checkbox";
 import { HlmInputImports } from "@/components/ui/input";
+import { AppOverlayService } from "@/core/servces/app-overlay.service";
 import type { UUIDV7 } from "../bindings/UUIDV7";
 import type { VlanConfig } from "../bindings/VlanConfig";
 import type { VlanNetwork } from "../bindings/VlanNetwork";
 import type { VlanSupplicant } from "../bindings/VlanSupplicant";
 import { ConfluenceService } from "../confluence.service";
 import { VlanEditorComponent } from "./vlan-editor.component";
+import { VlanNameDirective } from "./vlan-name.directive";
 
 type Editor =
   | { kind: "network"; item?: VlanNetwork }
-  | { kind: "supplicant"; item: VlanSupplicant };
+  | { kind: "supplicant"; item: VlanSupplicant; isNew: boolean };
+
+/** Which request is in flight, so only the control that started it shows a spinner. */
+type Action = "refresh" | "references" | "supplicant" | "delete";
 
 @Component({
   selector: "app-vlan-catalog",
@@ -46,42 +60,67 @@ type Editor =
     AppActionComponent,
     AppCardComponent,
     AppDialogComponent,
+    AppSkeletonComponent,
+    HlmBadge,
     HlmButton,
+    ...HlmCheckboxImports,
     ...HlmInputImports,
     VlanEditorComponent,
+    VlanNameDirective,
   ],
   templateUrl: "./vlan-catalog.component.html",
   styleUrl: "./vlan-catalog.component.scss",
-  // The /vlans route renders this component standalone, so it provides its own icons.
+  // Also rendered by the /vlans page outside the module's declarations, so it provides its own icons.
   viewProviders: [
-    provideIcons({ lucideCheck, lucideFilePenLine, lucidePlus, lucideRefreshCw, lucideTrash2 }),
+    provideIcons({
+      lucideCheck,
+      lucideCircleAlert,
+      lucideCloudOff,
+      lucideFilePenLine,
+      lucideKeyRound,
+      lucideNetwork,
+      lucidePlus,
+      lucideRefreshCw,
+      lucideShieldCheck,
+      lucideTrash2,
+      lucideX,
+    }),
   ],
 })
 export class VlanCatalogComponent implements OnInit {
   private readonly service = inject(ConfluenceService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly overlay = inject(AppOverlayService);
   readonly workspaceId = input<UUIDV7>();
   readonly vlanIds = input<UUIDV7[]>([]);
   readonly referencesSaved = output<UUIDV7[]>();
 
   readonly catalog = signal<VlanConfig | undefined>(undefined);
-  readonly selected = signal<ReadonlySet<UUIDV7>>(new Set());
+  // Local draft of the workspace links, reset whenever the saved links or workspace change.
+  readonly selected = linkedSignal<ReadonlySet<UUIDV7>>(() => {
+    this.workspaceId();
+    return new Set(this.vlanIds());
+  });
   readonly editor = signal<Editor | undefined>(undefined);
   readonly pendingDeletion = signal<string | undefined>(undefined);
-  readonly busy = signal(false);
+  readonly action = signal<Action | undefined>(undefined);
+  readonly busy = computed(() => this.action() !== undefined);
   readonly error = signal("");
   readonly dirty = computed(() => {
     const saved = this.vlanIds();
     const selected = this.selected();
     return saved.length !== selected.size || saved.some((id) => !selected.has(id));
   });
-
-  constructor() {
-    effect(() => {
-      this.workspaceId();
-      this.selected.set(new Set(this.vlanIds()));
-    });
-  }
+  /** Stable order: the API appends edits to the end, which would make cards jump. */
+  readonly networks = computed(() =>
+    [...(this.catalog()?.vlan_configs ?? [])].sort((a, b) => a.network.localeCompare(b.network)),
+  );
+  readonly supplicants = computed(() =>
+    [...(this.catalog()?.supplicant_configs ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+  );
+  readonly skeletons = [0, 1];
+  /** Label widths for the three meta rows, so skeleton rows don't look cloned. */
+  readonly skeletonRows = ["45%", "38%", "30%"];
 
   ngOnInit() {
     this.refresh();
@@ -89,6 +128,7 @@ export class VlanCatalogComponent implements OnInit {
 
   refresh() {
     this.request(
+      "refresh",
       this.service.getVlanCatalog(),
       (data) => {
         this.catalog.set(data);
@@ -108,10 +148,15 @@ export class VlanCatalogComponent implements OnInit {
     });
   }
 
+  toggleSelection(id: UUIDV7) {
+    if (this.workspaceId() && !this.busy()) this.select(id, !this.selected().has(id));
+  }
+
   saveReferences() {
     const id = this.workspaceId();
-    if (!id) return;
+    if (!id || !this.dirty()) return;
     this.request(
+      "references",
       this.service.updateWorkspaceVlans(id, { vlan_ids: [...this.selected()] }),
       (ids) => {
         this.selected.set(new Set(ids));
@@ -121,6 +166,7 @@ export class VlanCatalogComponent implements OnInit {
   }
 
   editNetwork(item?: VlanNetwork) {
+    this.error.set("");
     this.editor.set({ kind: "network", item });
   }
 
@@ -129,6 +175,7 @@ export class VlanCatalogComponent implements OnInit {
     this.editor.set({
       kind: "supplicant",
       item: item ? { ...item } : { id: "", name: "", age_recipient: "" },
+      isNew: !item,
     });
   }
 
@@ -151,8 +198,16 @@ export class VlanCatalogComponent implements OnInit {
     this.closeEditor();
   }
 
+  submitSupplicant(form: NgForm, item: VlanSupplicant) {
+    if (form.invalid) {
+      form.control.markAllAsTouched();
+      return;
+    }
+    this.saveSupplicant(item);
+  }
+
   saveSupplicant(item: VlanSupplicant) {
-    this.request(this.service.saveSupplicant(item), (saved) => {
+    this.request("supplicant", this.service.saveSupplicant(item), (saved) => {
       this.catalog.update(
         (data) =>
           data && {
@@ -168,15 +223,31 @@ export class VlanCatalogComponent implements OnInit {
   }
 
   isGranted(id: string) {
+    return this.membershipCount(id) > 0;
+  }
+
+  membershipCount(id: string) {
     return (
-      this.catalog()?.vlan_configs.some((vlan) =>
+      this.catalog()?.vlan_configs.filter((vlan) =>
         vlan.accept_supplicants.some((grant) => grant.supplicant_id === id),
-      ) ?? false
+      ).length ?? 0
     );
   }
 
+  tunnelTypes(network: VlanNetwork) {
+    return {
+      portals: network.tunnels.filter((tunnel) => tunnel.type === "easytier-gateway").length,
+      wireguard: network.tunnels.filter((tunnel) => tunnel.type === "wireguard-compatible").length,
+    };
+  }
+
+  /** age recipients are long bech32 strings; the ends are what people compare. */
+  shortRecipient(recipient: string) {
+    return recipient.length > 20 ? `${recipient.slice(0, 10)}…${recipient.slice(-6)}` : recipient;
+  }
+
   deleteNetwork(id: UUIDV7) {
-    this.request(this.service.removeVlan(id), () => {
+    this.request("delete", this.service.removeVlan(id), () => {
       this.catalog.update(
         (data) =>
           data && {
@@ -184,12 +255,13 @@ export class VlanCatalogComponent implements OnInit {
             vlan_configs: data.vlan_configs.filter((network) => network.id !== id),
           },
       );
+      this.select(id, false);
       this.pendingDeletion.set(undefined);
     });
   }
 
   deleteSupplicant(id: UUIDV7) {
-    this.request(this.service.removeSupplicant(id), () => {
+    this.request("delete", this.service.removeSupplicant(id), () => {
       this.catalog.update(
         (data) =>
           data && {
@@ -201,14 +273,24 @@ export class VlanCatalogComponent implements OnInit {
     });
   }
 
-  private request<T>(request: Observable<T>, success: (result: T) => void, errorKey = "saveError") {
+  private request<T>(
+    action: Action,
+    request: Observable<T>,
+    success: (result: T) => void,
+    errorKey = "saveError",
+  ) {
     if (this.busy()) return;
-    this.busy.set(true);
+    this.action.set(action);
     this.error.set("");
-    request
+    // Standalone loads use the app-wide suspense (overlay spinner + error toast) like
+    // the dashboard. Embedded in a workspace, that page already drives the overlay and
+    // `loading$$` is a shared boolean, so a second suspense would end it early.
+    const suspend = action === "refresh" && !this.workspaceId();
+    const source = suspend ? this.overlay.withSuspense(request) : request;
+    source
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.busy.set(false)),
+        finalize(() => this.action.set(undefined)),
       )
       .subscribe({
         next: success,
